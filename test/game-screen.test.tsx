@@ -23,5 +23,7 @@ describe('GameScreen', () => {
     expect(markup).toContain('Chân dung nhân vật chính')
     expect(markup).toContain('Những gương mặt của giang hồ')
     expect(markup).toContain('Bộ sưu tập vật phẩm tu tiên')
+    expect(markup).toContain('data-npc-id="n_elder_meihua"')
+    expect((markup.match(/npc-portrait-card/g) ?? [])).toHaveLength(6)
   })
 })
