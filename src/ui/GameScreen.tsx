@@ -15,11 +15,13 @@ import {
 import { currentBeat, dangerWarning, storageRemaining } from '../engine'
 import type { Action, ConcreteAction, GameState, Locale } from '../engine'
 import itemsStillLife from '../assets/art/items-still-life.png'
-import npcEnsemble from '../assets/art/npc-ensemble.png'
 import protagonistPortrait from '../assets/art/protagonist-portrait.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
+import { npcPortraitFor } from './npcArt'
 
 export interface GameScreenProps {
+  actionKind?: Action['kind'] | null
+  actionNonce?: number
   game: GameState
   locale: Locale
   chronicle: string[]
@@ -83,7 +85,7 @@ function itemName(itemId: string, locale: Locale): string {
   return item === undefined ? itemId : localized(locale, item)
 }
 
-export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }: GameScreenProps) {
+export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const beat = useMemo(() => currentBeat(game), [game])
   const chapter = CHAPTERS.find((entry) => entry.index === beat.chapter) ?? {
@@ -109,7 +111,7 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
   }
 
   return (
-    <main className="game-shell" data-testid="game-screen">
+    <main className={`game-shell action-${actionKind ?? 'idle'}`} data-testid="game-screen">
       <header className="topbar">
         <div className="brand">
           <span className="brand-seal" aria-hidden="true">玄</span>
@@ -170,7 +172,7 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
                 return (
                   <div className="map-cell" key={`${cell.x}-${cell.y}`}>
                     {loc !== undefined && <span className="map-location-pin" title={localized(locale, loc)} />}
-                    {isPlayer && <span className="player-map-marker" title={word(locale, 'Nhân vật của bạn', 'Your character')} />}
+                    {isPlayer && <span className={`player-map-marker action-${actionKind ?? 'idle'}`} data-testid="player-map-marker" key={`player-${actionNonce}`} title={word(locale, 'Nhân vật của bạn', 'Your character')} />}
                   </div>
                 )
               })}
@@ -238,7 +240,7 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
         <aside className="hud-panel">
           <section className="stats-card ink-card" aria-labelledby="stats-title">
             <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2><span>{word(locale, 'cảnh', 'stage')} {game.player.stage}</span></div>
-            <figure className="protagonist-portrait">
+            <figure className={`protagonist-portrait ${actionKind === 'train' ? 'is-cultivating' : actionKind === 'rest' ? 'is-resting' : ''}`}>
               <img alt={word(locale, 'Chân dung nhân vật chính', 'Protagonist portrait')} src={protagonistPortrait} />
             </figure>
             <Meter label="HP" value={game.player.hp} max={100} tone="red" />
@@ -266,18 +268,18 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
       </div>
 
       <div className="lower-grid">
-        <section className="parchment-panel utility-panel" aria-labelledby="people-title">
+        <section className="parchment-panel utility-panel people-panel" aria-labelledby="people-title">
           <div className="panel-heading compact"><h2 id="people-title">{word(locale, 'Người ở đây', 'People here')}</h2><span>{localNpcs.length}</span></div>
-          <img alt={word(locale, 'Những gương mặt của giang hồ', 'Faces of the wandering world')} className="npc-ensemble-art" src={npcEnsemble} />
+          <p className="section-kicker npc-gallery-label">{word(locale, 'Những gương mặt của giang hồ', 'Faces of the wandering world')}</p>
           {localNpcs.length === 0 ? <p className="muted">{word(locale, 'Chỉ có gió trả lời.', 'Only the wind answers.')}</p> : (
-            <ul className="npc-list">
+            <div className="npc-gallery">
               {localNpcs.map((npc) => (
-                <li key={npc.id}>
-                  <div><strong>{localized(locale, npc)}</strong><span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span></div>
-                  <button disabled={game.terminal} onClick={() => onAction({ kind: 'talk', npcId: npc.id })} type="button">{word(locale, 'Nói', 'Talk')}</button>
-                </li>
+                <article className={`npc-portrait-card ${actionKind === 'talk' ? 'is-speaking' : ''}`} data-npc-id={npc.id} key={npc.id}>
+                  <img alt={`${word(locale, 'Chân dung', 'Portrait of')} ${localized(locale, npc)}`} src={npcPortraitFor(npc.id)} />
+                  <div><strong>{localized(locale, npc)}</strong><span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span><button disabled={game.terminal} onClick={() => onAction({ kind: 'talk', npcId: npc.id })} type="button">{word(locale, 'Nói chuyện', 'Talk')}</button></div>
+                </article>
               ))}
-            </ul>
+            </div>
           )}
         </section>
 
@@ -298,7 +300,7 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
 
         <section className="parchment-panel utility-panel" aria-labelledby="inventory-title">
           <div className="panel-heading compact"><h2 id="inventory-title">{word(locale, 'Túi đồ & kho', 'Inventory & storage')}</h2><span>{storageRemaining(game)} {word(locale, 'ô kho', 'storage left')}</span></div>
-          <img alt={word(locale, 'Bộ sưu tập vật phẩm tu tiên', 'Cultivation item collection')} className="item-collection-art" src={itemsStillLife} />
+          <img alt={word(locale, 'Bộ sưu tập vật phẩm tu tiên', 'Cultivation item collection')} className={`item-collection-art ${actionKind === 'use_item' ? 'is-used' : ''}`} src={itemsStillLife} />
           <ul className="item-list">
             {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
               const item = getItem(id)

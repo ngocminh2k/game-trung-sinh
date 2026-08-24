@@ -26,6 +26,7 @@ function initialSession(): GameSession {
 
 function App() {
   const [session, setSession] = useState<GameSession>(initialSession)
+  const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
   const sessionRef = useRef(session)
 
   useEffect(() => {
@@ -46,6 +47,7 @@ function App() {
     }
     sessionRef.current = next
     setSession(next)
+    setMotion((current) => ({ kind: action.kind, nonce: current.nonce + 1 }))
 
     void requestNarration(result.state, result.events, previous.locale).then((line) => {
       if (line === null) return
@@ -95,7 +97,7 @@ function App() {
     setSession(next)
   }, [])
 
-  return <GameScreen game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} />
+  return <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} />
 }
 
 export default App

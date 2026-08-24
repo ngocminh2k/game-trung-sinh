@@ -16,7 +16,7 @@ describe('browser game journey', () => {
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
     expect(await screen.findByText('Chợ Vân Tập', { exact: true })).toBeTruthy()
     expect(screen.getByTestId('game-screen').className).toContain('action-move')
-    expect(document.querySelector('.player-map-marker')?.className).toContain('action-move')
+    expect(screen.getByTestId('player-map-marker').className).toContain('action-move')
 
     await user.click(screen.getByRole('button', { name: 'EN' }))
     expect(screen.getByRole('heading', { name: 'Journey map' })).toBeTruthy()
