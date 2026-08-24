@@ -1,0 +1,343 @@
+import { FormEvent, useMemo, useState, type CSSProperties } from 'react'
+import {
+  ACHIEVEMENTS,
+  CELLS,
+  CHAPTERS,
+  ENDINGS,
+  MAP_HEIGHT,
+  MAP_WIDTH,
+  NPCS,
+  QUESTS,
+  SHOP_STOCK,
+  getItem,
+  getLocation,
+} from '../content'
+import { currentBeat, dangerWarning, storageRemaining } from '../engine'
+import type { Action, ConcreteAction, GameState, Locale } from '../engine'
+
+export interface GameScreenProps {
+  game: GameState
+  locale: Locale
+  chronicle: string[]
+  onAction: (action: Action) => void
+  onLocaleChange: (locale: Locale) => void
+}
+
+const TERRAINS: Record<string, { icon: string; labelVi: string; labelEn: string }> = {
+  plain: { icon: '·', labelVi: 'đồng cỏ', labelEn: 'grassland' },
+  road: { icon: '╱', labelVi: 'đường', labelEn: 'road' },
+  water: { icon: '≈', labelVi: 'nước', labelEn: 'water' },
+  mountain: { icon: '▲', labelVi: 'núi', labelEn: 'mountain' },
+  forest: { icon: '♣', labelVi: 'rừng', labelEn: 'forest' },
+  cave: { icon: '◒', labelVi: 'hang', labelEn: 'cave' },
+  rift: { icon: '✦', labelVi: 'khe nứt', labelEn: 'rift' },
+}
+
+function word(locale: Locale, vi: string, en: string): string {
+  return locale === 'vi' ? vi : en
+}
+
+function localized(locale: Locale, item: { nameVi: string; nameEn: string }): string {
+  return locale === 'vi' ? item.nameVi : item.nameEn
+}
+
+function actionLabel(action: ConcreteAction, locale: Locale): string {
+  switch (action.kind) {
+    case 'move':
+      return word(locale, `Đi ${directionLabel(action.direction, locale)}`, `Walk ${directionLabel(action.direction, locale)}`)
+    case 'rest':
+      return word(locale, 'Nghỉ dưỡng thương', 'Rest and recover')
+    case 'train':
+      return word(locale, 'Tu luyện', 'Cultivate')
+    case 'gather':
+      return word(locale, 'Hái linh thảo', 'Gather spirit herbs')
+    case 'buy':
+      return word(locale, `Mua ${itemName(action.itemId, locale)}`, `Buy ${itemName(action.itemId, locale)}`)
+    case 'sell':
+      return word(locale, `Bán ${itemName(action.itemId, locale)}`, `Sell ${itemName(action.itemId, locale)}`)
+    case 'use_item':
+      return word(locale, `Dùng ${itemName(action.itemId, locale)}`, `Use ${itemName(action.itemId, locale)}`)
+    case 'store':
+      return word(locale, `Gửi ${itemName(action.itemId, locale)}`, `Store ${itemName(action.itemId, locale)}`)
+    case 'withdraw':
+      return word(locale, `Lấy ${itemName(action.itemId, locale)}`, `Withdraw ${itemName(action.itemId, locale)}`)
+    case 'draw_lottery':
+      return word(locale, 'Quay vận mệnh', 'Draw fortune')
+    case 'talk': {
+      const npc = NPCS.find((entry) => entry.id === action.npcId)
+      return word(locale, `Nói chuyện với ${npc === undefined ? action.npcId : localized(locale, npc)}`, `Speak to ${npc === undefined ? action.npcId : localized(locale, npc)}`)
+    }
+    case 'accept_quest':
+      return word(locale, 'Nhận nhiệm vụ', 'Accept quest')
+    case 'complete_quest':
+      return word(locale, 'Hoàn thành nhiệm vụ', 'Complete quest')
+  }
+}
+
+function directionLabel(direction: 'north' | 'south' | 'east' | 'west', locale: Locale): string {
+  const labels = {
+    north: word(locale, 'bắc', 'north'),
+    south: word(locale, 'nam', 'south'),
+    east: word(locale, 'đông', 'east'),
+    west: word(locale, 'tây', 'west'),
+  }
+  return labels[direction]
+}
+
+function itemName(itemId: string, locale: Locale): string {
+  const item = getItem(itemId)
+  return item === undefined ? itemId : localized(locale, item)
+}
+
+export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }: GameScreenProps) {
+  const [command, setCommand] = useState('')
+  const beat = useMemo(() => currentBeat(game), [game])
+  const chapter = CHAPTERS.find((entry) => entry.index === beat.chapter) ?? {
+    index: 1,
+    nameVi: 'Chương một',
+    nameEn: 'Chapter One',
+    taglineVi: 'Đường mới mở ra.',
+    taglineEn: 'A new road opens.',
+  }
+  const location = getLocation(game.player.locationId)
+  const warning = dangerWarning(game.player.locationId)
+  const localNpcs = NPCS.filter((npc) => npc.locationId === game.player.locationId)
+  const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
+  const entries = Object.entries(game.inventory).filter(([, qty]) => qty > 0)
+  const stored = Object.entries(game.storage).filter(([, qty]) => qty > 0)
+
+  const submitCommand = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const raw = command.trim()
+    if (raw.length === 0 || game.terminal) return
+    onAction({ kind: 'free_text', raw })
+    setCommand('')
+  }
+
+  return (
+    <main className="game-shell" data-testid="game-screen">
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-seal" aria-hidden="true">玄</span>
+          <div>
+            <p className="eyebrow">{word(locale, 'Kịch bản I · một mạng duy nhất', 'Scenario I · one life only')}</p>
+            <h1>Phế Căn Ký <span>/ Tale of the Broken Root</span></h1>
+          </div>
+        </div>
+        <div className="topbar-actions">
+          <span className="day-chip">{word(locale, 'Ngày', 'Day')} {game.day}</span>
+          <div className="language-toggle" role="group" aria-label="Language">
+            <button className={locale === 'vi' ? 'active' : ''} onClick={() => onLocaleChange('vi')} type="button">VI</button>
+            <button className={locale === 'en' ? 'active' : ''} onClick={() => onLocaleChange('en')} type="button">EN</button>
+          </div>
+        </div>
+      </header>
+
+      <section className="chapter-banner" aria-label={word(locale, 'Chương truyện hiện tại', 'Current story chapter')}>
+        <p>{word(locale, 'Chương hiện tại', 'Current chapter')}</p>
+        <h2>{localized(locale, chapter)}</h2>
+        <span>{locale === 'vi' ? chapter.taglineVi : chapter.taglineEn}</span>
+      </section>
+
+      {warning !== null && (
+        <section className={`danger-banner danger-${warning.level}`} role="status">
+          <strong>⚠ {word(locale, 'Cảnh báo hiểm địa', 'Danger warning')}</strong>
+          <span>{locale === 'vi' ? warning.messageVi : warning.messageEn}</span>
+        </section>
+      )}
+
+      {game.terminal && ending !== undefined && (
+        <section className="ending-banner" role="status">
+          <p>{word(locale, 'Kết cục đã định', 'Your ending')}</p>
+          <h2>{localized(locale, ending)}</h2>
+          <span>{locale === 'vi' ? ending.epitaphVi : ending.epitaphEn}</span>
+        </section>
+      )}
+
+      <div className="game-grid">
+        <section className="map-panel parchment-panel" aria-labelledby="map-title">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">{word(locale, 'WASD / phím mũi tên', 'WASD / arrow keys')}</p>
+              <h2 id="map-title">{word(locale, 'Bản đồ hành trình', 'Journey map')}</h2>
+            </div>
+            <span className="location-label">{location === undefined ? game.player.locationId : localized(locale, location)}</span>
+          </div>
+          <div
+            className="world-map"
+            aria-label={word(locale, 'Bản đồ tu tiên bảy ô vuông', 'Seven by seven cultivation map')}
+            style={{ '--map-columns': MAP_WIDTH, '--map-rows': MAP_HEIGHT } as CSSProperties}
+          >
+            {CELLS.map((cell) => {
+              const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
+              const terrain = TERRAINS[cell.terrain] ?? TERRAINS.plain!
+              const loc = cell.locationId === undefined ? undefined : getLocation(cell.locationId)
+              return (
+                <div
+                  className={`map-cell terrain-${cell.terrain} ${isPlayer ? 'is-player' : ''} ${loc === undefined ? '' : 'has-location'}`}
+                  key={`${cell.x}-${cell.y}`}
+                  title={loc === undefined ? word(locale, terrain.labelVi, terrain.labelEn) : localized(locale, loc)}
+                >
+                  <span className="terrain-mark" aria-hidden="true">{terrain.icon}</span>
+                  {loc !== undefined && <span className="map-location-dot" aria-label={localized(locale, loc)} />}
+                  {isPlayer && <span className="player-token" aria-label={word(locale, 'Nhân vật của bạn', 'Your character')}>人</span>}
+                </div>
+              )
+            })}
+          </div>
+          <div className="map-legend" aria-label={word(locale, 'Chú giải bản đồ', 'Map legend')}>
+            <span><i className="legend-player" />{word(locale, 'Ngươi', 'You')}</span>
+            <span><i className="legend-town" />{word(locale, 'Địa điểm', 'Location')}</span>
+            <span>{word(locale, 'Di chuyển bằng bàn phím; địa hình nước và núi bị chặn.', 'Move by keyboard; water and mountains block travel.')}</span>
+          </div>
+        </section>
+
+        <section className="story-panel parchment-panel" aria-labelledby="story-title">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">{word(locale, 'Cốt truyện deterministic', 'Deterministic story')}</p>
+              <h2 id="story-title">{locale === 'vi' ? beat.titleVi : beat.titleEn}</h2>
+            </div>
+            <span className="root-badge">{word(locale, 'Linh căn', 'Spirit root')}: {locale === 'vi' ? game.spiritRoot.elementVi : game.spiritRoot.elementEn}</span>
+          </div>
+          <p className="beat-copy">{locale === 'vi' ? beat.textVi : beat.textEn}</p>
+
+          <div className="choice-area">
+            <p className="section-kicker">{word(locale, 'Lựa chọn của ngươi', 'Your choices')}</p>
+            <div className="story-choices">
+              {beat.suggested.map((action, index) => (
+                <button
+                  className="choice-button"
+                  disabled={game.terminal}
+                  key={`${action.kind}-${index}`}
+                  onClick={() => onAction(action)}
+                  type="button"
+                >
+                  <span>{index + 1}</span>
+                  {actionLabel(action, locale)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <form className="command-form" onSubmit={submitCommand}>
+            <label htmlFor="free-command">{word(locale, 'Viết hành động khác', 'Write another action')}</label>
+            <div>
+              <input
+                disabled={game.terminal}
+                id="free-command"
+                maxLength={180}
+                onChange={(event) => setCommand(event.target.value)}
+                placeholder={word(locale, 'Ví dụ: nói chuyện với cụ Mai Hoa', 'Example: talk to Elder Meihua')}
+                value={command}
+              />
+              <button disabled={game.terminal || command.trim().length === 0} type="submit">{word(locale, 'Thử vận', 'Act')}</button>
+            </div>
+            <small>{word(locale, 'Điều vô lý sẽ được người kể chuyện đưa về một lựa chọn hợp lệ sau vài lượt.', 'Absurd actions are guided back to a valid path after a few turns.')}</small>
+          </form>
+
+          <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')}>
+            <p className="section-kicker">{word(locale, 'Biên niên ký', 'Chronicle')}</p>
+            <ol>
+              {chronicle.slice(-8).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
+            </ol>
+          </div>
+        </section>
+
+        <aside className="hud-panel">
+          <section className="stats-card ink-card" aria-labelledby="stats-title">
+            <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2><span>{word(locale, 'cảnh', 'stage')} {game.player.stage}</span></div>
+            <Meter label="HP" value={game.player.hp} max={100} tone="red" />
+            <Meter label="Qi" value={game.player.qi} max={60} tone="jade" />
+            <Meter label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={120} tone="gold" />
+            <div className="stat-strip">
+              <span>◎ {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
+              <span>{word(locale, 'Căn hiệu', 'root rate')} {Math.round(game.spiritRoot.efficiency * 100)}%</span>
+            </div>
+            <dl className="attributes">
+              <div><dt>{word(locale, 'Thân', 'Body')}</dt><dd>{game.player.attrs.body}</dd></div>
+              <div><dt>{word(locale, 'Tâm', 'Mind')}</dt><dd>{game.player.attrs.mind}</dd></div>
+              <div><dt>{word(locale, 'Mị', 'Charm')}</dt><dd>{game.player.attrs.charm}</dd></div>
+              <div><dt>{word(locale, 'Vận', 'Luck')}</dt><dd>{game.player.attrs.luck}</dd></div>
+            </dl>
+          </section>
+
+          <section className="quick-actions ink-card" aria-label={word(locale, 'Thao tác nhanh', 'Quick actions')}>
+            <button disabled={game.terminal} onClick={() => onAction({ kind: 'rest' })} type="button">☾ {word(locale, 'Nghỉ', 'Rest')}</button>
+            <button disabled={game.terminal} onClick={() => onAction({ kind: 'train' })} type="button">☯ {word(locale, 'Tu luyện', 'Cultivate')}</button>
+            <button disabled={game.terminal} onClick={() => onAction({ kind: 'gather' })} type="button">✿ {word(locale, 'Hái thảo', 'Gather')}</button>
+            <button disabled={game.terminal} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">☼ {word(locale, 'Quay', 'Draw')}</button>
+          </section>
+        </aside>
+      </div>
+
+      <div className="lower-grid">
+        <section className="parchment-panel utility-panel" aria-labelledby="people-title">
+          <div className="panel-heading compact"><h2 id="people-title">{word(locale, 'Người ở đây', 'People here')}</h2><span>{localNpcs.length}</span></div>
+          {localNpcs.length === 0 ? <p className="muted">{word(locale, 'Chỉ có gió trả lời.', 'Only the wind answers.')}</p> : (
+            <ul className="npc-list">
+              {localNpcs.map((npc) => (
+                <li key={npc.id}>
+                  <div><strong>{localized(locale, npc)}</strong><span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span></div>
+                  <button disabled={game.terminal} onClick={() => onAction({ kind: 'talk', npcId: npc.id })} type="button">{word(locale, 'Nói', 'Talk')}</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="parchment-panel utility-panel" aria-labelledby="quest-title">
+          <div className="panel-heading compact"><h2 id="quest-title">{word(locale, 'Nhiệm vụ', 'Quests')}</h2><span>{QUESTS.filter((quest) => game.quests[quest.id]?.status === 'completed').length}/{QUESTS.length}</span></div>
+          <ul className="quest-list">
+            {QUESTS.map((quest) => {
+              const status = game.quests[quest.id]?.status ?? 'available'
+              return <li key={quest.id} className={`quest-${status}`}>
+                <div><strong>{localized(locale, quest)}</strong><span>{locale === 'vi' ? quest.descVi : quest.descEn}</span></div>
+                {status === 'available' && <button disabled={game.terminal} onClick={() => onAction({ kind: 'accept_quest', questId: quest.id })} type="button">{word(locale, 'Nhận', 'Accept')}</button>}
+                {status === 'active' && <button disabled={game.terminal} onClick={() => onAction({ kind: 'complete_quest', questId: quest.id })} type="button">{word(locale, 'Nộp', 'Turn in')}</button>}
+                {status === 'completed' && <em>{word(locale, 'Xong', 'Done')}</em>}
+              </li>
+            })}
+          </ul>
+        </section>
+
+        <section className="parchment-panel utility-panel" aria-labelledby="inventory-title">
+          <div className="panel-heading compact"><h2 id="inventory-title">{word(locale, 'Túi đồ & kho', 'Inventory & storage')}</h2><span>{storageRemaining(game)} {word(locale, 'ô kho', 'storage left')}</span></div>
+          <ul className="item-list">
+            {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
+              const item = getItem(id)
+              return <li key={id}><div><strong>{itemName(id, locale)} ×{qty}</strong><span>{item === undefined ? '' : locale === 'vi' ? item.descVi : item.descEn}</span></div><div className="item-actions">{item?.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: id })} type="button">{word(locale, 'Dùng', 'Use')}</button>}<button disabled={game.terminal} onClick={() => onAction({ kind: 'store', itemId: id, qty: 1 })} type="button">{word(locale, 'Gửi', 'Store')}</button></div></li>
+            })}
+          </ul>
+          {stored.length > 0 && <div className="storage-list"><p className="section-kicker">{word(locale, 'Trong kho', 'In storage')}</p>{stored.map(([id, qty]) => <button disabled={game.terminal} key={id} onClick={() => onAction({ kind: 'withdraw', itemId: id, qty: 1 })} type="button">{itemName(id, locale)} ×{qty} · {word(locale, 'lấy', 'take')}</button>)}</div>}
+        </section>
+
+        <section className="parchment-panel utility-panel" aria-labelledby="market-title">
+          <div className="panel-heading compact"><h2 id="market-title">{word(locale, 'Chợ & thành tựu', 'Market & achievements')}</h2><span>{game.achievements.length}/{ACHIEVEMENTS.length}</span></div>
+          <div className="shop-list">
+            {SHOP_STOCK.map((id) => {
+              const item = getItem(id)
+              if (item === undefined || item.buyPrice === null) return null
+              return <div key={id}><span>{itemName(id, locale)} · {item.buyPrice}◎</span><button disabled={game.terminal || game.player.locationId !== 'market'} onClick={() => onAction({ kind: 'buy', itemId: id })} type="button">{word(locale, 'Mua', 'Buy')}</button></div>
+            })}
+          </div>
+          <div className="achievements">
+            {ACHIEVEMENTS.map((achievement) => <span className={game.achievements.includes(achievement.id) ? 'unlocked' : ''} key={achievement.id} title={locale === 'vi' ? achievement.descVi : achievement.descEn}>✦ {localized(locale, achievement)}</span>)}
+          </div>
+        </section>
+      </div>
+    </main>
+  )
+}
+
+interface MeterProps {
+  label: string
+  value: number
+  max: number
+  tone: 'red' | 'jade' | 'gold'
+}
+
+function Meter({ label, value, max, tone }: MeterProps) {
+  const percent = Math.max(0, Math.min(100, (value / max) * 100))
+  return <div className="meter"><div><span>{label}</span><strong>{value}/{max}</strong></div><span className={`meter-track ${tone}`}><i style={{ width: `${percent}%` }} /></span></div>
+}
