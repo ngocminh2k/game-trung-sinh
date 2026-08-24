@@ -1,0 +1,80 @@
+import type { ItemDef } from '../engine/content-types'
+import { ITEM_HERB, ITEM_MANUAL, ITEM_TALISMAN } from '../engine/constants'
+
+export const ITEMS: ItemDef[] = [
+  {
+    id: ITEM_HERB,
+    nameVi: 'Linh thảo',
+    nameEn: 'Spirit Herb',
+    descVi: 'Cỏ ba lá ngọc, nhai giòn tan, khí ấm lan ra.',
+    descEn: 'A jade trefoil; chewy, with warmth spreading after.',
+    aliases: ['herb', 'linh thao', 'thao'],
+    usable: true,
+    effects: { qi: 8 },
+    buyPrice: null,
+    sellPrice: 12,
+  },
+  {
+    id: 'pill_hp',
+    nameVi: 'Viên hồi nguyên',
+    nameEn: 'Restoration Pill',
+    descVi: 'Ngọt hậu vị đắng, máu chạy như suối mùa xuân.',
+    descEn: 'Sweet then bitter; blood runs like a spring stream.',
+    aliases: ['hp pill', 'vien hoi nguyen', 'hoi nguyen', 'healing pill'],
+    usable: true,
+    effects: { hp: 25 },
+    buyPrice: 35,
+    sellPrice: 17,
+  },
+  {
+    id: 'pill_qi',
+    nameVi: 'Viên tụ khí',
+    nameEn: 'Qi-Gathering Pill',
+    descVi: 'Tan trên lưỡi như sương, dạ dày ấm áp khí.',
+    descEn: 'Melts like dew on the tongue; the belly hums with qi.',
+    aliases: ['qi pill', 'vien tu khi', 'tu khi', 'qi'],
+    usable: true,
+    effects: { qi: 20 },
+    buyPrice: 30,
+    sellPrice: 15,
+  },
+  {
+    id: ITEM_TALISMAN,
+    nameVi: 'Bùa trừ tà',
+    nameEn: 'Warding Talisman',
+    descVi: 'Nét chữ đỏ còn thơm mùi son, dán lên ngực là yên lòng.',
+    descEn: 'Vermilion strokes still smelling of cinnabar; press it to your chest and breathe easy.',
+    aliases: ['talisman', 'bua tru ta', 'bua', 'ward'],
+    usable: false,
+    buyPrice: 40,
+    sellPrice: 20,
+  },
+  {
+    id: 'jade_charm',
+    nameVi: 'Ngọc bội',
+    nameEn: 'Jade Charm',
+    descVi: 'Lạnh tay, đẹp một cách không cần chứng minh.',
+    descEn: 'Cool to the touch, beautiful without needing to prove anything.',
+    aliases: ['jade', 'ngoc boi', 'charm', 'ngoc'],
+    usable: false,
+    buyPrice: 60,
+    sellPrice: 45,
+  },
+  {
+    id: ITEM_MANUAL,
+    nameVi: 'Bí kíp cong queo',
+    nameEn: 'The Crooked Manual',
+    descVi: 'Bản chép tay lệch nét dành riêng cho linh căn khuyết tật.',
+    descEn: 'A crooked-handwritten copy made for defective spirit roots.',
+    aliases: ['manual', 'bi kip', 'sach'],
+    usable: false,
+    buyPrice: null,
+    sellPrice: null,
+  },
+]
+
+export function getItem(itemId: string): ItemDef | undefined {
+  return ITEMS.find((i) => i.id === itemId)
+}
+
+export const SHOP_STOCK: string[] = ITEMS.filter((i) => i.buyPrice !== null).map((i) => i.id)

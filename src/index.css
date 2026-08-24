@@ -1,0 +1,10 @@
+/* Placeholder only — real ink-wash/paper-and-jade theming arrives with the UI round. */
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f5efe3;
+}
