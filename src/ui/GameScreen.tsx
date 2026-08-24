@@ -14,6 +14,10 @@ import {
 } from '../content'
 import { currentBeat, dangerWarning, storageRemaining } from '../engine'
 import type { Action, ConcreteAction, GameState, Locale } from '../engine'
+import itemsStillLife from '../assets/art/items-still-life.png'
+import npcEnsemble from '../assets/art/npc-ensemble.png'
+import protagonistPortrait from '../assets/art/protagonist-portrait.png'
+import worldMapArt from '../assets/art/world-map-inkwash.png'
 
 export interface GameScreenProps {
   game: GameState
@@ -21,16 +25,6 @@ export interface GameScreenProps {
   chronicle: string[]
   onAction: (action: Action) => void
   onLocaleChange: (locale: Locale) => void
-}
-
-const TERRAINS: Record<string, { icon: string; labelVi: string; labelEn: string }> = {
-  plain: { icon: '·', labelVi: 'đồng cỏ', labelEn: 'grassland' },
-  road: { icon: '╱', labelVi: 'đường', labelEn: 'road' },
-  water: { icon: '≈', labelVi: 'nước', labelEn: 'water' },
-  mountain: { icon: '▲', labelVi: 'núi', labelEn: 'mountain' },
-  forest: { icon: '♣', labelVi: 'rừng', labelEn: 'forest' },
-  cave: { icon: '◒', labelVi: 'hang', labelEn: 'cave' },
-  rift: { icon: '✦', labelVi: 'khe nứt', labelEn: 'rift' },
 }
 
 function word(locale: Locale, vi: string, en: string): string {
@@ -164,26 +158,23 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
             <span className="location-label">{location === undefined ? game.player.locationId : localized(locale, location)}</span>
           </div>
           <div
-            className="world-map"
-            aria-label={word(locale, 'Bản đồ tu tiên bảy ô vuông', 'Seven by seven cultivation map')}
+            className="world-map illustrated-map"
+            aria-label={word(locale, 'Bản đồ thế giới tu tiên', 'Illustrated cultivation world map')}
             style={{ '--map-columns': MAP_WIDTH, '--map-rows': MAP_HEIGHT } as CSSProperties}
           >
-            {CELLS.map((cell) => {
-              const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
-              const terrain = TERRAINS[cell.terrain] ?? TERRAINS.plain!
-              const loc = cell.locationId === undefined ? undefined : getLocation(cell.locationId)
-              return (
-                <div
-                  className={`map-cell terrain-${cell.terrain} ${isPlayer ? 'is-player' : ''} ${loc === undefined ? '' : 'has-location'}`}
-                  key={`${cell.x}-${cell.y}`}
-                  title={loc === undefined ? word(locale, terrain.labelVi, terrain.labelEn) : localized(locale, loc)}
-                >
-                  <span className="terrain-mark" aria-hidden="true">{terrain.icon}</span>
-                  {loc !== undefined && <span className="map-location-dot" aria-label={localized(locale, loc)} />}
-                  {isPlayer && <span className="player-token" aria-label={word(locale, 'Nhân vật của bạn', 'Your character')}>人</span>}
-                </div>
-              )
-            })}
+            <img alt={word(locale, 'Bản đồ thế giới tu tiên', 'Illustrated cultivation world map')} className="world-map-art" src={worldMapArt} />
+            <div className="map-grid-overlay" aria-hidden="true">
+              {CELLS.map((cell) => {
+                const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
+                const loc = cell.locationId === undefined ? undefined : getLocation(cell.locationId)
+                return (
+                  <div className="map-cell" key={`${cell.x}-${cell.y}`}>
+                    {loc !== undefined && <span className="map-location-pin" title={localized(locale, loc)} />}
+                    {isPlayer && <span className="player-map-marker" title={word(locale, 'Nhân vật của bạn', 'Your character')} />}
+                  </div>
+                )
+              })}
+            </div>
           </div>
           <div className="map-legend" aria-label={word(locale, 'Chú giải bản đồ', 'Map legend')}>
             <span><i className="legend-player" />{word(locale, 'Ngươi', 'You')}</span>
@@ -247,6 +238,9 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
         <aside className="hud-panel">
           <section className="stats-card ink-card" aria-labelledby="stats-title">
             <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2><span>{word(locale, 'cảnh', 'stage')} {game.player.stage}</span></div>
+            <figure className="protagonist-portrait">
+              <img alt={word(locale, 'Chân dung nhân vật chính', 'Protagonist portrait')} src={protagonistPortrait} />
+            </figure>
             <Meter label="HP" value={game.player.hp} max={100} tone="red" />
             <Meter label="Qi" value={game.player.qi} max={60} tone="jade" />
             <Meter label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={120} tone="gold" />
@@ -263,10 +257,10 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
           </section>
 
           <section className="quick-actions ink-card" aria-label={word(locale, 'Thao tác nhanh', 'Quick actions')}>
-            <button disabled={game.terminal} onClick={() => onAction({ kind: 'rest' })} type="button">☾ {word(locale, 'Nghỉ', 'Rest')}</button>
-            <button disabled={game.terminal} onClick={() => onAction({ kind: 'train' })} type="button">☯ {word(locale, 'Tu luyện', 'Cultivate')}</button>
-            <button disabled={game.terminal} onClick={() => onAction({ kind: 'gather' })} type="button">✿ {word(locale, 'Hái thảo', 'Gather')}</button>
-            <button disabled={game.terminal} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">☼ {word(locale, 'Quay', 'Draw')}</button>
+            <button disabled={game.terminal} onClick={() => onAction({ kind: 'rest' })} type="button">{word(locale, 'Nghỉ', 'Rest')}</button>
+            <button disabled={game.terminal} onClick={() => onAction({ kind: 'train' })} type="button">{word(locale, 'Tu luyện', 'Cultivate')}</button>
+            <button disabled={game.terminal} onClick={() => onAction({ kind: 'gather' })} type="button">{word(locale, 'Hái thảo', 'Gather')}</button>
+            <button disabled={game.terminal} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">{word(locale, 'Quay', 'Draw')}</button>
           </section>
         </aside>
       </div>
@@ -274,6 +268,7 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
       <div className="lower-grid">
         <section className="parchment-panel utility-panel" aria-labelledby="people-title">
           <div className="panel-heading compact"><h2 id="people-title">{word(locale, 'Người ở đây', 'People here')}</h2><span>{localNpcs.length}</span></div>
+          <img alt={word(locale, 'Những gương mặt của giang hồ', 'Faces of the wandering world')} className="npc-ensemble-art" src={npcEnsemble} />
           {localNpcs.length === 0 ? <p className="muted">{word(locale, 'Chỉ có gió trả lời.', 'Only the wind answers.')}</p> : (
             <ul className="npc-list">
               {localNpcs.map((npc) => (
@@ -303,6 +298,7 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
 
         <section className="parchment-panel utility-panel" aria-labelledby="inventory-title">
           <div className="panel-heading compact"><h2 id="inventory-title">{word(locale, 'Túi đồ & kho', 'Inventory & storage')}</h2><span>{storageRemaining(game)} {word(locale, 'ô kho', 'storage left')}</span></div>
+          <img alt={word(locale, 'Bộ sưu tập vật phẩm tu tiên', 'Cultivation item collection')} className="item-collection-art" src={itemsStillLife} />
           <ul className="item-list">
             {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
               const item = getItem(id)
@@ -322,7 +318,7 @@ export function GameScreen({ game, locale, chronicle, onAction, onLocaleChange }
             })}
           </div>
           <div className="achievements">
-            {ACHIEVEMENTS.map((achievement) => <span className={game.achievements.includes(achievement.id) ? 'unlocked' : ''} key={achievement.id} title={locale === 'vi' ? achievement.descVi : achievement.descEn}>✦ {localized(locale, achievement)}</span>)}
+            {ACHIEVEMENTS.map((achievement) => <span className={game.achievements.includes(achievement.id) ? 'unlocked' : ''} key={achievement.id} title={locale === 'vi' ? achievement.descVi : achievement.descEn}>{localized(locale, achievement)}</span>)}
           </div>
         </section>
       </div>
