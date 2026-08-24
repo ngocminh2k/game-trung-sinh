@@ -11,7 +11,9 @@ everywhere (document title, UI headers, i18n `common.appName`).
 ```bash
 npm install
 npm run dev       # dev server
-npm test          # vitest run (engine tests)
+npm test          # unit + integration + UI tests
+npm run test:coverage
+npx playwright test
 npm run build     # typecheck + production build
 npm run preview   # preview the build
 ```
@@ -25,7 +27,10 @@ npm run preview   # preview the build
 - `src/i18n/**` — UI dictionaries (`vi` primary, `en`) with a parity helper.
 - `test/**` — Vitest suites covering determinism, invariants, storage, lottery, death, corrections,
   i18n parity and ending reachability.
-- `src/main.tsx` mounts the UI entry (`src/App.tsx`, owned by the UI worker).
+- `src/App.tsx` and `src/ui/**` — the playable PC interface: keyboard map travel,
+  exactly three story choices, free-text command input, stats, NPCs, quests, items,
+  storage, shop, lottery, achievements, ending screen, and browser save data.
+- `e2e/**` — Playwright journeys for keyboard travel, story interaction, and save reload.
 
 ## Engine rule: determinism
 
@@ -53,15 +58,18 @@ eventually rather than the run idling forever. See `test/corrections.test.ts`.
 
 ## AI narration boundary
 
-AI-generated text is decoration on top of the engine. The planned AI proxy runs **server-side
+AI-generated text is decoration on top of the engine. The Vite development proxy runs **server-side
 only**: `AI_BASE_URL`, `AI_MODEL`, and `AI_API_KEY` are consumed exclusively by that server
 process and must never be exposed to the browser. In particular they must never be renamed to
 `VITE_*` variables — anything prefixed `VITE_` is statically inlined into the client bundle and
 would become public. `.env.example` contains placeholders only; never commit real secrets.
 
-The AI layer receives a read-only snapshot of game state and returns prose; it never writes to
-state, never rolls dice, and its output is never persisted as gameplay truth. Any gameplay effect
-must originate from engine rules.
+To enable it locally, create a private `.env` from `.env.example`, set the three `AI_*` values,
+then set `VITE_AI_NARRATION_ENABLED=true` and start `npm run dev`. The browser only calls
+`/api/narrate`; it cannot read the key. The proxy returns one short narration string and the client
+never interprets that string as a command or state update. Keep the public flag `false` when the
+local AI service is unavailable. For a production deployment, place the same endpoint behind a
+server-side proxy rather than serving a raw static bundle.
 
 ## Design context
 

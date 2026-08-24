@@ -1,6 +1,9 @@
 node_modules/
 dist/
 coverage/
+.codebase-memory/
+test-results/
+playwright-report/
 *.local
 .env
 .env.*

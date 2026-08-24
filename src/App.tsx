@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_SEED, applyAction, currentBeat, narrate, newGame } from './engine'
 import type { Action, Locale } from './engine'
+import { requestNarration } from './ai/narration'
 import { GameScreen } from './ui/GameScreen'
 import { loadSession, saveSession, type GameSession } from './ui/session'
 
@@ -25,25 +26,35 @@ function initialSession(): GameSession {
 
 function App() {
   const [session, setSession] = useState<GameSession>(initialSession)
+  const sessionRef = useRef(session)
 
   useEffect(() => {
+    sessionRef.current = session
     saveSession({
       get: (key) => window.localStorage.getItem(key),
       set: (key, value) => window.localStorage.setItem(key, value),
     }, session)
   }, [session])
 
-  const act = (action: Action) => {
-    setSession((previous) => {
-      const result = applyAction(previous.game, action)
-      const lines = narrate(result.events, previous.locale)
-      return {
-        ...previous,
-        game: result.state,
-        chronicle: [...previous.chronicle, ...lines].slice(-80),
-      }
+  const act = useCallback((action: Action) => {
+    const previous = sessionRef.current
+    const result = applyAction(previous.game, action)
+    const next = {
+      ...previous,
+      game: result.state,
+      chronicle: [...previous.chronicle, ...narrate(result.events, previous.locale)].slice(-80),
+    }
+    sessionRef.current = next
+    setSession(next)
+
+    void requestNarration(result.state, result.events, previous.locale).then((line) => {
+      if (line === null) return
+      const current = sessionRef.current
+      const narrated = { ...current, chronicle: [...current.chronicle, line].slice(-80) }
+      sessionRef.current = narrated
+      setSession(narrated)
     })
-  }
+  }, [])
 
   useEffect(() => {
     const movement: Record<string, Action> = {
@@ -67,7 +78,7 @@ function App() {
       }
       const choice = Number(event.key)
       if (choice >= 1 && choice <= 3) {
-        const suggested = currentBeat(session.game).suggested[choice - 1]
+        const suggested = currentBeat(sessionRef.current.game).suggested[choice - 1]
         if (suggested !== undefined) {
           event.preventDefault()
           act(suggested)
@@ -76,11 +87,13 @@ function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [session.game])
+  }, [act])
 
-  const changeLocale = (locale: Locale) => {
-    setSession((previous) => ({ ...previous, locale }))
-  }
+  const changeLocale = useCallback((locale: Locale) => {
+    const next = { ...sessionRef.current, locale }
+    sessionRef.current = next
+    setSession(next)
+  }, [])
 
   return <GameScreen game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} />
 }
