@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
+import { ITEMS, LOCATIONS, NPCS, TALENTS, TECHNIQUES } from '../src/content'
 import { newGame } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
 
@@ -41,6 +42,26 @@ describe('illustrated RPG UI', () => {
     expect(screen.getByTestId('codex-panel')).toBeTruthy()
     expect(screen.getByAltText('Linh thảo')).toBeTruthy()
     expect(screen.getByAltText('Linh Căn Lì Lợm')).toBeTruthy()
+  })
+
+  it('catalogs every authored location and technique exactly once after opening', () => {
+    renderScreen()
+
+    const drawer = screen.getByTestId('codex-drawer') as HTMLDetailsElement
+    drawer.open = true
+    fireEvent(drawer, new Event('toggle'))
+
+    const entries = [...document.querySelectorAll('[data-entry-id]')]
+    const ids = entries.map((entry) => entry.getAttribute('data-entry-id'))
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids).toHaveLength(NPCS.length + ITEMS.length + TALENTS.length + TECHNIQUES.length + LOCATIONS.length)
+
+    for (const technique of TECHNIQUES) {
+      expect(screen.getByAltText(technique.nameVi)).toBeTruthy()
+    }
+    for (const location of LOCATIONS) {
+      expect(screen.getByAltText(location.nameVi)).toBeTruthy()
+    }
   })
 
   it('uses the illustrated world map as a fallback scene for movement-only positions', () => {

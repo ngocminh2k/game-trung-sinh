@@ -20,7 +20,7 @@ describe('GameScreen', () => {
     expect(markup).toContain('Viết hành động khác')
     expect(markup).toContain('Phế Căn Ký')
     expect(markup).toContain('Bản đồ thế giới tu tiên')
-    expect(markup).toContain('Chân dung nhân vật chính')
+    expect(markup).toContain('Tư thế nhân vật: idle')
     expect(markup).toContain('Những gương mặt của giang hồ')
     expect(markup).toContain('Bộ sưu tập vật phẩm tu tiên')
     expect(markup).toContain('Đạo đồ &amp; trang bị')
