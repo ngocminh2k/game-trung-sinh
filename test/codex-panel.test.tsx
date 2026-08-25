@@ -35,6 +35,16 @@ describe('CodexPanel', () => {
             assetPackId: 'talents-and-effects',
             assetStatus: 'queued',
           },
+          {
+            id: 'crooked_circulation',
+            kind: 'technique',
+            nameVi: 'Chu Thiên Cong Queo',
+            nameEn: 'Crooked Circulation',
+            descriptionVi: 'Đường khí sai sách vở nhưng vừa khít linh căn phế.',
+            descriptionEn: 'A textbook-wrong qi path that fits a defective root.',
+            assetPackId: 'talents-and-effects',
+            assetStatus: 'ready',
+          },
         ]}
         locale="vi"
         packs={[
@@ -47,6 +57,8 @@ describe('CodexPanel', () => {
     expect(markup).toContain('Tu điển giang hồ')
     expect(markup).toContain('Cụ Mai Hoa')
     expect(markup).toContain('Thiết Tâm')
+    expect(markup).toContain('Chu Thiên Cong Queo')
+    expect(markup).toContain('Công pháp')
     expect(markup).toContain('Đang tải')
     expect(markup).toContain('7/7')
     expect(markup).not.toContain('🎭')

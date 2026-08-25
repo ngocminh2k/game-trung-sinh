@@ -2,7 +2,7 @@ import type { Locale } from '../engine/types'
 import type { AssetPackDefinition, AssetPackId, AssetPackStatus } from './assetPacks'
 import { assetPackProgress, isAssetPackReady } from './assetPacks'
 
-export type CodexEntryKind = 'npc' | 'item' | 'talent' | 'location'
+export type CodexEntryKind = 'npc' | 'item' | 'talent' | 'technique' | 'location'
 
 export interface CodexEntry {
   id: string
@@ -39,6 +39,7 @@ function kindLabel(locale: Locale, kind: CodexEntryKind): string {
     npc: ['Nhân vật', 'Character'],
     item: ['Vật phẩm', 'Item'],
     talent: ['Thiên phú', 'Talent'],
+    technique: ['Công pháp', 'Technique'],
     location: ['Địa điểm', 'Location'],
   }
   return labels[kind][locale === 'vi' ? 0 : 1]

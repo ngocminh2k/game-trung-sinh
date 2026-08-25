@@ -219,7 +219,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     })),
     ...TECHNIQUES.map((technique) => ({
       id: technique.id,
-      kind: 'talent' as const,
+      kind: 'technique' as const,
       nameVi: technique.nameVi,
       nameEn: technique.nameEn,
       descriptionVi: technique.descVi,

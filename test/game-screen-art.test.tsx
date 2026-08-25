@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ITEMS, LOCATIONS, NPCS, TALENTS, TECHNIQUES } from '../src/content'
 import { newGame } from '../src/engine'
@@ -39,9 +39,12 @@ describe('illustrated RPG UI', () => {
     drawer.open = true
     fireEvent(drawer, new Event('toggle'))
 
-    expect(screen.getByTestId('codex-panel')).toBeTruthy()
-    expect(screen.getByAltText('Linh thảo')).toBeTruthy()
-    expect(screen.getByAltText('Linh Căn Lì Lợm')).toBeTruthy()
+    const codex = screen.getByTestId('codex-panel')
+    expect(codex).toBeTruthy()
+    expect(within(codex).getByAltText('Linh thảo')).toBeTruthy()
+    expect(within(codex).getByAltText('Linh Căn Lì Lợm')).toBeTruthy()
+    expect(within(codex).getAllByText('Thiên phú')).toHaveLength(TALENTS.length)
+    expect(within(codex).getAllByText('Công pháp')).toHaveLength(TECHNIQUES.length)
   })
 
   it('catalogs every authored location and technique exactly once after opening', () => {
