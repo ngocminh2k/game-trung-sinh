@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState, type CSSProperties } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   ACHIEVEMENTS,
   CELLS,
@@ -20,13 +20,13 @@ import {
 import { currentBeat, dangerWarning, storageRemaining } from '../engine'
 import type { Action, ConcreteAction, GameState, Locale } from '../engine'
 import itemsStillLife from '../assets/art/items-still-life.png'
-import protagonistPortrait from '../assets/art/protagonist-portrait.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
 import { locationBackdropFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
 import { itemArtFor, talentArtFor, techniqueArtFor } from './rpgArt'
 import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
+import { playerArtFor, type PlayerActionKey } from './playerArt'
 
 export interface GameScreenProps {
   actionKind?: Action['kind'] | null
@@ -120,9 +120,45 @@ function npcPackId(locationId: string): AssetPackId {
   return packs[locationId] ?? 'cloud-peak'
 }
 
+function playerPoseFor(actionKind: Action['kind'] | null, game: GameState, showHurtFeedback: boolean): PlayerActionKey {
+  if (game.terminal && !game.player.alive) return 'death'
+  if (showHurtFeedback) return 'hurt'
+
+  switch (actionKind) {
+    case 'move': return 'move'
+    case 'talk': return 'talk'
+    case 'gather': return 'gather'
+    case 'train': return 'cultivate'
+    case 'rest': return 'rest'
+    case 'use_item': return 'use-item'
+    case 'combat_attack': return 'combat-attack'
+    case 'combat_defend': return 'combat-defend'
+    default: return 'idle'
+  }
+}
+
 export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
+  const [hurtFeedbackNonce, setHurtFeedbackNonce] = useState<number | null>(null)
+  const previousHp = useRef(game.player.hp)
+  const tookDamage = game.player.hp < previousHp.current
+  const combatAction = actionKind === 'combat_attack' || actionKind === 'combat_defend'
+  const actionFeedback = useRef({ tookDamage, combatAction, alive: game.player.alive })
+  actionFeedback.current = { tookDamage, combatAction, alive: game.player.alive }
+  const showHurtFeedback = (tookDamage && !combatAction) || hurtFeedbackNonce === actionNonce
+  const playerPose = playerPoseFor(actionKind, game, showHurtFeedback)
+  useEffect(() => {
+    previousHp.current = game.player.hp
+  }, [game.player.hp])
+  useEffect(() => {
+    const feedback = actionFeedback.current
+    setHurtFeedbackNonce(null)
+    if (!feedback.tookDamage || !feedback.combatAction || !feedback.alive) return
+
+    const timer = window.setTimeout(() => setHurtFeedbackNonce(actionNonce), 420)
+    return () => window.clearTimeout(timer)
+  }, [actionNonce])
   const beat = useMemo(() => currentBeat(game), [game])
   const chapter = CHAPTERS.find((entry) => entry.index === beat.chapter) ?? {
     index: 1,
@@ -343,8 +379,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         <aside className="hud-panel">
           <section className="stats-card ink-card" aria-labelledby="stats-title">
             <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2><span>{word(locale, 'cảnh', 'stage')} {game.player.stage}</span></div>
-            <figure className={`protagonist-portrait ${actionKind === 'train' ? 'is-cultivating' : actionKind === 'rest' ? 'is-resting' : ''}`}>
-              <img alt={word(locale, 'Chân dung nhân vật chính', 'Protagonist portrait')} src={protagonistPortrait} />
+            <figure className={`protagonist-portrait player-action-art pose-${playerPose}`} data-pose={playerPose} data-testid="player-action-art">
+              <img
+                alt={word(locale, `Tư thế nhân vật: ${playerPose}`, `Player action pose: ${playerPose}`)}
+                key={`player-pose-${playerPose}-${actionNonce}`}
+                src={playerArtFor(playerPose)}
+              />
             </figure>
             <Meter label="HP" value={game.player.hp} max={100} tone="red" />
             <Meter label="Qi" value={game.player.qi} max={60} tone="jade" />
