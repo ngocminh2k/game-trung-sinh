@@ -67,7 +67,10 @@ describe('illustrated RPG UI', () => {
   it('does not mount Codex content until its drawer opens', () => {
     renderScreen()
 
+    const dock = screen.getByTestId('system-dock')
     const drawer = screen.getByTestId('codex-drawer') as HTMLDetailsElement
+    expect(dock.closest('aside.hud-panel')).toBeTruthy()
+    expect(dock.contains(drawer)).toBe(true)
     expect(screen.queryByTestId('codex-panel')).toBeNull()
 
     drawer.open = true

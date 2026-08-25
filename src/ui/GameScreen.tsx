@@ -300,47 +300,49 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
       </header>
 
-      <section className="chapter-banner" aria-label={word(locale, 'Chương truyện hiện tại', 'Current story chapter')}>
-        <p>{word(locale, 'Chương hiện tại', 'Current chapter')}</p>
-        <h2>{localized(locale, chapter)}</h2>
-        <span>{locale === 'vi' ? chapter.taglineVi : chapter.taglineEn}</span>
-      </section>
-
-      {warning !== null && (
-        <section className={`danger-banner danger-${warning.level}`} role="status">
-          <strong>⚠ {word(locale, 'Cảnh báo hiểm địa', 'Danger warning')}</strong>
-          <span>{locale === 'vi' ? warning.messageVi : warning.messageEn}</span>
+      <div className="stage-notices">
+        <section className="chapter-banner" aria-label={word(locale, 'Chương truyện hiện tại', 'Current story chapter')}>
+          <p>{word(locale, 'Chương hiện tại', 'Current chapter')}</p>
+          <h2>{localized(locale, chapter)}</h2>
+          <span>{locale === 'vi' ? chapter.taglineVi : chapter.taglineEn}</span>
         </section>
-      )}
 
-      {game.terminal && ending !== undefined && (
-        <section className="ending-banner" role="status">
-          <p>{word(locale, 'Kết cục đã định', 'Your ending')}</p>
-          <h2>{localized(locale, ending)}</h2>
-          <span>{locale === 'vi' ? ending.epitaphVi : ending.epitaphEn}</span>
-        </section>
-      )}
+        {warning !== null && (
+          <section className={`danger-banner danger-${warning.level}`} role="status">
+            <strong>⚠ {word(locale, 'Cảnh báo hiểm địa', 'Danger warning')}</strong>
+            <span>{locale === 'vi' ? warning.messageVi : warning.messageEn}</span>
+          </section>
+        )}
 
-      {encounterEnemy !== undefined && game.encounter !== null && (
-        <section aria-live="polite" className="encounter-banner" role="status" aria-label={word(locale, 'Giao chiến đang diễn ra', 'Active encounter')}>
-          <div>
-            <p className="eyebrow">{word(locale, 'Giao chiến deterministic', 'Deterministic encounter')}</p>
-            <h2>{localized(locale, encounterEnemy)}</h2>
-            <span>{word(locale, 'Sinh lực địch', 'Enemy health')}: {game.encounter.hp}/{game.encounter.maxHp}</span>
-          </div>
-          <div className="encounter-actions">
-            {knownTechniques.map((technique) => <button key={technique.id} onClick={() => onAction({ kind: 'combat_attack', techniqueId: technique.id })} type="button">{word(locale, 'Xuất', 'Use')} {localized(locale, technique)}</button>)}
-            <button onClick={() => onAction({ kind: 'combat_defend' })} type="button">{word(locale, 'Thủ thế', 'Defend')}</button>
-          </div>
-        </section>
-      )}
+        {game.terminal && ending !== undefined && (
+          <section className="ending-banner" role="status">
+            <p>{word(locale, 'Kết cục đã định', 'Your ending')}</p>
+            <h2>{localized(locale, ending)}</h2>
+            <span>{locale === 'vi' ? ending.epitaphVi : ending.epitaphEn}</span>
+          </section>
+        )}
 
-      {game.encounter === null && localEnemy !== undefined && game.flags[`defeated_${localEnemy.id}`] !== true && (
-        <section className="encounter-banner encounter-ready" aria-label={word(locale, 'Gặp gỡ hiểm họa', 'Encounter available')}>
-          <div><p className="eyebrow">{word(locale, 'Hiểm họa trong khu vực', 'Local danger')}</p><h2>{localized(locale, localEnemy)}</h2><span>{locale === 'vi' ? localEnemy.descVi : localEnemy.descEn}</span></div>
-          <button onClick={() => onAction({ kind: 'start_encounter' })} type="button">{word(locale, 'Bước vào giao chiến', 'Start encounter')}</button>
-        </section>
-      )}
+        {encounterEnemy !== undefined && game.encounter !== null && (
+          <section aria-live="polite" className="encounter-banner" role="status" aria-label={word(locale, 'Giao chiến đang diễn ra', 'Active encounter')}>
+            <div>
+              <p className="eyebrow">{word(locale, 'Giao chiến deterministic', 'Deterministic encounter')}</p>
+              <h2>{localized(locale, encounterEnemy)}</h2>
+              <span>{word(locale, 'Sinh lực địch', 'Enemy health')}: {game.encounter.hp}/{game.encounter.maxHp}</span>
+            </div>
+            <div className="encounter-actions">
+              {knownTechniques.map((technique) => <button key={technique.id} onClick={() => onAction({ kind: 'combat_attack', techniqueId: technique.id })} type="button">{word(locale, 'Xuất', 'Use')} {localized(locale, technique)}</button>)}
+              <button onClick={() => onAction({ kind: 'combat_defend' })} type="button">{word(locale, 'Thủ thế', 'Defend')}</button>
+            </div>
+          </section>
+        )}
+
+        {game.encounter === null && localEnemy !== undefined && game.flags[`defeated_${localEnemy.id}`] !== true && (
+          <section className="encounter-banner encounter-ready" aria-label={word(locale, 'Gặp gỡ hiểm họa', 'Encounter available')}>
+            <div><p className="eyebrow">{word(locale, 'Hiểm họa trong khu vực', 'Local danger')}</p><h2>{localized(locale, localEnemy)}</h2><span>{locale === 'vi' ? localEnemy.descVi : localEnemy.descEn}</span></div>
+            <button onClick={() => onAction({ kind: 'start_encounter' })} type="button">{word(locale, 'Bước vào giao chiến', 'Start encounter')}</button>
+          </section>
+        )}
+      </div>
 
       <div className="game-grid">
         <section className="map-panel parchment-panel" aria-labelledby="map-title">
@@ -463,10 +465,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'gather' })} type="button">{word(locale, 'Hái thảo', 'Gather')}</button>
             <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">{word(locale, 'Quay', 'Draw')}</button>
           </section>
-        </aside>
-      </div>
 
-      <section className="system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="system-dock">
+          <section className="system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="system-dock">
         <div className="dock-heading">
           <div>
             <p className="eyebrow">{word(locale, 'Mở khi cần', 'Open when needed')}</p>
@@ -599,12 +599,14 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </section>}
           </>}
         </div>)}
-      </section>
+            <details className="codex-drawer" data-testid="codex-drawer" onToggle={(event) => setCodexOpen(event.currentTarget.open)} open={codexOpen}>
+              <summary>{word(locale, 'Mở tu điển: NPC, vật phẩm, thiên phú & asset pack', 'Open codex: NPCs, items, talents & asset packs')}</summary>
+              {codexOpen && <CodexPanel entries={codexEntries} locale={locale} packs={ASSET_PACK_MANIFEST} />}
+            </details>
+          </section>
+        </aside>
+      </div>
 
-      <details className="codex-drawer" data-testid="codex-drawer" onToggle={(event) => setCodexOpen(event.currentTarget.open)} open={codexOpen}>
-        <summary>{word(locale, 'Mở tu điển: NPC, vật phẩm, thiên phú & asset pack', 'Open codex: NPCs, items, talents & asset packs')}</summary>
-        {codexOpen && <CodexPanel entries={codexEntries} locale={locale} packs={ASSET_PACK_MANIFEST} />}
-      </details>
     </main>
   )
 }
