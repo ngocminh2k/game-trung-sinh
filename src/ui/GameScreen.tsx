@@ -142,23 +142,24 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const [codexOpen, setCodexOpen] = useState(false)
   const [hurtFeedbackNonce, setHurtFeedbackNonce] = useState<number | null>(null)
   const previousHp = useRef(game.player.hp)
-  const tookDamage = game.player.hp < previousHp.current
-  const combatAction = actionKind === 'combat_attack' || actionKind === 'combat_defend'
-  const actionFeedback = useRef({ tookDamage, combatAction, alive: game.player.alive })
-  actionFeedback.current = { tookDamage, combatAction, alive: game.player.alive }
-  const showHurtFeedback = (tookDamage && !combatAction) || hurtFeedbackNonce === actionNonce
+  const processedActionNonce = useRef<number | null>(null)
+  const retaliationAction = actionKind === 'combat_attack'
+    || actionKind === 'combat_defend'
+    || (actionKind === 'use_item' && game.encounter !== null)
+  const showHurtFeedback = hurtFeedbackNonce === actionNonce
   const playerPose = playerPoseFor(actionKind, game, showHurtFeedback)
   useEffect(() => {
-    previousHp.current = game.player.hp
-  }, [game.player.hp])
-  useEffect(() => {
-    const feedback = actionFeedback.current
-    setHurtFeedbackNonce(null)
-    if (!feedback.tookDamage || !feedback.combatAction || !feedback.alive) return
+    if (processedActionNonce.current === actionNonce) return
 
-    const timer = window.setTimeout(() => setHurtFeedbackNonce(actionNonce), 420)
+    const tookDamage = game.player.hp < previousHp.current
+    previousHp.current = game.player.hp
+    processedActionNonce.current = actionNonce
+    setHurtFeedbackNonce(null)
+    if (!tookDamage || !game.player.alive) return
+
+    const timer = window.setTimeout(() => setHurtFeedbackNonce(actionNonce), retaliationAction ? 420 : 220)
     return () => window.clearTimeout(timer)
-  }, [actionNonce])
+  }, [actionNonce, game.player.alive, game.player.hp, retaliationAction])
   const beat = useMemo(() => currentBeat(game), [game])
   const chapter = CHAPTERS.find((entry) => entry.index === beat.chapter) ?? {
     index: 1,

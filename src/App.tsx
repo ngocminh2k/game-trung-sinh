@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_SEED, applyAction, currentBeat, narrate, newGame } from './engine'
-import type { Action, Locale } from './engine'
+import type { Action, GameEvent, Locale } from './engine'
 import { requestNarration } from './ai/narration'
 import { GameScreen } from './ui/GameScreen'
 import { loadSession, saveSession, type GameSession } from './ui/session'
@@ -22,6 +22,29 @@ function initialSession(): GameSession {
     get: (key) => window.localStorage.getItem(key),
     set: (key, value) => window.localStorage.setItem(key, value),
   }) ?? freshSession()
+}
+
+export function visualActionFor(action: Action, events: GameEvent[]): Action['kind'] {
+  if (action.kind !== 'free_text') return action.kind
+
+  for (const event of [...events].reverse()) {
+    switch (event.type) {
+      case 'MOVED': return 'move'
+      case 'RESTED': return 'rest'
+      case 'TRAINED': return 'train'
+      case 'GATHERED': return 'gather'
+      case 'ITEM_USED':
+      case 'WARD_USED': return 'use_item'
+      case 'TALKED': return 'talk'
+      case 'COMBAT_HIT':
+        if (event.actor === 'player') return 'combat_attack'
+        break
+      case 'COMBAT_GUARDED': return 'combat_defend'
+      case 'FORCED_CONVERGENCE': return event.action.kind
+    }
+  }
+
+  return 'free_text'
 }
 
 function App() {
@@ -47,7 +70,8 @@ function App() {
     }
     sessionRef.current = next
     setSession(next)
-    setMotion((current) => ({ kind: action.kind, nonce: current.nonce + 1 }))
+    const visualAction = visualActionFor(action, result.events)
+    setMotion((current) => ({ kind: visualAction, nonce: current.nonce + 1 }))
 
     void requestNarration(result.state, result.events, previous.locale).then((line) => {
       if (line === null) return
