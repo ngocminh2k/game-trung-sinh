@@ -35,17 +35,17 @@ export interface AssetPackProgress {
  * per-file browser fetch verification.
  */
 export const ASSET_PACK_MANIFEST: readonly AssetPackDefinition[] = [
-  { id: 'greenwood-village', nameVi: 'Portrait Làng Thanh Mộc', nameEn: 'Greenwood Village Portraits', requiredAssetCount: 6, status: 'ready', loadedAssets: 6 },
-  { id: 'cloud-market', nameVi: 'Portrait Chợ Vân Tập', nameEn: 'Cloud Market Portraits', requiredAssetCount: 8, status: 'ready', loadedAssets: 8 },
-  { id: 'mist-sect', nameVi: 'Portrait Tông Vân Ẩn', nameEn: 'Mistbound Sect Portraits', requiredAssetCount: 6, status: 'ready', loadedAssets: 6 },
-  { id: 'herb-terraces', nameVi: 'Portrait Điền Linh Thảo', nameEn: 'Herb Terrace Portraits', requiredAssetCount: 3, status: 'ready', loadedAssets: 3 },
-  { id: 'misty-forest', nameVi: 'Portrait Rừng Sương Mù', nameEn: 'Misty Forest Portraits', requiredAssetCount: 2, status: 'ready', loadedAssets: 2 },
-  { id: 'sealed-cave', nameVi: 'Portrait Hang Phong Ấn', nameEn: 'Sealed Cave Portraits', requiredAssetCount: 2, status: 'ready', loadedAssets: 2 },
-  { id: 'cursed-rift', nameVi: 'Portrait Khe Hở', nameEn: 'Cursed Rift Portraits', requiredAssetCount: 2, status: 'ready', loadedAssets: 2 },
-  { id: 'cloud-peak', nameVi: 'Portrait Đỉnh Mây', nameEn: 'Cloud Peak Portraits', requiredAssetCount: 1, status: 'ready', loadedAssets: 1 },
-  { id: 'talents-and-effects', nameVi: 'Thiên Phú Và Hiệu Ứng', nameEn: 'Talents And Effects', requiredAssetCount: 24, status: 'queued', loadedAssets: 0 },
-  { id: 'items-and-equipment', nameVi: 'Vật Phẩm Và Trang Bị', nameEn: 'Items And Equipment', requiredAssetCount: 80, status: 'queued', loadedAssets: 0 },
-  { id: 'player-poses', nameVi: 'Tư Thế Nhân Vật Chính', nameEn: 'Player Action Poses', requiredAssetCount: 12, status: 'queued', loadedAssets: 0 },
+  { id: 'greenwood-village', nameVi: 'Làng Thanh Mộc', nameEn: 'Greenwood Village', requiredAssetCount: 7, status: 'ready', loadedAssets: 7 },
+  { id: 'cloud-market', nameVi: 'Chợ Vân Tập', nameEn: 'Cloud Market', requiredAssetCount: 9, status: 'ready', loadedAssets: 9 },
+  { id: 'mist-sect', nameVi: 'Tông Vân Ẩn', nameEn: 'Mistbound Sect', requiredAssetCount: 7, status: 'ready', loadedAssets: 7 },
+  { id: 'herb-terraces', nameVi: 'Điền Linh Thảo', nameEn: 'Herb Terraces', requiredAssetCount: 4, status: 'ready', loadedAssets: 4 },
+  { id: 'misty-forest', nameVi: 'Rừng Sương Mù', nameEn: 'Misty Forest', requiredAssetCount: 3, status: 'ready', loadedAssets: 3 },
+  { id: 'sealed-cave', nameVi: 'Hang Phong Ấn', nameEn: 'Sealed Cave', requiredAssetCount: 3, status: 'ready', loadedAssets: 3 },
+  { id: 'cursed-rift', nameVi: 'Khe Hở Nguyền Rủa', nameEn: 'Cursed Rift', requiredAssetCount: 3, status: 'ready', loadedAssets: 3 },
+  { id: 'cloud-peak', nameVi: 'Đỉnh Mây', nameEn: 'Cloud Peak', requiredAssetCount: 2, status: 'ready', loadedAssets: 2 },
+  { id: 'talents-and-effects', nameVi: 'Thiên Phú Và Công Pháp', nameEn: 'Talents And Techniques', requiredAssetCount: 7, status: 'ready', loadedAssets: 7 },
+  { id: 'items-and-equipment', nameVi: 'Vật Phẩm Và Trang Bị', nameEn: 'Items And Equipment', requiredAssetCount: 9, status: 'ready', loadedAssets: 9 },
+  { id: 'player-poses', nameVi: 'Tư Thế Nhân Vật Chính', nameEn: 'Player Action Poses', requiredAssetCount: 11, status: 'queued', loadedAssets: 0 },
 ]
 
 export function assetPackProgress(packs: readonly AssetPackDefinition[]): AssetPackProgress {

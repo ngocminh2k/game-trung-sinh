@@ -22,7 +22,9 @@ import type { Action, ConcreteAction, GameState, Locale } from '../engine'
 import itemsStillLife from '../assets/art/items-still-life.png'
 import protagonistPortrait from '../assets/art/protagonist-portrait.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
+import { locationBackdropFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
+import { itemArtFor, talentArtFor, techniqueArtFor } from './rpgArt'
 import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
 
@@ -120,6 +122,7 @@ function npcPackId(locationId: string): AssetPackId {
 
 export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange }: GameScreenProps) {
   const [command, setCommand] = useState('')
+  const [codexOpen, setCodexOpen] = useState(false)
   const beat = useMemo(() => currentBeat(game), [game])
   const chapter = CHAPTERS.find((entry) => entry.index === beat.chapter) ?? {
     index: 1,
@@ -138,7 +141,11 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
   const knownTechniques = TECHNIQUES.filter((technique) => (game.techniques[technique.id] ?? 0) > 0)
   const encounterLocked = game.encounter !== null
-  const codexEntries: CodexEntry[] = [
+  const sceneBackdrop = locationBackdropFor(game.player.locationId) ?? worldMapArt
+  const sceneBackdropAlt = location === undefined
+    ? word(locale, 'Bản đồ khu vực chưa được đặt tên', 'World map for an uncharted area')
+    : word(locale, `Minh họa ${localized(locale, location)}`, `Artwork of ${localized(locale, location)}`)
+  const codexEntries: CodexEntry[] = codexOpen ? [
     ...NPCS.map((npc) => ({
       id: npc.id,
       kind: 'npc' as const,
@@ -158,7 +165,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       descriptionVi: item.descVi,
       descriptionEn: item.descEn,
       assetPackId: 'items-and-equipment' as const,
-      assetStatus: 'queued' as const,
+      assetStatus: 'ready' as const,
+      artworkSrc: itemArtFor(item.id),
     })),
     ...TALENTS.map((talent) => ({
       id: talent.id,
@@ -168,9 +176,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       descriptionVi: talent.descVi,
       descriptionEn: talent.descEn,
       assetPackId: 'talents-and-effects' as const,
-      assetStatus: 'queued' as const,
+      assetStatus: 'ready' as const,
+      artworkSrc: talentArtFor(talent.id),
     })),
-  ]
+  ] : []
 
   const submitCommand = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -284,6 +293,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             </div>
             <span className="root-badge">{word(locale, 'Linh căn', 'Spirit root')}: {locale === 'vi' ? game.spiritRoot.elementVi : game.spiritRoot.elementEn}</span>
           </div>
+          <figure className="scene-backdrop">
+            <img alt={sceneBackdropAlt} src={sceneBackdrop} />
+          </figure>
           <p className="beat-copy">{locale === 'vi' ? beat.textVi : beat.textEn}</p>
 
           <div className="choice-area">
@@ -395,7 +407,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <ul className="item-list">
             {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
               const item = getItem(id)
-              return <li key={id}><div><strong>{itemName(id, locale)} ×{qty}</strong><span>{item === undefined ? '' : locale === 'vi' ? item.descVi : item.descEn}</span></div><div className="item-actions">{item?.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: id })} type="button">{word(locale, 'Dùng', 'Use')}</button>}<button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'store', itemId: id, qty: 1 })} type="button">{word(locale, 'Gửi', 'Store')}</button></div></li>
+              const artwork = itemArtFor(id)
+              return <li key={id}>{artwork !== undefined && <img alt={word(locale, `Minh họa ${itemName(id, locale)}`, `Artwork of ${itemName(id, locale)}`)} className="item-art-thumb" src={artwork} />}<div className="item-copy"><strong>{itemName(id, locale)} ×{qty}</strong><span>{item === undefined ? '' : locale === 'vi' ? item.descVi : item.descEn}</span></div><div className="item-actions">{item?.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: id })} type="button">{word(locale, 'Dùng', 'Use')}</button>}<button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'store', itemId: id, qty: 1 })} type="button">{word(locale, 'Gửi', 'Store')}</button></div></li>
             })}
           </ul>
           {stored.length > 0 && <div className="storage-list"><p className="section-kicker">{word(locale, 'Trong kho', 'In storage')}</p>{stored.map(([id, qty]) => <button disabled={game.terminal || encounterLocked} key={id} onClick={() => onAction({ kind: 'withdraw', itemId: id, qty: 1 })} type="button">{itemName(id, locale)} ×{qty} · {word(locale, 'lấy', 'take')}</button>)}</div>}
@@ -424,7 +437,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             {TALENTS.map((talent) => {
               const chosen = game.talents.includes(talent.id)
               const unavailable = !talent.selectable || game.player.stage < talent.requiredStage || game.talents.some((id) => TALENTS.find((entry) => entry.id === id)?.selectable === true)
-              return <div className="rpg-entry" key={talent.id}><div><strong>{localized(locale, talent)}</strong><span>{locale === 'vi' ? talent.descVi : talent.descEn}</span></div>{chosen ? <em>{word(locale, 'Đã chọn', 'Chosen')}</em> : <button disabled={game.terminal || encounterLocked || unavailable} onClick={() => onAction({ kind: 'choose_talent', talentId: talent.id })} type="button">{word(locale, 'Chọn', 'Choose')}</button>}</div>
+              return <div className="rpg-entry art-entry" key={talent.id}><img alt={word(locale, `Minh họa ${localized(locale, talent)}`, `Artwork of ${localized(locale, talent)}`)} src={talentArtFor(talent.id)} /><div><strong>{localized(locale, talent)}</strong><span>{locale === 'vi' ? talent.descVi : talent.descEn}</span></div>{chosen ? <em>{word(locale, 'Đã chọn', 'Chosen')}</em> : <button disabled={game.terminal || encounterLocked || unavailable} onClick={() => onAction({ kind: 'choose_talent', talentId: talent.id })} type="button">{word(locale, 'Chọn', 'Choose')}</button>}</div>
             })}
           </section>
           <section>
@@ -432,7 +445,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             {TECHNIQUES.map((technique) => {
               const level = game.techniques[technique.id] ?? 0
               const canLearn = technique.sourceItemId !== undefined && (game.inventory[technique.sourceItemId] ?? 0) > 0 && level < technique.maxLevel && game.player.stage >= technique.requiredStage
-              return <div className="rpg-entry" key={technique.id}><div><strong>{localized(locale, technique)} {level > 0 ? `· Lv.${level}` : ''}</strong><span>{locale === 'vi' ? technique.descVi : technique.descEn}</span></div>{level > 0 ? <em>{word(locale, 'Đã học', 'Learned')}</em> : <button disabled={game.terminal || encounterLocked || !canLearn} onClick={() => onAction({ kind: 'learn_technique', techniqueId: technique.id })} type="button">{word(locale, 'Lĩnh ngộ', 'Learn')}</button>}</div>
+              return <div className="rpg-entry art-entry" key={technique.id}><img alt={word(locale, `Minh họa ${localized(locale, technique)}`, `Artwork of ${localized(locale, technique)}`)} src={techniqueArtFor(technique.id)} /><div><strong>{localized(locale, technique)} {level > 0 ? `· Lv.${level}` : ''}</strong><span>{locale === 'vi' ? technique.descVi : technique.descEn}</span></div>{level > 0 ? <em>{word(locale, 'Đã học', 'Learned')}</em> : <button disabled={game.terminal || encounterLocked || !canLearn} onClick={() => onAction({ kind: 'learn_technique', techniqueId: technique.id })} type="button">{word(locale, 'Lĩnh ngộ', 'Learn')}</button>}</div>
             })}
           </section>
           <section>
@@ -440,15 +453,15 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             {EQUIPMENT.map((equipment) => {
               const equipped = game.equipment[equipment.slot] === equipment.itemId
               const owned = (game.inventory[equipment.itemId] ?? 0) > 0
-              return <div className="rpg-entry" key={equipment.id}><div><strong>{localized(locale, equipment)}</strong><span>{locale === 'vi' ? equipment.descVi : equipment.descEn}</span></div>{equipped ? <em>{word(locale, 'Đang dùng', 'Equipped')}</em> : <button disabled={game.terminal || !owned || game.encounter !== null} onClick={() => onAction({ kind: 'equip_item', itemId: equipment.itemId })} type="button">{word(locale, 'Trang bị', 'Equip')}</button>}</div>
+              return <div className="rpg-entry art-entry" key={equipment.id}><img alt={word(locale, `Minh họa ${localized(locale, equipment)}`, `Artwork of ${localized(locale, equipment)}`)} src={itemArtFor(equipment.itemId)} /><div><strong>{localized(locale, equipment)}</strong><span>{locale === 'vi' ? equipment.descVi : equipment.descEn}</span></div>{equipped ? <em>{word(locale, 'Đang dùng', 'Equipped')}</em> : <button disabled={game.terminal || !owned || game.encounter !== null} onClick={() => onAction({ kind: 'equip_item', itemId: equipment.itemId })} type="button">{word(locale, 'Trang bị', 'Equip')}</button>}</div>
             })}
           </section>
         </div>
       </section>
 
-      <details className="codex-drawer">
+      <details className="codex-drawer" data-testid="codex-drawer" onToggle={(event) => setCodexOpen(event.currentTarget.open)} open={codexOpen}>
         <summary>{word(locale, 'Mở tu điển: NPC, vật phẩm, thiên phú & asset pack', 'Open codex: NPCs, items, talents & asset packs')}</summary>
-        <CodexPanel entries={codexEntries} locale={locale} packs={ASSET_PACK_MANIFEST} />
+        {codexOpen && <CodexPanel entries={codexEntries} locale={locale} packs={ASSET_PACK_MANIFEST} />}
       </details>
     </main>
   )

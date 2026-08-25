@@ -38,7 +38,7 @@ describe('CodexPanel', () => {
         ]}
         locale="vi"
         packs={[
-          { ...villagePack, status: 'ready', loadedAssets: 6 },
+          { ...villagePack, status: 'ready', loadedAssets: 7 },
           { ...talentPack, status: 'loading', loadedAssets: 2 },
         ]}
       />,
@@ -48,14 +48,14 @@ describe('CodexPanel', () => {
     expect(markup).toContain('Cụ Mai Hoa')
     expect(markup).toContain('Thiết Tâm')
     expect(markup).toContain('Đang tải')
-    expect(markup).toContain('6/6')
+    expect(markup).toContain('7/7')
     expect(markup).not.toContain('🎭')
   })
 
   it('reports manifest progress from declared asset counts instead of inventing loaded art', () => {
     expect(assetPackProgress([
-      { ...villagePack, status: 'ready', loadedAssets: 6 },
+      { ...villagePack, status: 'ready', loadedAssets: 7 },
       { ...talentPack, status: 'loading', loadedAssets: 2 },
-    ])).toEqual({ loaded: 8, total: 30, readyPacks: 1, totalPacks: 2 })
+    ])).toEqual({ loaded: 9, total: 14, readyPacks: 1, totalPacks: 2 })
   })
 })

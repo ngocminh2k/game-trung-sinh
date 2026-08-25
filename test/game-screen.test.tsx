@@ -26,7 +26,11 @@ describe('GameScreen', () => {
     expect(markup).toContain('Đạo đồ &amp; trang bị')
     expect(markup).toContain('Mộc Trượng Thức')
     expect(markup).toContain('Mộc Trượng Cũ')
+    expect(markup).toContain('Minh họa Mộc Trượng Cũ')
+    expect(markup).toContain('Minh họa Linh Căn Lì Lợm')
+    expect(markup).toContain('Minh họa Mộc Trượng Thức')
     expect(markup).toContain('data-npc-id="n_elder_meihua"')
     expect((markup.match(/npc-portrait-card/g) ?? [])).toHaveLength(6)
   })
+
 })
