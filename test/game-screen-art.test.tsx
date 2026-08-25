@@ -24,10 +24,44 @@ describe('illustrated RPG UI', () => {
   it('shows item, talent, and technique art in the live game screen', () => {
     renderScreen()
 
+    expect(screen.queryByAltText('Minh họa Mộc Trượng Cũ')).toBeNull()
+    expect(screen.queryByAltText('Minh họa Linh Căn Lì Lợm')).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: /Đạo đồ & trang bị/ }))
     expect(screen.getByAltText('Minh họa Mộc Trượng Cũ')).toBeTruthy()
     expect(screen.getByAltText('Minh họa Linh Căn Lì Lợm')).toBeTruthy()
     expect(screen.getByAltText('Minh họa Mộc Trượng Thức')).toBeTruthy()
     expect(screen.getByAltText('Minh họa Làng Thanh Mộc')).toBeTruthy()
+  })
+
+  it('keeps one contextual dock panel open and switches secondary systems accessibly', () => {
+    renderScreen()
+
+    const peopleTab = screen.getByRole('tab', { name: /Người ở đây/ })
+    const questsTab = screen.getByRole('tab', { name: /Nhiệm vụ/ })
+    const bagTab = screen.getByRole('tab', { name: /Túi đồ & kho/ })
+    const pathTab = screen.getByRole('tab', { name: /Đạo đồ & trang bị/ })
+
+    expect(peopleTab.getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('tabpanel').getAttribute('id')).toBe('dock-panel-people')
+    expect(screen.queryByRole('heading', { name: 'Nhiệm vụ' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Đạo đồ & trang bị' })).toBeNull()
+
+    fireEvent.click(questsTab)
+    expect(questsTab.getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('tabpanel').getAttribute('id')).toBe('dock-panel-quests')
+    expect(screen.getByRole('heading', { name: 'Nhiệm vụ' })).toBeTruthy()
+
+    fireEvent.click(bagTab)
+    expect(bagTab.getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByAltText('Bộ sưu tập vật phẩm tu tiên')).toBeTruthy()
+
+    fireEvent.click(pathTab)
+    expect(pathTab.getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('heading', { name: 'Đạo đồ & trang bị' })).toBeTruthy()
+
+    fireEvent.keyDown(pathTab, { key: 'Home' })
+    expect(peopleTab.getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(peopleTab)
   })
 
   it('does not mount Codex content until its drawer opens', () => {
