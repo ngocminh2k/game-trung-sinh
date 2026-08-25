@@ -423,7 +423,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               />
               <button disabled={game.terminal || command.trim().length === 0} type="submit">{word(locale, 'Thử vận', 'Act')}</button>
             </div>
-            <small>{word(locale, 'Điều vô lý sẽ được người kể chuyện đưa về một lựa chọn hợp lệ sau vài lượt.', 'Absurd actions are guided back to a valid path after a few turns.')}</small>
+            <small>{word(locale, 'Cứ nói điều ngươi thật sự muốn làm; thế giới sẽ đáp lại theo lẽ của nó.', 'State what you truly mean to do; the world will answer in its own way.')}</small>
           </form>
 
           <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')}>
