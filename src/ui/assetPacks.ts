@@ -45,7 +45,7 @@ export const ASSET_PACK_MANIFEST: readonly AssetPackDefinition[] = [
   { id: 'cloud-peak', nameVi: 'Đỉnh Mây', nameEn: 'Cloud Peak', requiredAssetCount: 2, status: 'ready', loadedAssets: 2 },
   { id: 'talents-and-effects', nameVi: 'Thiên Phú Và Công Pháp', nameEn: 'Talents And Techniques', requiredAssetCount: 7, status: 'ready', loadedAssets: 7 },
   { id: 'items-and-equipment', nameVi: 'Vật Phẩm Và Trang Bị', nameEn: 'Items And Equipment', requiredAssetCount: 9, status: 'ready', loadedAssets: 9 },
-  { id: 'player-poses', nameVi: 'Tư Thế Nhân Vật Chính', nameEn: 'Player Action Poses', requiredAssetCount: 11, status: 'queued', loadedAssets: 0 },
+  { id: 'player-poses', nameVi: 'Tư Thế Nhân Vật Chính', nameEn: 'Player Action Poses', requiredAssetCount: 11, status: 'ready', loadedAssets: 11 },
 ]
 
 export function assetPackProgress(packs: readonly AssetPackDefinition[]): AssetPackProgress {

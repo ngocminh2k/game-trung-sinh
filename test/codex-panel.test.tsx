@@ -70,4 +70,13 @@ describe('CodexPanel', () => {
       { ...talentPack, status: 'loading', loadedAssets: 2 },
     ])).toEqual({ loaded: 9, total: 14, readyPacks: 1, totalPacks: 2 })
   })
+
+  it('reports every shipped visual pack as ready', () => {
+    expect(assetPackProgress(ASSET_PACK_MANIFEST)).toEqual({
+      loaded: 65,
+      total: 65,
+      readyPacks: ASSET_PACK_MANIFEST.length,
+      totalPacks: ASSET_PACK_MANIFEST.length,
+    })
+  })
 })
