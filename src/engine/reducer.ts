@@ -1,4 +1,14 @@
-import { getItem, getNpc, getQuest, locationDanger } from '../content'
+import {
+  enemyAt,
+  getEnemy,
+  getEquipmentByItem,
+  getItem,
+  getNpc,
+  getQuest,
+  getTalent,
+  getTechnique,
+  locationDanger,
+} from '../content'
 import { newlyQualifiedAchievements } from './achievements'
 import { currentBeat } from './beats'
 import {
@@ -19,6 +29,7 @@ import {
   newGame,
 } from './constants'
 import { parseFreeText } from './corrections'
+import { isEquippedItem, sanitizeRpgState } from './rpg-state'
 import { LOW_HP_WARNING, damageRoll, dangerWarning } from './danger'
 import { evaluateEndingId } from './endings'
 import { checkLottery, drawEventFor, rollLottery } from './lottery'
@@ -51,10 +62,11 @@ export function applyAction(state: GameState, action: Action): TransitionResult 
     const fresh = newGame(action.seed)
     return finalize(fresh, [{ type: 'GAME_STARTED', seed: action.seed }])
   }
-  if (state.terminal) return { state, events: [{ type: 'ERROR', code: 'TERMINAL' }] }
-  if (action.kind === 'free_text') return applyFreeText(state, action.raw)
-  const result = execAction(state, action)
-  if (!result.ok) return { state, events: [{ type: 'ERROR', code: result.code }] }
+  const safeState = sanitizeRpgState(state)
+  if (safeState.terminal) return { state: safeState, events: [{ type: 'ERROR', code: 'TERMINAL' }] }
+  if (action.kind === 'free_text') return applyFreeText(safeState, action.raw)
+  const result = execAction(safeState, action)
+  if (!result.ok) return { state: safeState, events: [{ type: 'ERROR', code: result.code }] }
   return finalize(result.state, result.events)
 }
 
@@ -88,12 +100,15 @@ function applyFreeText(state: GameState, raw: string): TransitionResult {
       // of idling forever.
       const CONVERGENCE_ESCALATION_BOUND = CORRECTION_LIMIT * 4
       const escalated = state.convergenceCount >= CONVERGENCE_ESCALATION_BOUND
-      const candidates: ConcreteAction[] = escalated
-        ? [
-            { kind: 'train' },
-            { kind: 'rest' },
-          ]
-        : beat.suggested
+      const combatCandidates = state.encounter === null ? [] : combatConvergenceCandidates(state)
+      const candidates: ConcreteAction[] = combatCandidates.length > 0
+        ? combatCandidates
+        : escalated
+          ? [
+              { kind: 'train' },
+              { kind: 'rest' },
+            ]
+          : beat.suggested
       let chosen: ConcreteAction | undefined
       let applied: { state: GameState; events: GameEvent[] } | undefined
       for (const sug of candidates) {
@@ -105,8 +120,8 @@ function applyFreeText(state: GameState, raw: string): TransitionResult {
         }
       }
       if (applied === undefined || chosen === undefined) {
-        chosen = REST_ACTION
-        const probe = execAction(staged, REST_ACTION)
+        chosen = staged.encounter === null ? REST_ACTION : { kind: 'combat_defend' }
+        const probe = execAction(staged, chosen)
         applied = probe.ok ? probe : { state: staged, events: [] }
       }
       return finalize(applied.state, [
@@ -126,6 +141,16 @@ function applyFreeText(state: GameState, raw: string): TransitionResult {
   return finalize(result.state, result.events)
 }
 
+function combatConvergenceCandidates(state: GameState): ConcreteAction[] {
+  const knownTechnique = Object.keys(state.techniques).find((id) => (state.techniques[id] ?? 0) > 0)
+  return knownTechnique === undefined
+    ? [{ kind: 'combat_defend' }]
+    : [
+        { kind: 'combat_attack', techniqueId: knownTechnique },
+        { kind: 'combat_defend' },
+      ]
+}
+
 function finalize(state: GameState, events: GameEvent[]): TransitionResult {
   let s = state
   const out = [...events]
@@ -143,6 +168,17 @@ function finalize(state: GameState, events: GameEvent[]): TransitionResult {
 }
 
 function execAction(state: GameState, action: ConcreteAction): R {
+  // An encounter is a closed deterministic turn loop. Preventing unrelated
+  // actions here keeps the player from escaping damage by moving, resting, or
+  // swapping gear mid-fight; consumables remain a deliberate one-turn choice.
+  if (
+    state.encounter !== null &&
+    action.kind !== 'combat_attack' &&
+    action.kind !== 'combat_defend' &&
+    action.kind !== 'use_item'
+  ) {
+    return err('ITEM_UNAVAILABLE')
+  }
   switch (action.kind) {
     case 'move':
       return doMove(state, action.direction)
@@ -170,6 +206,18 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doAcceptQuest(state, action.questId)
     case 'complete_quest':
       return doCompleteQuest(state, action.questId)
+    case 'choose_talent':
+      return doChooseTalent(state, action.talentId)
+    case 'learn_technique':
+      return doLearnTechnique(state, action.techniqueId)
+    case 'equip_item':
+      return doEquipItem(state, action.itemId)
+    case 'start_encounter':
+      return doStartEncounter(state)
+    case 'combat_attack':
+      return doCombatAttack(state, action.techniqueId)
+    case 'combat_defend':
+      return doCombatDefend(state)
     default: {
       const impossible: never = action
       void impossible
@@ -348,6 +396,7 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
 function doSell(state: GameState, itemId: string, qty: number): R {
   if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
+  if (isEquippedItem(state, itemId)) return err('ITEM_UNAVAILABLE')
   const def = getItem(itemId)
   const price = def?.sellPrice ?? null
   if (price === null) return err('ITEM_UNAVAILABLE')
@@ -368,6 +417,7 @@ function doSell(state: GameState, itemId: string, qty: number): R {
 
 function doUseItem(state: GameState, itemId: string, qty: number): R {
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
+  if (state.encounter !== null && qty !== 1) return err('INVALID_QTY')
   const def = getItem(itemId)
   if (def === undefined || !def.usable || def.effects === undefined) return err('ITEM_NOT_USABLE')
   if (countOf(state.inventory, itemId) < qty) return err('NO_ITEM')
@@ -384,12 +434,157 @@ function doUseItem(state: GameState, itemId: string, qty: number): R {
     },
     inventory: bump(state.inventory, itemId, -qty),
   }
-  return { ok: true, state: s, events: [{ type: 'ITEM_USED', itemId, hpDelta, qiDelta }] }
+  const events: GameEvent[] = [{ type: 'ITEM_USED', itemId, hpDelta, qiDelta }]
+  return state.encounter === null ? { ok: true, state: s, events } : resolveEnemyTurn(s, events)
+}
+
+function doChooseTalent(state: GameState, talentId: string): R {
+  const talent = getTalent(talentId)
+  if (
+    talent === undefined ||
+    !talent.selectable ||
+    state.talents.includes(talentId) ||
+    state.player.stage < talent.requiredStage ||
+    state.talents.some((id) => getTalent(id)?.selectable === true)
+  ) {
+    return err('ITEM_UNAVAILABLE')
+  }
+  return {
+    ok: true,
+    state: { ...state, talents: [...state.talents, talentId] },
+    events: [{ type: 'TALENT_CHOSEN', talentId }],
+  }
+}
+
+function doLearnTechnique(state: GameState, techniqueId: string): R {
+  const technique = getTechnique(techniqueId)
+  if (
+    technique === undefined ||
+    state.player.stage < technique.requiredStage ||
+    technique.sourceItemId === undefined ||
+    countOf(state.inventory, technique.sourceItemId) < 1
+  ) {
+    return err('ITEM_UNAVAILABLE')
+  }
+  const currentLevel = state.techniques[techniqueId] ?? 0
+  if (currentLevel >= technique.maxLevel) return err('ITEM_UNAVAILABLE')
+  const nextLevel = currentLevel + 1
+  return {
+    ok: true,
+    state: {
+      ...state,
+      inventory: bump(state.inventory, technique.sourceItemId, -1),
+      techniques: { ...state.techniques, [techniqueId]: nextLevel },
+    },
+    events: [{ type: 'TECHNIQUE_LEARNED', techniqueId, level: nextLevel }],
+  }
+}
+
+function doEquipItem(state: GameState, itemId: string): R {
+  const equipment = getEquipmentByItem(itemId)
+  if (equipment === undefined || countOf(state.inventory, itemId) < 1) return err('ITEM_UNAVAILABLE')
+  const nextEquipment = { ...state.equipment, [equipment.slot]: itemId }
+  const previouslyEquipped = state.equipment[equipment.slot]
+  const qiIncrease = equipment.qiBonus - (previouslyEquipped === null ? 0 : getEquipmentByItem(previouslyEquipped)?.qiBonus ?? 0)
+  return {
+    ok: true,
+    state: {
+      ...state,
+      equipment: nextEquipment,
+      player: { ...state.player, qi: clamp(state.player.qi + qiIncrease, 0, MAX_QI) },
+    },
+    events: [{ type: 'EQUIPPED', itemId, slot: equipment.slot }],
+  }
+}
+
+function doStartEncounter(state: GameState): R {
+  if (state.encounter !== null) return err('ITEM_UNAVAILABLE')
+  const enemy = enemyAt(state.player.locationId)
+  if (enemy === undefined || state.flags[`defeated_${enemy.id}`] === true) return err('NOT_AT_LOCATION')
+  return {
+    ok: true,
+    state: {
+      ...state,
+      encounter: { enemyId: enemy.id, hp: enemy.maxHp, maxHp: enemy.maxHp, guard: 0 },
+    },
+    events: [{ type: 'ENCOUNTER_STARTED', enemyId: enemy.id }],
+  }
+}
+
+function doCombatAttack(state: GameState, techniqueId: string): R {
+  if (state.encounter === null) return err('NOT_AT_LOCATION')
+  const enemy = getEnemy(state.encounter.enemyId)
+  const technique = getTechnique(techniqueId)
+  const level = state.techniques[techniqueId] ?? 0
+  if (enemy === undefined || technique === undefined || level <= 0) return err('ITEM_UNAVAILABLE')
+  const [variance, rng] = nextInt(state.rng, 0, 2)
+  const amount = Math.max(1, 5 + state.player.attrs.body + state.player.stage * 2 + technique.power * level + equippedAttackBonus(state) + talentAttackBonus(state) + variance)
+  const hp = Math.max(0, state.encounter.hp - amount)
+  const s: GameState = { ...state, rng, encounter: { ...state.encounter, hp, guard: 0 } }
+  const events: GameEvent[] = [{ type: 'COMBAT_HIT', actor: 'player', amount, enemyId: enemy.id }]
+  if (hp <= 0) {
+    let inventory = { ...s.inventory }
+    for (const [itemId, qty] of Object.entries(enemy.rewardItems)) inventory = bump(inventory, itemId, qty)
+    return {
+      ok: true,
+      state: {
+        ...s,
+        encounter: null,
+        inventory,
+        player: { ...s.player, gold: s.player.gold + enemy.rewardGold },
+        flags: { ...s.flags, [`defeated_${enemy.id}`]: true },
+      },
+      events: [...events, { type: 'COMBAT_WON', enemyId: enemy.id, rewardGold: enemy.rewardGold }],
+    }
+  }
+  return resolveEnemyTurn(s, events)
+}
+
+function doCombatDefend(state: GameState): R {
+  if (state.encounter === null) return err('NOT_AT_LOCATION')
+  const guard = 4 + talentDefenseBonus(state)
+  const s: GameState = { ...state, encounter: { ...state.encounter, guard } }
+  return resolveEnemyTurn(s, [{ type: 'COMBAT_GUARDED', amount: guard }])
+}
+
+function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
+  if (state.encounter === null) return { ok: true, state, events }
+  const enemy = getEnemy(state.encounter.enemyId)
+  if (enemy === undefined) return err('ITEM_UNAVAILABLE')
+  const [variance, rng] = nextInt(state.rng, 0, 2)
+  const amount = Math.max(1, enemy.attack + variance - equippedDefenseBonus(state) - talentDefenseBonus(state) - state.encounter.guard)
+  const hp = Math.max(0, state.player.hp - amount)
+  const s: GameState = {
+    ...state,
+    rng,
+    player: { ...state.player, hp, alive: hp > 0 },
+    encounter: { ...state.encounter, guard: 0 },
+  }
+  const out: GameEvent[] = [...events, { type: 'COMBAT_HIT', actor: 'enemy', amount, enemyId: enemy.id }]
+  if (hp <= 0) out.push({ type: 'DEATH', cause: `combat:${enemy.id}` })
+  return { ok: true, state: s, events: out }
+}
+
+function equippedAttackBonus(state: GameState): number {
+  return Object.values(state.equipment).reduce((sum, itemId) => sum + (itemId === null ? 0 : getEquipmentByItem(itemId)?.attackBonus ?? 0), 0)
+}
+
+function equippedDefenseBonus(state: GameState): number {
+  return Object.values(state.equipment).reduce((sum, itemId) => sum + (itemId === null ? 0 : getEquipmentByItem(itemId)?.defenseBonus ?? 0), 0)
+}
+
+function talentAttackBonus(state: GameState): number {
+  return state.talents.reduce((sum, id) => sum + (getTalent(id)?.attackBonus ?? 0), 0)
+}
+
+function talentDefenseBonus(state: GameState): number {
+  return state.talents.reduce((sum, id) => sum + (getTalent(id)?.defenseBonus ?? 0), 0)
 }
 
 function doStore(state: GameState, itemId: string, qty: number): R {
   if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
+  if (isEquippedItem(state, itemId)) return err('ITEM_UNAVAILABLE')
   if (countOf(state.inventory, itemId) < qty) return err('NO_ITEM')
   if (storageUnitsUsed(state) + qty > STORAGE_CAPACITY) return err('STORAGE_FULL')
   const s: GameState = {

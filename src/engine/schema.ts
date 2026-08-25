@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { MAP_HEIGHT, MAP_WIDTH } from '../content/locations'
 import { MAX_HP, MAX_QI, STAGE_THRESHOLDS } from './constants'
+import { sanitizeRpgState } from './rpg-state'
 
 export const GameStateSchema = z.object({
   version: z.literal(1),
@@ -35,6 +36,27 @@ export const GameStateSchema = z.object({
   flags: z.record(z.union([z.number(), z.boolean(), z.string()])),
   quests: z.record(z.object({ status: z.enum(['available', 'active', 'completed']) })),
   achievements: z.array(z.string()),
+  // Pre-RPG v1 saves omitted these fields. They keep their existing inventory
+  // and receive no retroactive gear/talent bonus; a basic attack remains so a
+  // migrated save can enter combat without becoming unwinnable.
+  talents: z.array(z.string()).default([]),
+  techniques: z.record(z.number().int().min(1).max(9)).default({ basic_staff_form: 1 }),
+  equipment: z
+    .object({
+      weapon: z.string().min(1).nullable(),
+      robe: z.string().min(1).nullable(),
+      accessory: z.string().min(1).nullable(),
+    })
+    .default({ weapon: null, robe: null, accessory: null }),
+  encounter: z
+    .object({
+      enemyId: z.string().min(1),
+      hp: z.number().int().min(1),
+      maxHp: z.number().int().min(1),
+      guard: z.number().int().min(0).max(99),
+    })
+    .nullable()
+    .default(null),
   lastLotteryDay: z.number().int().min(1).nullable(),
   corrections: z.number().int().min(0),
   convergenceCount: z.number().int().min(0),
@@ -53,8 +75,62 @@ export const ItemDefSchema = z.object({
   effects: z
     .object({ hp: z.number().int().optional(), qi: z.number().int().optional() })
     .optional(),
+  equipmentSlot: z.enum(['weapon', 'robe', 'accessory']).optional(),
+  teachesTechniqueId: z.string().min(1).optional(),
   buyPrice: z.number().int().min(0).nullable(),
   sellPrice: z.number().int().min(0).nullable(),
+})
+
+export const TalentDefSchema = z.object({
+  id: z.string().min(1),
+  nameVi: z.string().min(1),
+  nameEn: z.string().min(1),
+  descVi: z.string().min(1),
+  descEn: z.string().min(1),
+  requiredStage: z.number().int().min(0),
+  selectable: z.boolean(),
+  attackBonus: z.number().int().min(0),
+  defenseBonus: z.number().int().min(0),
+  trainingBonus: z.number().int().min(0),
+})
+
+export const TechniqueDefSchema = z.object({
+  id: z.string().min(1),
+  nameVi: z.string().min(1),
+  nameEn: z.string().min(1),
+  descVi: z.string().min(1),
+  descEn: z.string().min(1),
+  requiredStage: z.number().int().min(0),
+  maxLevel: z.number().int().min(1).max(9),
+  power: z.number().int().min(0),
+  trainingBonus: z.number().int().min(0),
+  sourceItemId: z.string().min(1).optional(),
+})
+
+export const EquipmentDefSchema = z.object({
+  id: z.string().min(1),
+  itemId: z.string().min(1),
+  slot: z.enum(['weapon', 'robe', 'accessory']),
+  nameVi: z.string().min(1),
+  nameEn: z.string().min(1),
+  descVi: z.string().min(1),
+  descEn: z.string().min(1),
+  attackBonus: z.number().int().min(0),
+  defenseBonus: z.number().int().min(0),
+  qiBonus: z.number().int().min(0),
+})
+
+export const EnemyDefSchema = z.object({
+  id: z.string().min(1),
+  locationId: z.string().min(1),
+  nameVi: z.string().min(1),
+  nameEn: z.string().min(1),
+  descVi: z.string().min(1),
+  descEn: z.string().min(1),
+  maxHp: z.number().int().min(1),
+  attack: z.number().int().min(1),
+  rewardGold: z.number().int().min(0),
+  rewardItems: z.record(z.number().int().min(1)),
 })
 
 export const LocationDefSchema = z.object({
@@ -137,5 +213,5 @@ export const BeatDefSchema = z.object({
 })
 
 export function parseGameState(raw: unknown) {
-  return GameStateSchema.parse(raw)
+  return sanitizeRpgState(GameStateSchema.parse(raw))
 }

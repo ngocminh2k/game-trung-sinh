@@ -33,6 +33,21 @@ export interface QuestRuntime {
   status: QuestStatus
 }
 
+export type EquipmentSlot = 'weapon' | 'robe' | 'accessory'
+
+export interface EquipmentState {
+  weapon: string | null
+  robe: string | null
+  accessory: string | null
+}
+
+export interface EncounterState {
+  enemyId: string
+  hp: number
+  maxHp: number
+  guard: number
+}
+
 export interface GameState {
   version: 1
   seed: string
@@ -45,6 +60,10 @@ export interface GameState {
   flags: Record<string, number | boolean | string>
   quests: Record<string, QuestRuntime>
   achievements: string[]
+  talents: string[]
+  techniques: Record<string, number>
+  equipment: EquipmentState
+  encounter: EncounterState | null
   lastLotteryDay: number | null
   corrections: number
   convergenceCount: number
@@ -68,6 +87,12 @@ export type Action =
   | { kind: 'talk'; npcId: string }
   | { kind: 'accept_quest'; questId: string }
   | { kind: 'complete_quest'; questId: string }
+  | { kind: 'choose_talent'; talentId: string }
+  | { kind: 'learn_technique'; techniqueId: string }
+  | { kind: 'equip_item'; itemId: string }
+  | { kind: 'start_encounter' }
+  | { kind: 'combat_attack'; techniqueId: string }
+  | { kind: 'combat_defend' }
   | { kind: 'free_text'; raw: string }
   | { kind: 'restart'; seed: string }
 
@@ -114,6 +139,13 @@ export type GameEvent =
   | { type: 'TALKED'; npcId: string }
   | { type: 'QUEST_ACCEPTED'; questId: string }
   | { type: 'QUEST_COMPLETED'; questId: string; rewardGold: number }
+  | { type: 'TALENT_CHOSEN'; talentId: string }
+  | { type: 'TECHNIQUE_LEARNED'; techniqueId: string; level: number }
+  | { type: 'EQUIPPED'; itemId: string; slot: EquipmentSlot }
+  | { type: 'ENCOUNTER_STARTED'; enemyId: string }
+  | { type: 'COMBAT_HIT'; actor: 'player' | 'enemy'; amount: number; enemyId: string }
+  | { type: 'COMBAT_GUARDED'; amount: number }
+  | { type: 'COMBAT_WON'; enemyId: string; rewardGold: number }
   | { type: 'WARNING'; level: number; locationId: string; messageVi: string; messageEn: string }
   | { type: 'WARD_USED'; itemId: string }
   | { type: 'DAMAGED'; amount: number; source: string }

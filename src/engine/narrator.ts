@@ -116,6 +116,40 @@ const TEMPLATES: Record<string, Handler> = {
       ? `Hoàn thành nhiệm vụ, nhận ${String(ev.rewardGold)} lượng.`
       : `Quest complete; ${String(ev.rewardGold)} gold earned.`
   },
+  TALENT_CHOSEN: (ev, l) => {
+    if (ev.type !== 'TALENT_CHOSEN') return ''
+    return l === 'vi' ? `Thiên phú thức tỉnh: ${ev.talentId}.` : `Talent awakened: ${ev.talentId}.`
+  },
+  TECHNIQUE_LEARNED: (ev, l) => {
+    if (ev.type !== 'TECHNIQUE_LEARNED') return ''
+    return l === 'vi'
+      ? `Lĩnh ngộ ${ev.techniqueId}, tầng ${String(ev.level)}.`
+      : `Learned ${ev.techniqueId}, rank ${String(ev.level)}.`
+  },
+  EQUIPPED: (ev, l) => {
+    if (ev.type !== 'EQUIPPED') return ''
+    return l === 'vi' ? `Trang bị ${nameOf('item', ev.itemId, l)}.` : `Equipped ${nameOf('item', ev.itemId, l)}.`
+  },
+  ENCOUNTER_STARTED: (ev, l) => {
+    if (ev.type !== 'ENCOUNTER_STARTED') return ''
+    return l === 'vi' ? `Một kẻ địch chặn đường: ${ev.enemyId}.` : `An enemy blocks your path: ${ev.enemyId}.`
+  },
+  COMBAT_HIT: (ev, l) => {
+    if (ev.type !== 'COMBAT_HIT') return ''
+    return l === 'vi'
+      ? `${ev.actor === 'player' ? 'Ngươi' : ev.enemyId} gây ${String(ev.amount)} sát thương.`
+      : `${ev.actor === 'player' ? 'You' : ev.enemyId} deal ${String(ev.amount)} damage.`
+  },
+  COMBAT_GUARDED: (ev, l) => {
+    if (ev.type !== 'COMBAT_GUARDED') return ''
+    return l === 'vi' ? `Thủ thế, giảm ${String(ev.amount)} sát thương.` : `You brace, reducing ${String(ev.amount)} damage.`
+  },
+  COMBAT_WON: (ev, l) => {
+    if (ev.type !== 'COMBAT_WON') return ''
+    return l === 'vi'
+      ? `Hạ ${ev.enemyId}, nhận ${String(ev.rewardGold)} lượng.`
+      : `Defeated ${ev.enemyId}; gained ${String(ev.rewardGold)} gold.`
+  },
   WARNING: (ev, l) => {
     if (ev.type !== 'WARNING') return ''
     return l === 'vi' ? ev.messageVi : ev.messageEn

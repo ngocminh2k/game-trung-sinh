@@ -9,8 +9,64 @@ export interface ItemDef {
   aliases: string[]
   usable: boolean
   effects?: { hp?: number; qi?: number }
+  equipmentSlot?: EquipmentSlot
+  teachesTechniqueId?: string
   buyPrice: number | null
   sellPrice: number | null
+}
+
+export type EquipmentSlot = 'weapon' | 'robe' | 'accessory'
+
+export interface TalentDef {
+  id: string
+  nameVi: string
+  nameEn: string
+  descVi: string
+  descEn: string
+  requiredStage: number
+  selectable: boolean
+  attackBonus: number
+  defenseBonus: number
+  trainingBonus: number
+}
+
+export interface TechniqueDef {
+  id: string
+  nameVi: string
+  nameEn: string
+  descVi: string
+  descEn: string
+  requiredStage: number
+  maxLevel: number
+  power: number
+  trainingBonus: number
+  sourceItemId?: string
+}
+
+export interface EquipmentDef {
+  id: string
+  itemId: string
+  slot: EquipmentSlot
+  nameVi: string
+  nameEn: string
+  descVi: string
+  descEn: string
+  attackBonus: number
+  defenseBonus: number
+  qiBonus: number
+}
+
+export interface EnemyDef {
+  id: string
+  locationId: string
+  nameVi: string
+  nameEn: string
+  descVi: string
+  descEn: string
+  maxHp: number
+  attack: number
+  rewardGold: number
+  rewardItems: Record<string, number>
 }
 
 export interface LocationDef {

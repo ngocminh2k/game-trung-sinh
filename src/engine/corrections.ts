@@ -1,4 +1,4 @@
-import { ITEMS, NPCS, QUESTS } from '../content'
+import { ITEMS, NPCS, QUESTS, TALENTS, TECHNIQUES } from '../content'
 import type { ConcreteAction, Direction } from './types'
 
 export interface ParsedIntent {
@@ -48,6 +48,12 @@ const WITHDRAW_WORDS = ['withdraw', 'lay kho', 'rut kho', 'lay ra kho']
 const ACCEPT_WORDS = ['accept quest', 'nhan nhiem vu', 'nhan nhiem', 'nhan viec']
 const COMPLETE_WORDS = ['complete quest', 'hoan thanh nhiem vu', 'tra nhiem vu', 'hoan nhiem']
 const TALK_WORDS = ['talk to', 'talk', 'noi chuyen voi', 'noi chuyen', 'gap ']
+const ENCOUNTER_WORDS = ['start encounter', 'engage enemy', 'fight enemy', 'giao chien', 'khai chien', 'vao tran']
+const ATTACK_WORDS = ['attack', 'strike', 'tan cong', 'ra don', 'danh ']
+const DEFEND_WORDS = ['defend', 'guard', 'phong thu', 'thu the', 'do don']
+const EQUIP_WORDS = ['equip', 'trang bi', 'mac vao', 'cam vu khi']
+const LEARN_WORDS = ['learn technique', 'learn skill', 'hoc cong phap', 'luyen bi kip', 'lĩnh ngộ']
+const TALENT_WORDS = ['choose talent', 'select talent', 'chon thien phu', 'thuc tinh thien phu']
 
 function includesAny(text: string, words: readonly string[]): boolean {
   return words.some((w) => text.includes(w))
@@ -91,6 +97,22 @@ function findQuestIdIn(text: string): string | undefined {
   return undefined
 }
 
+function findTalentIdIn(text: string): string | undefined {
+  for (const talent of TALENTS) {
+    const names = [talent.id.replace(/_/g, ' '), talent.nameVi, talent.nameEn].map(normalizeText)
+    if (names.some((name) => wordContains(text, name))) return talent.id
+  }
+  return undefined
+}
+
+function findTechniqueIdIn(text: string): string | undefined {
+  for (const technique of TECHNIQUES) {
+    const names = [technique.id.replace(/_/g, ' '), technique.nameVi, technique.nameEn].map(normalizeText)
+    if (names.some((name) => wordContains(text, name))) return technique.id
+  }
+  return undefined
+}
+
 // Extracts an explicitly written positive quantity ("buy 3 pills"). Returns
 // undefined when no quantity was specified; a number outside
 // [MIN_QTY, MAX_QTY] fails the whole parse.
@@ -109,6 +131,31 @@ export function parseFreeText(raw: string): ParsedIntent | FailedIntent {
   const specifiedQty = extractSpecifiedQty(text)
   if (specifiedQty === 'invalid') return { ok: false }
   const qty = specifiedQty ?? 1
+
+  if (includesAny(text, ENCOUNTER_WORDS)) return { ok: true, action: { kind: 'start_encounter' } }
+  if (includesAny(text, ATTACK_WORDS)) {
+    return { ok: true, action: { kind: 'combat_attack', techniqueId: findTechniqueIdIn(text) ?? 'basic_staff_form' } }
+  }
+  if (includesAny(text, DEFEND_WORDS)) return { ok: true, action: { kind: 'combat_defend' } }
+  if (includesAny(text, EQUIP_WORDS)) {
+    const itemId = findItemIdIn(text)
+    if (itemId !== undefined) return { ok: true, action: { kind: 'equip_item', itemId } }
+    return { ok: false }
+  }
+  if (includesAny(text, LEARN_WORDS)) {
+    const techniqueId = findTechniqueIdIn(text)
+    if (techniqueId !== undefined) return { ok: true, action: { kind: 'learn_technique', techniqueId } }
+    const itemId = findItemIdIn(text)
+    const item = itemId === undefined ? undefined : ITEMS.find((candidate) => candidate.id === itemId)
+    if (item?.teachesTechniqueId !== undefined) {
+      return { ok: true, action: { kind: 'learn_technique', techniqueId: item.teachesTechniqueId } }
+    }
+    return { ok: false }
+  }
+  if (includesAny(text, TALENT_WORDS)) {
+    const talentId = findTalentIdIn(text)
+    return talentId === undefined ? { ok: false } : { ok: true, action: { kind: 'choose_talent', talentId } }
+  }
 
   if (includesAny(text, STORE_WORDS)) {
     const itemId = findItemIdIn(text)

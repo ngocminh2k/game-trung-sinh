@@ -39,6 +39,7 @@ export {
   storageUnitsUsed,
 } from './storage'
 export { useGameStore } from './store'
+export { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from '../content/rpg'
 
 export function validateGameState(state: unknown): GameState {
   return parseGameState(state)
@@ -65,4 +66,7 @@ export type {
   LocationDef,
   NpcDef,
   QuestDef,
-} from './content-types'
+  EnemyDef,
+  EquipmentDef,
+  EquipmentSlot,
+  } from './content-types'

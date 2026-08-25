@@ -1,6 +1,7 @@
 import { MANUAL_ROOT_EFFICIENCY, STAGE_THRESHOLDS, TRAIN_BASE_PROGRESS } from './constants'
 import { ITEM_MANUAL } from './constants'
 import { countOf } from './utils'
+import { getTalent, getTechnique } from '../content/rpg'
 import type { GameState } from './types'
 
 export function trainingEffectiveness(state: GameState): number {
@@ -11,7 +12,12 @@ export function trainingEffectiveness(state: GameState): number {
 
 export function trainProgressGain(state: GameState): number {
   const mindBonus = Math.floor(state.player.attrs.mind / 3)
-  return Math.max(1, Math.floor((TRAIN_BASE_PROGRESS + mindBonus) * trainingEffectiveness(state)))
+  const talentBonus = state.talents.reduce((sum, id) => sum + (getTalent(id)?.trainingBonus ?? 0), 0)
+  const techniqueBonus = Object.entries(state.techniques).reduce(
+    (sum, [id, level]) => sum + (getTechnique(id)?.trainingBonus ?? 0) * level,
+    0,
+  )
+  return Math.max(1, Math.floor((TRAIN_BASE_PROGRESS + mindBonus + talentBonus + techniqueBonus) * trainingEffectiveness(state)))
 }
 
 export function nextStageThreshold(stage: number): number | null {
