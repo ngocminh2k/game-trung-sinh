@@ -16,7 +16,7 @@ import {
   TechniqueDefSchema,
 } from '../engine/schema'
 import { ACHIEVEMENTS } from './achievements-data'
-import { BEATS } from './beats-data'
+import { BEATS, BEAT_PREDICATE_IDS } from './beats-data'
 import { CHAPTERS } from './chapters'
 import { ENDINGS } from './endings-data'
 import { ITEMS } from './items'
@@ -27,7 +27,8 @@ import { QUESTS } from './quests'
 import { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from './rpg'
 
 export { ACHIEVEMENTS, getAchievement } from './achievements-data'
-export { BEATS } from './beats-data'
+export { BEATS, BEAT_PREDICATE_IDS } from './beats-data'
+export type { BeatPredicateId } from './beats-data'
 export { CHAPTERS } from './chapters'
 export { ENDINGS } from './endings-data'
 export {
@@ -91,6 +92,24 @@ export function validateAllContent(): ContentValidationReport {
   check(z.array(AchievementDefSchema).min(1), ACHIEVEMENTS, 'ACHIEVEMENTS')
   check(z.array(BeatDefSchema).min(1), BEATS, 'BEATS')
 
+  const checkUniqueIds = (label: string, records: ReadonlyArray<{ id: string }>): void => {
+    const seen = new Set<string>()
+    for (const record of records) {
+      if (seen.has(record.id)) errors.push(`${label}: duplicate id ${record.id}`)
+      seen.add(record.id)
+    }
+  }
+  checkUniqueIds('ITEMS', ITEMS)
+  checkUniqueIds('RECIPES', RECIPES)
+  checkUniqueIds('TALENTS', TALENTS)
+  checkUniqueIds('TECHNIQUES', TECHNIQUES)
+  checkUniqueIds('EQUIPMENT', EQUIPMENT)
+  checkUniqueIds('ENEMIES', ENEMIES)
+  checkUniqueIds('LOCATIONS', LOCATIONS)
+  checkUniqueIds('QUESTS', QUESTS)
+  checkUniqueIds('ACHIEVEMENTS', ACHIEVEMENTS)
+  checkUniqueIds('BEATS', BEATS)
+
   const npcIds = new Set(NPCS.map((n) => n.id))
   for (const q of QUESTS) {
     if (!npcIds.has(q.giverNpcId)) errors.push(`QUESTS: giver ${q.giverNpcId} missing`)
@@ -124,6 +143,10 @@ export function validateAllContent(): ContentValidationReport {
   const techniqueIds = new Set(TECHNIQUES.map((technique) => technique.id))
   for (const equipment of EQUIPMENT) {
     if (!itemIds.has(equipment.itemId)) errors.push(`EQUIPMENT: item ${equipment.itemId} missing`)
+    const item = ITEMS.find((entry) => entry.id === equipment.itemId)
+    if (item !== undefined && item.equipmentSlot !== equipment.slot) {
+      errors.push(`EQUIPMENT: ${equipment.id} slot does not match item ${equipment.itemId}`)
+    }
   }
   for (const technique of TECHNIQUES) {
     if (technique.sourceItemId !== undefined && !itemIds.has(technique.sourceItemId)) {
@@ -142,13 +165,12 @@ export function validateAllContent(): ContentValidationReport {
     }
   }
   for (const b of BEATS) {
+    if (!BEAT_PREDICATE_IDS.includes(b.predicate)) errors.push(`BEATS: ${b.id} has unknown predicate ${b.predicate}`)
     for (const a of b.suggested) {
       if (a.kind === 'talk' && 'npcId' in a && !npcIds.has(String(a.npcId))) {
         errors.push(`BEATS: ${b.id} talks to unknown npc ${String(a.npcId)}`)
       }
     }
   }
-  const ids = new Set(BEATS.map((b) => b.id))
-  if (ids.size !== BEATS.length) errors.push('BEATS: duplicate beat ids')
   return { ok: errors.length === 0, errors }
 }

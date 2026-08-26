@@ -21,6 +21,7 @@ import {
 } from '../content'
 import { currentBeat, dangerWarning, storageRemaining } from '../engine'
 import type { Action, ConcreteAction, GameState, Locale } from '../engine'
+import type { ItemDef } from '../engine/content-types'
 import itemsStillLife from '../assets/art/items-still-life.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
 import { locationBackdropFor } from './locationArt'
@@ -158,6 +159,51 @@ function playerPoseFor(actionKind: Action['kind'] | null, game: GameState, showH
 
 type DockPanel = 'people' | 'quests' | 'inventory' | 'market' | 'path'
 const DOCK_PANELS: DockPanel[] = ['people', 'quests', 'inventory', 'market', 'path']
+
+const REALM_STAGES: ReadonlyArray<{ vi: string; en: string; seal: string }> = [
+  { vi: 'Luyện Khí', en: 'Qi Refining', seal: '氣' },
+  { vi: 'Trúc Cơ', en: 'Foundation', seal: '基' },
+  { vi: 'Kim Đan', en: 'Golden Core', seal: '丹' },
+  { vi: 'Nguyên Anh', en: 'Nascent Soul', seal: '嬰' },
+  { vi: 'Hóa Thần', en: 'Spirit Transform', seal: '神' },
+  { vi: 'Phi Thăng', en: 'Ascension', seal: '仙' },
+]
+
+const ACTION_SEALS: Partial<Record<Action['kind'], string>> = {
+  move: '行',
+  rest: '息',
+  train: '練',
+  gather: '採',
+  buy: '買',
+  sell: '售',
+  use_item: '用',
+  store: '倉',
+  withdraw: '取',
+  draw_lottery: '籤',
+  talk: '話',
+  accept_quest: '任',
+  complete_quest: '納',
+  choose_talent: '賦',
+  learn_technique: '法',
+  equip_item: '装',
+  start_encounter: '戰',
+  combat_attack: '擊',
+  combat_defend: '守',
+}
+
+function actionSeal(action: ConcreteAction): string {
+  return ACTION_SEALS[action.kind] ?? '行'
+}
+
+// Price tiers double as a rarity read for the collection-minded player:
+// common wares stay quiet, rare finds earn a vermilion edge.
+function itemTier(item: ItemDef | undefined): 'common' | 'uncommon' | 'rare' {
+  if (item === undefined) return 'common'
+  const value = item.buyPrice ?? (item.sellPrice ?? 0) * 2
+  if (value >= 160) return 'rare'
+  if (value >= 55) return 'uncommon'
+  return 'common'
+}
 
 function contextualDockFor(locationId: string): DockPanel {
   if (locationId === 'market') return 'market'
@@ -323,7 +369,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         <section className="chapter-banner" aria-label={word(locale, 'Chương truyện hiện tại', 'Current story chapter')}>
           <p>{word(locale, 'Chương hiện tại', 'Current chapter')}</p>
           <h2>{localized(locale, chapter)}</h2>
-          <span>{locale === 'vi' ? chapter.taglineVi : chapter.taglineEn}</span>
+          <span>{locale === 'vi' ? chapter.taglineVi : chapter.taglineEn}<ChapterProgress current={beat.chapter} locale={locale} total={CHAPTERS.length} /></span>
         </section>
 
         {warning !== null && (
@@ -424,6 +470,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 >
                   <span>{index + 1}</span>
                   {actionLabel(action, locale)}
+                  <i aria-hidden="true" className="choice-seal">{actionSeal(action)}</i>
                 </button>
               ))}
             </div>
@@ -456,6 +503,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         <aside className="hud-panel">
           <section className="stats-card ink-card" aria-labelledby="stats-title">
             <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2><span>{word(locale, 'cảnh', 'stage')} {game.player.stage}</span></div>
+            <RealmLadder locale={locale} stage={game.player.stage} />
             <figure className={`protagonist-portrait player-action-art pose-${playerPose}`} data-pose={playerPose} data-testid="player-action-art">
               <img
                 alt={word(locale, `Tư thế nhân vật: ${playerPose}`, `Player action pose: ${playerPose}`)}
@@ -560,7 +608,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
                 const item = getItem(id)
                 const artwork = itemArtFor(id)
-                return <li key={id}>{artwork !== undefined && <img alt={word(locale, `Minh họa ${itemName(id, locale)}`, `Artwork of ${itemName(id, locale)}`)} className="item-art-thumb" src={artwork} />}<div className="item-copy"><strong>{itemName(id, locale)} ×{qty}</strong><span>{item === undefined ? '' : locale === 'vi' ? item.descVi : item.descEn}</span></div><div className="item-actions">{item?.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: id })} type="button">{word(locale, 'Dùng', 'Use')}</button>}<button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'store', itemId: id, qty: 1 })} type="button">{word(locale, 'Gửi', 'Store')}</button></div></li>
+                const tier = itemTier(item)
+                return <li className={`item-row tier-${tier}`} key={id}>{artwork !== undefined && <img alt={word(locale, `Minh họa ${itemName(id, locale)}`, `Artwork of ${itemName(id, locale)}`)} className="item-art-thumb" src={artwork} />}<div className="item-copy"><strong>{itemName(id, locale)} ×{qty}</strong><span>{item === undefined ? '' : locale === 'vi' ? item.descVi : item.descEn}</span>{item?.sellPrice !== null && item?.sellPrice !== undefined && <em className="item-value-chip" title={word(locale, 'Giá bán tại chợ', 'Market sell price')}>◎ {item.sellPrice}</em>}</div><div className="item-actions">{item?.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: id })} type="button">{word(locale, 'Dùng', 'Use')}</button>}<button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'store', itemId: id, qty: 1 })} type="button">{word(locale, 'Gửi', 'Store')}</button></div></li>
               })}
             </ul>
             {stored.length > 0 && <div className="storage-list"><p className="section-kicker">{word(locale, 'Trong kho', 'In storage')}</p>{stored.map(([id, qty]) => <button disabled={game.terminal || encounterLocked} key={id} onClick={() => onAction({ kind: 'withdraw', itemId: id, qty: 1 })} type="button">{itemName(id, locale)} ×{qty} · {word(locale, 'lấy', 'take')}</button>)}</div>}
@@ -689,4 +738,45 @@ interface MeterProps {
 function Meter({ label, value, max, tone }: MeterProps) {
   const percent = Math.max(0, Math.min(100, (value / max) * 100))
   return <div className="meter"><div><span>{label}</span><strong>{value}/{max}</strong></div><span className={`meter-track ${tone}`}><i style={{ width: `${percent}%` }} /></span></div>
+}
+
+interface RealmLadderProps {
+  stage: number
+  locale: Locale
+}
+
+// The realm ladder is the genre's signature progress read: six seals from
+// mortal breathing to ascension, the current rung lit like a fresh stamp.
+function RealmLadder({ stage, locale }: RealmLadderProps) {
+  return (
+    <div className="realm-ladder" role="img" aria-label={word(locale, 'Thang cảnh giới tu luyện', 'Cultivation realm ladder')} data-testid="realm-ladder">
+      {REALM_STAGES.map((entry, index) => {
+        const reached = index <= stage
+        const current = index === stage
+        return (
+          <span className={`realm-rung ${reached ? 'is-reached' : ''} ${current ? 'is-current' : ''}`} key={entry.en} title={`${locale === 'vi' ? entry.vi : entry.en}${current ? ` · ${word(locale, 'hiện tại', 'current')}` : ''}`}>
+            <i aria-hidden="true">{entry.seal}</i>
+            <em>{locale === 'vi' ? entry.vi : entry.en}</em>
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+interface ChapterProgressProps {
+  current: number
+  total: number
+  locale: Locale
+}
+
+function ChapterProgress({ current, total, locale }: ChapterProgressProps) {
+  return (
+    <span className="chapter-progress" aria-label={word(locale, `Chương ${String(current)} trên ${String(total)}`, `Chapter ${String(current)} of ${String(total)}`)}>
+      {Array.from({ length: total }, (_, index) => (
+        <i className={index < current ? 'is-lit' : ''} key={index} />
+      ))}
+      <em>{word(locale, `${String(current)}/${String(total)}`, `${String(current)}/${String(total)}`)}</em>
+    </span>
+  )
 }

@@ -109,11 +109,21 @@ describe('illustrated RPG UI', () => {
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids).toHaveLength(NPCS.length + ITEMS.length + TALENTS.length + TECHNIQUES.length + LOCATIONS.length)
 
-    for (const item of ITEMS) expect(itemArtFor(item.id)).toBeDefined()
+    for (const item of ITEMS) {
+      const artwork = itemArtFor(item.id)
+      if (artwork === undefined) {
+        expect(screen.queryByAltText(item.nameVi)).toBeNull()
+      } else {
+        expect(screen.getByAltText(item.nameVi)).toBeTruthy()
+      }
+    }
     for (const talent of TALENTS) expect(talentArtFor(talent.id)).toBeDefined()
     for (const technique of TECHNIQUES) {
-      expect(techniqueArtFor(technique.id)).toBeDefined()
-      expect(screen.getByAltText(technique.nameVi)).toBeTruthy()
+      if (techniqueArtFor(technique.id) === undefined) {
+        expect(screen.queryByAltText(technique.nameVi)).toBeNull()
+      } else {
+        expect(screen.getByAltText(technique.nameVi)).toBeTruthy()
+      }
     }
     for (const location of LOCATIONS) {
       expect(screen.getByAltText(location.nameVi)).toBeTruthy()

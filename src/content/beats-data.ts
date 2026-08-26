@@ -1,6 +1,33 @@
 import type { BeatDef } from '../engine/content-types'
 
-export const BEATS: BeatDef[] = [
+/**
+ * Story beats use these stable milestones rather than ad-hoc strings.  The
+ * reducer remains the sole owner of the state each milestone reads; this list
+ * only makes authored content and the beat evaluator agree at build time.
+ */
+export const BEAT_PREDICATE_IDS = [
+  'freshArrival',
+  'movedOnce',
+  'gatheredSome',
+  'marketSeenOrSold',
+  'talismanQuestActive',
+  'herbQuestDone',
+  'storageUsed',
+  'caveSeen',
+  'encounterVictory',
+  'stageTwoPlus',
+  'tradeWinds',
+  'equippedAdvanced',
+  'lotteryPlayed',
+  'stageThreePlus',
+  'stageFourPlus',
+  'stageFive',
+  'always',
+] as const
+
+export type BeatPredicateId = (typeof BEAT_PREDICATE_IDS)[number]
+
+export const BEATS: Array<BeatDef & { predicate: BeatPredicateId }> = [
   {
     id: 'b_arrival',
     chapter: 1,
@@ -66,6 +93,22 @@ export const BEATS: BeatDef[] = [
     ],
   },
   {
+    id: 'b_two_paths',
+    chapter: 2,
+    predicate: 'talismanQuestActive',
+    titleVi: 'Hai lối đi của một tấm bùa',
+    titleEn: 'Two Roads, One Talisman',
+    textVi:
+      'Đơn bùa của họ Vân nằm trong tay ngươi. Bán nó cho chợ là tiền ngay; giao cho Bảo là chữ tín. Đạo tu hành, hóa ra cũng bắt đầu từ những lựa chọn nhỏ thế này.',
+    textEn:
+      'The Yun family order sits in your hand. Sell it at market for coin now; deliver it to Bao for a name that carries. Even the great dao begins this small.',
+    suggested: [
+      { kind: 'buy', itemId: 'warding_talisman' },
+      { kind: 'talk', npcId: 'n_merchant_bao' },
+      { kind: 'complete_quest', questId: 'q_talisman_order' },
+    ],
+  },
+  {
     id: 'b_herb_debt',
     chapter: 3,
     predicate: 'herbQuestDone',
@@ -82,6 +125,22 @@ export const BEATS: BeatDef[] = [
     ],
   },
   {
+    id: 'b_stowed_away',
+    chapter: 3,
+    predicate: 'storageUsed',
+    titleVi: 'Một góc kho, một tấm lòng',
+    titleEn: 'A Corner of the Storehouse',
+    textVi:
+      'Đồ gửi trong kho vẫn nằm đó, gọn gàng như lời hứa giữ được. Người tu hành cũng cần một nơi để đặt xuống, mới đủ nhẹ mà đi tiếp.',
+    textEn:
+      'What you stored still waits in order, like a promise kept. A cultivator needs somewhere to set things down before traveling light again.',
+    suggested: [
+      { kind: 'withdraw', itemId: 'pill_hp', qty: 1 },
+      { kind: 'use_item', itemId: 'pill_hp' },
+      { kind: 'gather' },
+    ],
+  },
+  {
     id: 'b_sealed_gate',
     chapter: 3,
     predicate: 'caveSeen',
@@ -95,6 +154,22 @@ export const BEATS: BeatDef[] = [
       { kind: 'buy', itemId: 'warding_talisman' },
       { kind: 'move', direction: 'north' },
       { kind: 'move', direction: 'west' },
+    ],
+  },
+  {
+    id: 'b_first_hunt',
+    chapter: 3,
+    predicate: 'encounterVictory',
+    titleVi: 'Vết thương đầu tiên của giang hồ',
+    titleEn: 'The Jianghu\u2019s First Scar',
+    textVi:
+      'Ngươi lau sạch vũ khí, tay vẫn run nhưng lòng lạ lùng bình tĩnh. Kiếp trước ngươi chết trong im lặng; kiếp này, ít nhất ngươi đã vùng lên.',
+    textEn:
+      'You wipe the blade clean. Your hand still trembles; your heart is oddly calm. Last life you died in silence — this one, at least, you fought back.',
+    suggested: [
+      { kind: 'rest' },
+      { kind: 'sell', itemId: 'beast_fang' },
+      { kind: 'train' },
     ],
   },
   {
@@ -130,6 +205,54 @@ export const BEATS: BeatDef[] = [
     ],
   },
   {
+    id: 'b_gear_ready',
+    chapter: 4,
+    predicate: 'equippedAdvanced',
+    titleVi: 'Vũ khí mới, người cũ hơn',
+    titleEn: 'A New Blade, an Older You',
+    textVi:
+      'Vật trong tay đổi rồi, nhưng cái làm ngươi mạnh lên không phải lưỡi đao — là bao nhiêu lần ngươi chọn đứng dậy.',
+    textEn:
+      'The steel is new; what makes you stronger was never the blade — it is every time you chose to stand back up.',
+    suggested: [
+      { kind: 'train' },
+      { kind: 'buy', itemId: 'pill_qi' },
+      { kind: 'draw_lottery' },
+    ],
+  },
+  {
+    id: 'b_fortune_drawn',
+    chapter: 4,
+    predicate: 'lotteryPlayed',
+    titleVi: 'Tấm vé và một nụ cười',
+    titleEn: 'The Ticket and the Smile',
+    textVi:
+      'Người ta bảo kẻ phế căn không nên đánh cược với trời. Ngươi quay tấm vé rồi gấp gọn: cược hay không là quyền của ngươi, thắng hay thắng là chuyện của trời.',
+    textEn:
+      'They say a broken root should never wager with heaven. You fold the ticket away: betting is your right; paying out is heaven\u2019s problem.',
+    suggested: [
+      { kind: 'draw_lottery' },
+      { kind: 'sell', itemId: 'spirit_herb' },
+      { kind: 'rest' },
+    ],
+  },
+  {
+    id: 'b_last_mile',
+    chapter: 5,
+    predicate: 'stageThreePlus',
+    titleVi: 'Nửa chặng cuối đếm bằng nhịp thở',
+    titleEn: 'The Last Stretch Counted in Breaths',
+    textVi:
+      'Đường cong queo của ngươi đã đi qua ba cảnh giới mà không gãy. Còn lại là khoảng trời chỉ những kẻ biết kiên trì mới nhìn thấy.',
+    textEn:
+      'Your crooked road has crossed three realms without snapping. What remains is sky only the patient ever see.',
+    suggested: [
+      { kind: 'train' },
+      { kind: 'use_item', itemId: 'marrow_gather_pill' },
+      { kind: 'rest' },
+    ],
+  },
+  {
     id: 'b_final_barrier',
     chapter: 5,
     predicate: 'stageFourPlus',
@@ -148,7 +271,7 @@ export const BEATS: BeatDef[] = [
   {
     id: 'b_ascension_night',
     chapter: 5,
-    predicate: 'always',
+    predicate: 'stageFive',
     titleVi: 'Đêm nay trời mở cửa',
     titleEn: 'Tonight Heaven Opens Its Door',
     textVi:
