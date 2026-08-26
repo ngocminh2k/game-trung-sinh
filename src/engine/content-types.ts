@@ -17,6 +17,20 @@ export interface ItemDef {
   sellPrice: number | null
 }
 
+/** A market exchange turns exploration or combat loot into a concrete
+ * expedition tool. Raw materials can always be sold instead, so each recipe
+ * represents a deliberate short-term tradeoff rather than a mandatory gate. */
+export interface RefinementRecipeDef {
+  id: string
+  nameVi: string
+  nameEn: string
+  descVi: string
+  descEn: string
+  locationId: string
+  ingredients: Record<string, number>
+  output: { itemId: string; qty: number }
+}
+
 export type EquipmentSlot = 'weapon' | 'robe' | 'accessory'
 
 export interface TalentDef {

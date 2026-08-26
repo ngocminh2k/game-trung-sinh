@@ -78,6 +78,7 @@ export type Action =
   | { kind: 'rest' }
   | { kind: 'train' }
   | { kind: 'gather' }
+  | { kind: 'refine'; recipeId: string }
   | { kind: 'buy'; itemId: string; qty?: number }
   | { kind: 'sell'; itemId: string; qty?: number }
   | { kind: 'use_item'; itemId: string; qty?: number }
@@ -131,6 +132,7 @@ export type GameEvent =
   | { type: 'RESTED'; hpHeal: number }
   | { type: 'TRAINED'; gain: number; stage: number }
   | { type: 'GATHERED'; itemId: string; qty: number }
+  | { type: 'REFINED'; recipeId: string; itemId: string; qty: number }
   | { type: 'ITEM_USED'; itemId: string; hpDelta: number; qiDelta: number }
   | { type: 'BOUGHT'; itemId: string; qty: number; goldPaid: number }
   | { type: 'SOLD'; itemId: string; qty: number; goldGain: number }

@@ -82,6 +82,17 @@ export const ItemDefSchema = z.object({
   sellPrice: z.number().int().min(0).nullable(),
 })
 
+export const RefinementRecipeDefSchema = z.object({
+  id: z.string().min(1),
+  nameVi: z.string().min(1),
+  nameEn: z.string().min(1),
+  descVi: z.string().min(1),
+  descEn: z.string().min(1),
+  locationId: z.string().min(1),
+  ingredients: z.record(z.number().int().min(1)),
+  output: z.object({ itemId: z.string().min(1), qty: z.number().int().min(1) }),
+})
+
 export const TalentDefSchema = z.object({
   id: z.string().min(1),
   nameVi: z.string().min(1),

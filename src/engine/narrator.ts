@@ -5,6 +5,7 @@ import {
   getItem,
   getLocation,
   getNpc,
+  getRecipe,
   getQuest,
   getTalent,
   getTechnique,
@@ -73,6 +74,14 @@ const TEMPLATES: Record<string, Handler> = {
     return l === 'vi'
       ? `Hái được ${String(ev.qty)} ${nameOf('item', ev.itemId, l)}.`
       : `Gathered ${String(ev.qty)} ${nameOf('item', ev.itemId, l)}.`
+  },
+  REFINED: (ev, l) => {
+    if (ev.type !== 'REFINED') return ''
+    const recipe = getRecipe(ev.recipeId)
+    const name = localizedName(recipe, ev.recipeId, l)
+    return l === 'vi'
+      ? `Ngươi đổi linh tài thành ${name}, nhận ${String(ev.qty)} ${nameOf('item', ev.itemId, l)}.`
+      : `You exchange materials through ${name} and receive ${String(ev.qty)} ${nameOf('item', ev.itemId, l)}.`
   },
   ITEM_USED: (ev, l) => {
     if (ev.type !== 'ITEM_USED') return ''

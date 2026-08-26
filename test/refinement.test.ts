@@ -1,5 +1,5 @@
 import { RECIPES } from '../src/content'
-import { applyAction, newGame } from '../src/engine'
+import { applyAction, newGame, parseFreeText } from '../src/engine'
 import { describe, expect, it } from 'vitest'
 
 describe('material exchange loop', () => {
@@ -31,5 +31,9 @@ describe('material exchange loop', () => {
 
     expect(result.state.inventory).toEqual(withMaterials.inventory)
     expect(result.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION' }])
+  })
+
+  it('understands a named material exchange from free text', () => {
+    expect(parseFreeText('đổi bùa hồi lộ')).toEqual({ ok: true, action: { kind: 'refine', recipeId: 'warding_exchange' } })
   })
 })

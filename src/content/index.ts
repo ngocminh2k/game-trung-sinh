@@ -6,6 +6,7 @@ import {
   CellDefSchema,
   EndingDefSchema,
   ItemDefSchema,
+  RefinementRecipeDefSchema,
   LocationDefSchema,
   NpcDefSchema,
   QuestDefSchema,
@@ -19,6 +20,7 @@ import { BEATS } from './beats-data'
 import { CHAPTERS } from './chapters'
 import { ENDINGS } from './endings-data'
 import { ITEMS } from './items'
+import { RECIPES } from './refinement'
 import { CELLS, isPassable, LOCATIONS, MAP_HEIGHT, MAP_WIDTH, REGION_MAPS } from './locations'
 import { NPCS } from './npcs'
 import { QUESTS } from './quests'
@@ -43,6 +45,7 @@ export {
   regionCellAt,
 } from './locations'
 export { getItem, ITEMS, SHOP_STOCK } from './items'
+export { getRecipe, RECIPES } from './refinement'
 export { getNpc, NPCS, npcsAt } from './npcs'
 export { getQuest, QUESTS } from './quests'
 export {
@@ -74,6 +77,7 @@ export function validateAllContent(): ContentValidationReport {
     }
   }
   check(z.array(ItemDefSchema).min(1), ITEMS, 'ITEMS')
+  check(z.array(RefinementRecipeDefSchema).min(1), RECIPES, 'RECIPES')
   check(z.array(TalentDefSchema).min(1), TALENTS, 'TALENTS')
   check(z.array(TechniqueDefSchema).min(1), TECHNIQUES, 'TECHNIQUES')
   check(z.array(EquipmentDefSchema).min(1), EQUIPMENT, 'EQUIPMENT')
@@ -98,6 +102,13 @@ export function validateAllContent(): ContentValidationReport {
   }
   const itemIds = new Set(ITEMS.map((item) => item.id))
   const locationIds = new Set(LOCATIONS.map((location) => location.id))
+  for (const recipe of RECIPES) {
+    if (!locationIds.has(recipe.locationId)) errors.push(`RECIPES: ${recipe.id} has unknown location`)
+    for (const itemId of Object.keys(recipe.ingredients)) {
+      if (!itemIds.has(itemId)) errors.push(`RECIPES: ${recipe.id} ingredient ${itemId} missing`)
+    }
+    if (!itemIds.has(recipe.output.itemId)) errors.push(`RECIPES: ${recipe.id} output ${recipe.output.itemId} missing`)
+  }
   if (REGION_MAPS.length !== LOCATIONS.length) errors.push('REGION_MAPS: every location needs one local map')
   for (const map of REGION_MAPS) {
     if (!locationIds.has(map.locationId)) errors.push(`REGION_MAPS: unknown location ${map.locationId}`)

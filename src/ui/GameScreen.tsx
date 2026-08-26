@@ -11,6 +11,7 @@ import {
   MAP_WIDTH,
   NPCS,
   QUESTS,
+  RECIPES,
   SHOP_STOCK,
   TALENTS,
   TECHNIQUES,
@@ -57,6 +58,10 @@ function actionLabel(action: ConcreteAction, locale: Locale): string {
       return word(locale, 'Tu luyện', 'Cultivate')
     case 'gather':
       return word(locale, 'Hái linh thảo', 'Gather spirit herbs')
+    case 'refine': {
+      const recipe = RECIPES.find((entry) => entry.id === action.recipeId)
+      return word(locale, `Đổi linh tài: ${recipe === undefined ? action.recipeId : localized(locale, recipe)}`, `Exchange materials: ${recipe === undefined ? action.recipeId : localized(locale, recipe)}`)
+    }
     case 'buy':
       return word(locale, `Mua ${itemName(action.itemId, locale)}`, `Buy ${itemName(action.itemId, locale)}`)
     case 'sell':
@@ -563,6 +568,22 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 
           {activeDock === 'market' && <section aria-labelledby="market-title">
             <div className="panel-heading compact"><h2 id="market-title">{word(locale, 'Chợ & thành tựu', 'Market & achievements')}</h2><span>{game.achievements.length}/{ACHIEVEMENTS.length}</span></div>
+            <section className="refinement-list" aria-labelledby="refinement-title">
+              <div className="refinement-heading">
+                <h3 id="refinement-title">{word(locale, 'Quầy đổi linh tài', 'Material exchange counter')}</h3>
+                <span>{word(locale, 'Bán lấy vốn, hoặc đổi lấy đường về.', 'Sell for capital, or exchange for a way home.')}</span>
+              </div>
+              {RECIPES.map((recipe) => {
+                const canRefine = Object.entries(recipe.ingredients).every(([itemId, qty]) => (game.inventory[itemId] ?? 0) >= qty)
+                const requirements = Object.entries(recipe.ingredients)
+                  .map(([itemId, qty]) => `${itemName(itemId, locale)} ×${String(qty)}`)
+                  .join(' + ')
+                return <article data-testid={`refinement-${recipe.id}`} key={recipe.id} className={canRefine ? 'is-ready' : 'is-locked'}>
+                  <div><strong>{localized(locale, recipe)}</strong><span className="refinement-description">{locale === 'vi' ? recipe.descVi : recipe.descEn}</span><small>{requirements} → {itemName(recipe.output.itemId, locale)} ×{recipe.output.qty}</small></div>
+                  <button disabled={game.terminal || encounterLocked || !canRefine || game.player.locationId !== recipe.locationId} onClick={() => onAction({ kind: 'refine', recipeId: recipe.id })} type="button">{word(locale, 'Đổi', 'Exchange')}</button>
+                </article>
+              })}
+            </section>
             <p className="dock-context">{game.player.locationId === 'market'
               ? word(locale, 'Ngươi đang ở Chợ Tụ Vân: có thể giao dịch ngay.', 'You are at Cloudgather Market: trade is available.')
               : word(locale, 'Chỉ giao dịch được tại Chợ Tụ Vân. Các món vẫn được ghi nhớ ở đây.', 'Trading is available only at Cloudgather Market. The wares remain listed here.')}</p>
@@ -577,7 +598,11 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <section aria-label={word(locale, 'Túi đồ tại chợ', 'Bag at market')} className="market-bag-summary">
               <p className="section-kicker">{word(locale, 'Hành lý sau giao dịch', 'Bag after trading')}</p>
               <ul className="item-list market-bag-list">
-                {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => <li key={id}><div className="item-copy"><strong>{itemName(id, locale)} ×{qty}</strong></div></li>)}
+                {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
+                  const item = getItem(id)
+                  const canSell = item?.sellPrice !== null && item?.sellPrice !== undefined && !Object.values(game.equipment).includes(id)
+                  return <li key={id}><div className="item-copy"><strong>{itemName(id, locale)} ×{qty}</strong><span>{item?.sellPrice === null || item?.sellPrice === undefined ? '' : `${word(locale, 'Bán', 'Sell')} ${item.sellPrice}◎`}</span></div>{canSell && <button disabled={game.terminal || encounterLocked || game.player.locationId !== 'market'} onClick={() => onAction({ kind: 'sell', itemId: id })} type="button">{word(locale, 'Bán', 'Sell')}</button>}</li>
+                })}
               </ul>
             </section>
             <div className="achievements">

@@ -63,6 +63,7 @@ export type {
   ChapterDef,
   EndingDef,
   ItemDef,
+  RefinementRecipeDef,
   LocationDef,
   NpcDef,
   QuestDef,

@@ -5,6 +5,7 @@ import {
   getEquipmentByItem,
   getItem,
   getNpc,
+  getRecipe,
   getQuest,
   getTalent,
   getTechnique,
@@ -189,6 +190,8 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doTrain(state)
     case 'gather':
       return doGather(state)
+    case 'refine':
+      return doRefine(state, action.recipeId)
     case 'buy':
       return doBuy(state, action.itemId, action.qty ?? 1)
     case 'sell':
@@ -382,6 +385,24 @@ function doGather(state: GameState): R {
     flags: { ...state.flags, gatherCount: flagNum(state.flags, 'gatherCount') + qty },
   }
   return { ok: true, state: s, events: [{ type: 'GATHERED', itemId: 'spirit_herb', qty }] }
+}
+
+function doRefine(state: GameState, recipeId: string): R {
+  const recipe = getRecipe(recipeId)
+  if (recipe === undefined) return err('ITEM_UNAVAILABLE')
+  if (state.player.locationId !== recipe.locationId) return err('NOT_AT_LOCATION')
+  if (Object.entries(recipe.ingredients).some(([itemId, qty]) => countOf(state.inventory, itemId) < qty)) {
+    return err('NO_ITEM')
+  }
+
+  let inventory = { ...state.inventory }
+  for (const [itemId, qty] of Object.entries(recipe.ingredients)) inventory = bump(inventory, itemId, -qty)
+  inventory = bump(inventory, recipe.output.itemId, recipe.output.qty)
+  return {
+    ok: true,
+    state: { ...state, inventory, flags: { ...state.flags, refineCount: flagNum(state.flags, 'refineCount') + 1 } },
+    events: [{ type: 'REFINED', recipeId, itemId: recipe.output.itemId, qty: recipe.output.qty }],
+  }
 }
 
 function doBuy(state: GameState, itemId: string, qty: number): R {

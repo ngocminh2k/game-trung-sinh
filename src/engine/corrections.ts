@@ -1,4 +1,4 @@
-import { ITEMS, NPCS, QUESTS, TALENTS, TECHNIQUES } from '../content'
+import { ITEMS, NPCS, QUESTS, RECIPES, TALENTS, TECHNIQUES } from '../content'
 import type { ConcreteAction, Direction } from './types'
 
 export interface ParsedIntent {
@@ -40,6 +40,7 @@ const TRAIN_WORDS = ['train', 'cultivate', 'luyen cong', 'tu luyen', 'luyen khi'
 const REST_WORDS = ['rest', 'sleep', 'nghi ngoi', 'di ngu', 'ngu mot dem']
 const GATHER_WORDS = ['gather', 'pick herbs', 'hai linh thao', 'thu hoach', 'hai thao']
 const DRAW_WORDS = ['lottery', 'draw lottery', 'quay so', 'rut ve so', 'quat ve so', 've so']
+const REFINE_WORDS = ['refine', 'exchange materials', 'exchange', 'doi linh tai', 'doi nguyen lieu', 'doi bua', 'luyen che']
 const BUY_WORDS = ['buy', 'mua']
 const SELL_WORDS = ['sell', 'ban di', 'ban mon', 'ban']
 const USE_WORDS = ['use item', 'use', 'su dung', 'dung ', 'an ', 'uong ']
@@ -113,6 +114,14 @@ function findTechniqueIdIn(text: string): string | undefined {
   return undefined
 }
 
+function findRecipeIdIn(text: string): string | undefined {
+  for (const recipe of RECIPES) {
+    const names = [recipe.id.replace(/_/g, ' '), recipe.nameVi, recipe.nameEn].map(normalizeText)
+    if (names.some((name) => wordContains(text, name))) return recipe.id
+  }
+  return undefined
+}
+
 // Extracts an explicitly written positive quantity ("buy 3 pills"). Returns
 // undefined when no quantity was specified; a number outside
 // [MIN_QTY, MAX_QTY] fails the whole parse.
@@ -155,6 +164,10 @@ export function parseFreeText(raw: string): ParsedIntent | FailedIntent {
   if (includesAny(text, TALENT_WORDS)) {
     const talentId = findTalentIdIn(text)
     return talentId === undefined ? { ok: false } : { ok: true, action: { kind: 'choose_talent', talentId } }
+  }
+  if (includesAny(text, REFINE_WORDS)) {
+    const recipeId = findRecipeIdIn(text)
+    return recipeId === undefined ? { ok: false } : { ok: true, action: { kind: 'refine', recipeId } }
   }
 
   if (includesAny(text, STORE_WORDS)) {
