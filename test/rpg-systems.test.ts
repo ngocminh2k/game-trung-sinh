@@ -119,6 +119,37 @@ describe('deterministic RPG systems', () => {
     expect(TECHNIQUES.every((technique) => technique.maxLevel === 1)).toBe(true)
   })
 
+  it('supports an earned multi-tier build while keeping market progression gated by realm', () => {
+    let state = at(newGame('tiered-build'), 'market')
+    const lockedPurchase = applyAction(state, { kind: 'buy', itemId: 'ironwood_saber' })
+    expect(lockedPurchase.events).toEqual([{ type: 'ERROR', code: 'ITEM_UNAVAILABLE' }])
+    expect(lockedPurchase.state.inventory.ironwood_saber ?? 0).toBe(0)
+    const lockedEquip = applyAction(
+      { ...state, inventory: { ...state.inventory, ironwood_saber: 1 } },
+      { kind: 'equip_item', itemId: 'ironwood_saber' },
+    )
+    expect(lockedEquip.events).toEqual([{ type: 'ERROR', code: 'ITEM_UNAVAILABLE' }])
+
+    state = {
+      ...state,
+      player: { ...state.player, stage: 1, gold: 400 },
+    }
+    state = applyAction(state, { kind: 'buy', itemId: 'ironwood_saber' }).state
+    state = applyAction(state, { kind: 'buy', itemId: 'herbal_breath_manual' }).state
+    state = applyAction(state, { kind: 'equip_item', itemId: 'ironwood_saber' }).state
+    state = applyAction(state, { kind: 'learn_technique', techniqueId: 'herbal_breath' }).state
+    state = applyAction(state, { kind: 'choose_talent', talentId: 'wild_herbalist' }).state
+    expect(state.equipment.weapon).toBe('ironwood_saber')
+    expect(state.techniques.herbal_breath).toBe(1)
+    expect(state.talents).toContain('wild_herbalist')
+
+    state = { ...state, player: { ...state.player, stage: 2 } }
+    state = applyAction(state, { kind: 'choose_talent', talentId: 'mist_listener' }).state
+    expect(state.talents).toContain('mist_listener')
+    const secondTierOne = applyAction(state, { kind: 'choose_talent', talentId: 'iron_bones' })
+    expect(secondTierOne.events).toEqual([{ type: 'ERROR', code: 'ITEM_UNAVAILABLE' }])
+  })
+
   it('runs a deterministic combat loop with consumable turn cost, rewards, and victory cleanup', () => {
     let a = at(newGame('rpg-combat'), 'misty_forest')
     let b = at(newGame('rpg-combat'), 'misty_forest')

@@ -77,6 +77,7 @@ export const ItemDefSchema = z.object({
     .optional(),
   equipmentSlot: z.enum(['weapon', 'robe', 'accessory']).optional(),
   teachesTechniqueId: z.string().min(1).optional(),
+  requiredStage: z.number().int().min(0).optional(),
   buyPrice: z.number().int().min(0).nullable(),
   sellPrice: z.number().int().min(0).nullable(),
 })
@@ -88,6 +89,7 @@ export const TalentDefSchema = z.object({
   descVi: z.string().min(1),
   descEn: z.string().min(1),
   requiredStage: z.number().int().min(0),
+  tier: z.number().int().min(0),
   selectable: z.boolean(),
   attackBonus: z.number().int().min(0),
   defenseBonus: z.number().int().min(0),

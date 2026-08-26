@@ -389,7 +389,7 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   const def = getItem(itemId)
   const price = def?.buyPrice ?? null
-  if (price === null) return err('ITEM_UNAVAILABLE')
+  if (price === null || state.player.stage < (def?.requiredStage ?? 0)) return err('ITEM_UNAVAILABLE')
   const totalCost = price * qty
   if (state.player.gold < totalCost) return err('INSUFFICIENT_GOLD')
   const s: GameState = {
@@ -457,7 +457,7 @@ function doChooseTalent(state: GameState, talentId: string): R {
     !talent.selectable ||
     state.talents.includes(talentId) ||
     state.player.stage < talent.requiredStage ||
-    state.talents.some((id) => getTalent(id)?.selectable === true)
+    state.talents.some((id) => getTalent(id)?.selectable === true && getTalent(id)?.tier === talent.tier)
   ) {
     return err('ITEM_UNAVAILABLE')
   }
@@ -494,7 +494,13 @@ function doLearnTechnique(state: GameState, techniqueId: string): R {
 
 function doEquipItem(state: GameState, itemId: string): R {
   const equipment = getEquipmentByItem(itemId)
-  if (equipment === undefined || countOf(state.inventory, itemId) < 1) return err('ITEM_UNAVAILABLE')
+  const item = getItem(itemId)
+  if (
+    equipment === undefined ||
+    item === undefined ||
+    state.player.stage < (item.requiredStage ?? 0) ||
+    countOf(state.inventory, itemId) < 1
+  ) return err('ITEM_UNAVAILABLE')
   const nextEquipment = { ...state.equipment, [equipment.slot]: itemId }
   const previouslyEquipped = state.equipment[equipment.slot]
   const qiIncrease = equipment.qiBonus - (previouslyEquipped === null ? 0 : getEquipmentByItem(previouslyEquipped)?.qiBonus ?? 0)

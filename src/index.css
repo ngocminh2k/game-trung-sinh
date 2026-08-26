@@ -115,6 +115,11 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
 /* Artwork is decorative inside an RPG entry; it must never mask its action. */
 .rpg-entry.art-entry>img{pointer-events:none}
 
+/* Locked progression is visible as a goal, but with its identity and full
+   effect withheld until the player earns the stated realm requirement. */
+.rpg-entry.is-locked,.shop-list>div.is-locked{opacity:.46;filter:grayscale(.72)}
+.rpg-entry.is-locked strong{letter-spacing:.02em}
+
 /* The dock is deliberately narrow on the play surface.  A three-column RPG
    grid there overlaps its own controls at laptop widths, so keep it one flow. */
 .system-dock .rpg-system-grid{grid-template-columns:1fr}

@@ -68,14 +68,14 @@ describe('CodexPanel', () => {
     expect(assetPackProgress([
       { ...villagePack, status: 'ready', loadedAssets: 7 },
       { ...talentPack, status: 'loading', loadedAssets: 2 },
-    ])).toEqual({ loaded: 9, total: 14, readyPacks: 1, totalPacks: 2 })
+    ])).toEqual({ loaded: 9, total: 24, readyPacks: 1, totalPacks: 2 })
   })
 
-  it('reports every shipped visual pack as ready', () => {
+  it('reports queued progression art without claiming the entire visual manifest is ready', () => {
     expect(assetPackProgress(ASSET_PACK_MANIFEST)).toEqual({
       loaded: 65,
-      total: 65,
-      readyPacks: ASSET_PACK_MANIFEST.length,
+      total: 83,
+      readyPacks: ASSET_PACK_MANIFEST.length - 2,
       totalPacks: ASSET_PACK_MANIFEST.length,
     })
   })

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { ITEMS, LOCATIONS, NPCS, TALENTS, TECHNIQUES } from '../src/content'
 import { newGame } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
+import { techniqueArtFor } from '../src/ui/rpgArt'
 
 function renderScreen(locationId?: string) {
   const game = newGame('game-screen-art')
@@ -64,6 +65,17 @@ describe('illustrated RPG UI', () => {
     expect(document.activeElement).toBe(peopleTab)
   })
 
+  it('dims unreached progression without exposing its names or full effects', () => {
+    renderScreen()
+    fireEvent.click(screen.getByRole('tab', { name: /Đạo đồ & trang bị/ }))
+
+    expect(screen.queryByText('Thính Sương')).toBeNull()
+    expect(screen.queryByText('Vân Du Bộ')).toBeNull()
+    expect(screen.getAllByText('Thiên phú chưa thức tỉnh').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Công pháp chưa gặp cơ duyên').length).toBeGreaterThan(0)
+    expect(document.querySelectorAll('.rpg-entry.is-locked').length).toBeGreaterThan(0)
+  })
+
   it('does not mount Codex content until its drawer opens', () => {
     renderScreen()
 
@@ -97,7 +109,8 @@ describe('illustrated RPG UI', () => {
     expect(ids).toHaveLength(NPCS.length + ITEMS.length + TALENTS.length + TECHNIQUES.length + LOCATIONS.length)
 
     for (const technique of TECHNIQUES) {
-      expect(screen.getByAltText(technique.nameVi)).toBeTruthy()
+      if (techniqueArtFor(technique.id) !== undefined) expect(screen.getByAltText(technique.nameVi)).toBeTruthy()
+      else expect(screen.getAllByText('Đang chờ').length).toBeGreaterThan(0)
     }
     for (const location of LOCATIONS) {
       expect(screen.getByAltText(location.nameVi)).toBeTruthy()

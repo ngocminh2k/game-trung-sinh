@@ -102,6 +102,19 @@ function directionLabel(direction: 'north' | 'south' | 'east' | 'west', locale: 
   return labels[direction]
 }
 
+function stageRequirement(locale: Locale, stage: number): string {
+  return word(locale, `Cần cảnh ${String(stage)}`, `Requires realm ${String(stage)}`)
+}
+
+function obscuredName(locale: Locale, kind: 'talent' | 'technique' | 'equipment'): string {
+  const names = {
+    talent: word(locale, 'Thiên phú chưa thức tỉnh', 'Dormant talent'),
+    technique: word(locale, 'Công pháp chưa gặp cơ duyên', 'Technique not yet encountered'),
+    equipment: word(locale, 'Trang bị chưa sở hữu', 'Equipment not yet acquired'),
+  }
+  return names[kind]
+}
+
 function itemName(itemId: string, locale: Locale): string {
   const item = getItem(itemId)
   return item === undefined ? itemId : localized(locale, item)
@@ -236,7 +249,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       descriptionVi: item.descVi,
       descriptionEn: item.descEn,
       assetPackId: 'items-and-equipment' as const,
-      assetStatus: 'ready' as const,
+      assetStatus: itemArtFor(item.id) === undefined ? 'queued' as const : 'ready' as const,
       artworkSrc: itemArtFor(item.id),
     })),
     ...TALENTS.map((talent) => ({
@@ -247,7 +260,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       descriptionVi: talent.descVi,
       descriptionEn: talent.descEn,
       assetPackId: 'talents-and-effects' as const,
-      assetStatus: 'ready' as const,
+      assetStatus: talentArtFor(talent.id) === undefined ? 'queued' as const : 'ready' as const,
       artworkSrc: talentArtFor(talent.id),
     })),
     ...TECHNIQUES.map((technique) => ({
@@ -258,7 +271,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       descriptionVi: technique.descVi,
       descriptionEn: technique.descEn,
       assetPackId: 'talents-and-effects' as const,
-      assetStatus: 'ready' as const,
+      assetStatus: techniqueArtFor(technique.id) === undefined ? 'queued' as const : 'ready' as const,
       artworkSrc: techniqueArtFor(technique.id),
     })),
     ...LOCATIONS.map((location) => ({
@@ -555,7 +568,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               {SHOP_STOCK.map((id) => {
                 const item = getItem(id)
                 if (item === undefined || item.buyPrice === null) return null
-                return <div key={id}><span>{itemName(id, locale)} · {item.buyPrice}◎</span><button disabled={game.terminal || encounterLocked || game.player.locationId !== 'market'} onClick={() => onAction({ kind: 'buy', itemId: id })} type="button">{word(locale, 'Mua', 'Buy')}</button></div>
+                const stageLocked = game.player.stage < (item.requiredStage ?? 0)
+                return <div className={stageLocked ? 'is-locked' : ''} key={id}><span>{stageLocked ? `${word(locale, 'Hàng chưa mở', 'Sealed wares')} · ${stageRequirement(locale, item.requiredStage ?? 0)}` : `${itemName(id, locale)} · ${String(item.buyPrice)}◎`}</span><button disabled={game.terminal || encounterLocked || stageLocked || game.player.locationId !== 'market'} onClick={() => onAction({ kind: 'buy', itemId: id })} type="button">{stageLocked ? word(locale, 'Chưa mở', 'Locked') : word(locale, 'Mua', 'Buy')}</button></div>
               })}
             </div>
             <section aria-label={word(locale, 'Túi đồ tại chợ', 'Bag at market')} className="market-bag-summary">
@@ -576,8 +590,18 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 <h3>{word(locale, 'Thiên phú', 'Talents')}</h3>
                 {TALENTS.map((talent) => {
                   const chosen = game.talents.includes(talent.id)
-                  const unavailable = !talent.selectable || game.player.stage < talent.requiredStage || game.talents.some((id) => TALENTS.find((entry) => entry.id === id)?.selectable === true)
-                  return <div className="rpg-entry art-entry" key={talent.id}><img alt={word(locale, `Minh họa ${localized(locale, talent)}`, `Artwork of ${localized(locale, talent)}`)} src={talentArtFor(talent.id)} /><div><strong>{localized(locale, talent)}</strong><span>{locale === 'vi' ? talent.descVi : talent.descEn}</span></div>{chosen ? <em>{word(locale, 'Đã chọn', 'Chosen')}</em> : <button disabled={game.terminal || encounterLocked || unavailable} onClick={() => onAction({ kind: 'choose_talent', talentId: talent.id })} type="button">{word(locale, 'Chọn', 'Choose')}</button>}</div>
+                  const stageLocked = game.player.stage < talent.requiredStage
+                  const tierTaken = game.talents.some((id) => TALENTS.find((entry) => entry.id === id)?.selectable === true && TALENTS.find((entry) => entry.id === id)?.tier === talent.tier)
+                  const locked = !chosen && (stageLocked || tierTaken || !talent.selectable)
+                  const artwork = talentArtFor(talent.id)
+                  const status = chosen
+                    ? word(locale, 'Đã chọn', 'Chosen')
+                    : stageLocked
+                      ? stageRequirement(locale, talent.requiredStage)
+                      : tierTaken
+                        ? word(locale, 'Đã chọn một thiên phú cùng tầng', 'A talent from this tier is chosen')
+                        : word(locale, 'Bẩm sinh', 'Innate')
+                  return <div className={`rpg-entry art-entry ${locked ? 'is-locked' : ''}`} key={talent.id}>{artwork !== undefined && <img alt={word(locale, `Minh họa ${localized(locale, talent)}`, `Artwork of ${localized(locale, talent)}`)} src={artwork} />}<div><strong>{locked ? obscuredName(locale, 'talent') : localized(locale, talent)}</strong><span>{locked ? status : locale === 'vi' ? talent.descVi : talent.descEn}</span></div>{chosen || locked ? <em>{status}</em> : <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'choose_talent', talentId: talent.id })} type="button">{word(locale, 'Chọn', 'Choose')}</button>}</div>
                 })}
               </section>
               <section>
@@ -585,7 +609,16 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 {TECHNIQUES.map((technique) => {
                   const level = game.techniques[technique.id] ?? 0
                   const canLearn = technique.sourceItemId !== undefined && (game.inventory[technique.sourceItemId] ?? 0) > 0 && level < technique.maxLevel && game.player.stage >= technique.requiredStage
-                  return <div className="rpg-entry art-entry" key={technique.id}><img alt={word(locale, `Minh họa ${localized(locale, technique)}`, `Artwork of ${localized(locale, technique)}`)} src={techniqueArtFor(technique.id)} /><div><strong>{localized(locale, technique)} {level > 0 ? `· Lv.${level}` : ''}</strong><span>{locale === 'vi' ? technique.descVi : technique.descEn}</span></div>{level > 0 ? <em>{word(locale, 'Đã học', 'Learned')}</em> : <button disabled={game.terminal || encounterLocked || !canLearn} onClick={() => onAction({ kind: 'learn_technique', techniqueId: technique.id })} type="button">{word(locale, 'Lĩnh ngộ', 'Learn')}</button>}</div>
+                  const stageLocked = game.player.stage < technique.requiredStage
+                  const sourceHeld = technique.sourceItemId !== undefined && (game.inventory[technique.sourceItemId] ?? 0) > 0
+                  const locked = level === 0 && (stageLocked || !sourceHeld)
+                  const artwork = techniqueArtFor(technique.id)
+                  const status = level > 0
+                    ? word(locale, 'Đã học', 'Learned')
+                    : stageLocked
+                      ? stageRequirement(locale, technique.requiredStage)
+                      : word(locale, 'Cần một cơ duyên', 'Requires a chance encounter')
+                  return <div className={`rpg-entry art-entry ${locked ? 'is-locked' : ''}`} key={technique.id}>{artwork !== undefined && <img alt={word(locale, `Minh họa ${localized(locale, technique)}`, `Artwork of ${localized(locale, technique)}`)} src={artwork} />}<div><strong>{locked ? obscuredName(locale, 'technique') : `${localized(locale, technique)}${level > 0 ? ` · Lv.${level}` : ''}`}</strong><span>{locked ? status : locale === 'vi' ? technique.descVi : technique.descEn}</span></div>{level > 0 || locked ? <em>{status}</em> : <button disabled={game.terminal || encounterLocked || !canLearn} onClick={() => onAction({ kind: 'learn_technique', techniqueId: technique.id })} type="button">{word(locale, 'Lĩnh ngộ', 'Learn')}</button>}</div>
                 })}
               </section>
               <section>
@@ -593,7 +626,16 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 {EQUIPMENT.map((equipment) => {
                   const equipped = game.equipment[equipment.slot] === equipment.itemId
                   const owned = (game.inventory[equipment.itemId] ?? 0) > 0
-                  return <div className="rpg-entry art-entry" key={equipment.id}><img alt={word(locale, `Minh họa ${localized(locale, equipment)}`, `Artwork of ${localized(locale, equipment)}`)} src={itemArtFor(equipment.itemId)} /><div><strong>{localized(locale, equipment)}</strong><span>{locale === 'vi' ? equipment.descVi : equipment.descEn}</span></div>{equipped ? <em>{word(locale, 'Đang dùng', 'Equipped')}</em> : <button disabled={game.terminal || !owned || game.encounter !== null} onClick={() => onAction({ kind: 'equip_item', itemId: equipment.itemId })} type="button">{word(locale, 'Trang bị', 'Equip')}</button>}</div>
+                  const item = getItem(equipment.itemId)
+                  const stageLocked = game.player.stage < (item?.requiredStage ?? 0)
+                  const locked = !equipped && (!owned || stageLocked)
+                  const artwork = itemArtFor(equipment.itemId)
+                  const status = equipped
+                    ? word(locale, 'Đang dùng', 'Equipped')
+                    : stageLocked
+                      ? stageRequirement(locale, item?.requiredStage ?? 0)
+                      : word(locale, 'Chưa sở hữu', 'Not owned')
+                  return <div className={`rpg-entry art-entry ${locked ? 'is-locked' : ''}`} key={equipment.id}>{artwork !== undefined && <img alt={word(locale, `Minh họa ${localized(locale, equipment)}`, `Artwork of ${localized(locale, equipment)}`)} src={artwork} />}<div><strong>{locked ? obscuredName(locale, 'equipment') : localized(locale, equipment)}</strong><span>{locked ? status : locale === 'vi' ? equipment.descVi : equipment.descEn}</span></div>{equipped || locked ? <em>{status}</em> : <button disabled={game.terminal || game.encounter !== null} onClick={() => onAction({ kind: 'equip_item', itemId: equipment.itemId })} type="button">{word(locale, 'Trang bị', 'Equip')}</button>}</div>
                 })}
               </section>
             </div>

@@ -11,6 +11,8 @@ export interface ItemDef {
   effects?: { hp?: number; qi?: number }
   equipmentSlot?: EquipmentSlot
   teachesTechniqueId?: string
+  /** Market availability gate. Zero/undefined means immediately available. */
+  requiredStage?: number
   buyPrice: number | null
   sellPrice: number | null
 }
@@ -24,6 +26,8 @@ export interface TalentDef {
   descVi: string
   descEn: string
   requiredStage: number
+  /** One optional talent may be chosen from each tier. */
+  tier: number
   selectable: boolean
   attackBonus: number
   defenseBonus: number
