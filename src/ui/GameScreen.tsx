@@ -355,7 +355,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <span className="location-label" data-testid="location-label">{location === undefined ? game.player.locationId : localized(locale, location)}</span>
           </div>
           <div
-            className="world-map illustrated-map"
+            className="world-map illustrated-map regional-map"
             aria-label={word(locale, 'Bản đồ khu vực có lối ra và điểm sự kiện', 'Local area map with exits and event nodes')}
             style={{ '--map-columns': MAP_WIDTH, '--map-rows': MAP_HEIGHT } as CSSProperties}
           >

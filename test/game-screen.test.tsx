@@ -16,6 +16,7 @@ describe('GameScreen', () => {
     )
 
     expect(markup).toContain('Bản đồ khu vực')
+    expect(markup).toContain('regional-map')
     expect(markup).toContain('Lựa chọn của ngươi')
     expect(markup).toContain('Viết hành động khác')
     expect(markup).toContain('Phế Căn Ký')
