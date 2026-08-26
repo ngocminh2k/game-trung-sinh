@@ -102,6 +102,22 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
   .system-dock .codex-drawer{min-width:0;margin:0;border-width:1px 0 0}.system-dock .codex-drawer>summary{padding:7px 10px;font-size:11px}.system-dock .codex-drawer[open]{position:absolute;inset:0;z-index:4;overflow:auto;background:linear-gradient(135deg,rgba(255,253,241,.99),rgba(239,230,207,.99));overscroll-behavior:contain}.system-dock .codex-drawer[open]>summary{position:sticky;top:0;z-index:2;border-bottom:1px solid rgba(55,71,53,.27);background:#f8f1dc}.system-dock .codex-panel{padding:10px}.codex-panel__packs,.codex-panel__entries{grid-template-columns:1fr}.codex-panel__entries{max-height:none}
 }
 
+/* At desktop scale, the utility systems are a wide reading shelf below the play
+   surface.  The map, narrative, and HUD stay legible; dense system views get a
+   bounded internal scroll instead of squeezing their tab labels into the HUD. */
+@media (min-width:1201px) and (min-height:801px){
+  .game-shell{grid-template-rows:auto auto minmax(0,1fr) clamp(218px,28vh,280px)}
+  .game-grid{grid-template-columns:minmax(370px,.9fr) minmax(510px,1.34fr) minmax(240px,.55fr)}
+  .hud-panel{grid-template-rows:auto auto;align-content:start;overflow:visible}
+  .system-dock{grid-column:1/-1;display:grid;min-height:0;margin-top:0;grid-template-rows:auto auto minmax(0,1fr) auto}
+  .dock-heading{align-items:center;padding:9px 15px 8px}.dock-heading h2{font-size:16px}.dock-heading>span{display:block;text-align:right}
+  .dock-tabs{grid-template-columns:repeat(5,minmax(0,1fr));min-height:42px}
+  .dock-tab{justify-content:center;gap:8px;padding:8px 14px;font-size:12px;line-height:1.1}.dock-tab span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dock-tab em{font-size:9px}
+  .dock-panel{min-height:0;padding:11px 15px 13px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+  .system-dock .npc-gallery{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:7px}.system-dock .rpg-system-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.system-dock .rpg-system-grid>section:last-child{grid-column:auto}
+  .system-dock .item-collection-art{max-width:560px;height:78px;margin-top:7px}.system-dock .quest-list,.system-dock .item-list{max-width:980px}
+}
+
 /* Narrower screens retain the readable document flow instead of inheriting the fixed desktop stage. */
 @media (max-width:1200px), (max-height:800px){
   html,body,#root{height:auto;overflow:visible}

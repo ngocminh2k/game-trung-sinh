@@ -479,8 +479,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'gather' })} type="button">{word(locale, 'Hái thảo', 'Gather')}</button>
             <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">{word(locale, 'Quay', 'Draw')}</button>
           </section>
+        </aside>
+      </div>
 
-          <section className="system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="system-dock">
+      <section className="system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="system-dock">
         <div className="dock-heading">
           <div>
             <p className="eyebrow">{word(locale, 'Mở khi cần', 'Open when needed')}</p>
@@ -646,9 +648,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               <summary>{word(locale, 'Mở tu điển: nhân vật, vật phẩm, thiên phú & gói minh họa', 'Open codex: NPCs, items, talents & asset packs')}</summary>
               {codexOpen && <CodexPanel entries={codexEntries} locale={locale} packs={ASSET_PACK_MANIFEST} />}
             </details>
-          </section>
-        </aside>
-      </div>
+      </section>
 
     </main>
   )

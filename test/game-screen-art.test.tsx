@@ -76,12 +76,13 @@ describe('illustrated RPG UI', () => {
     expect(document.querySelectorAll('.rpg-entry.is-locked').length).toBeGreaterThan(0)
   })
 
-  it('does not mount Codex content until its drawer opens', () => {
+  it('keeps the wide systems dock outside the compact HUD until its Codex drawer opens', () => {
     renderScreen()
 
     const dock = screen.getByTestId('system-dock')
     const drawer = screen.getByTestId('codex-drawer') as HTMLDetailsElement
-    expect(dock.closest('aside.hud-panel')).toBeTruthy()
+    expect(dock.closest('aside.hud-panel')).toBeNull()
+    expect(dock.previousElementSibling?.classList.contains('game-grid')).toBe(true)
     expect(dock.contains(drawer)).toBe(true)
     expect(screen.queryByTestId('codex-panel')).toBeNull()
 
