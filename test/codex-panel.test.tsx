@@ -71,11 +71,11 @@ describe('CodexPanel', () => {
     ])).toEqual({ loaded: 9, total: 24, readyPacks: 1, totalPacks: 2 })
   })
 
-  it('reports queued progression art without claiming the entire visual manifest is ready', () => {
+  it('reports the complete authored visual manifest as ready only after all art is registered', () => {
     expect(assetPackProgress(ASSET_PACK_MANIFEST)).toEqual({
-      loaded: 65,
+      loaded: 83,
       total: 83,
-      readyPacks: ASSET_PACK_MANIFEST.length - 2,
+      readyPacks: ASSET_PACK_MANIFEST.length,
       totalPacks: ASSET_PACK_MANIFEST.length,
     })
   })

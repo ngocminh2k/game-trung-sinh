@@ -43,11 +43,8 @@ export const ASSET_PACK_MANIFEST: readonly AssetPackDefinition[] = [
   { id: 'sealed-cave', nameVi: 'Hang Phong Ấn', nameEn: 'Sealed Cave', requiredAssetCount: 3, status: 'ready', loadedAssets: 3 },
   { id: 'cursed-rift', nameVi: 'Khe Hở Nguyền Rủa', nameEn: 'Cursed Rift', requiredAssetCount: 3, status: 'ready', loadedAssets: 3 },
   { id: 'cloud-peak', nameVi: 'Đỉnh Mây', nameEn: 'Cloud Peak', requiredAssetCount: 2, status: 'ready', loadedAssets: 2 },
-  // Progression content is intentionally visible in the codex before every
-  // illustration exists. Do not mark these packs ready until the queued art is
-  // actually registered in rpgArt.ts.
-  { id: 'talents-and-effects', nameVi: 'Thiên Phú Và Công Pháp', nameEn: 'Talents And Techniques', requiredAssetCount: 17, status: 'loading', loadedAssets: 7 },
-  { id: 'items-and-equipment', nameVi: 'Vật Phẩm Và Trang Bị', nameEn: 'Items And Equipment', requiredAssetCount: 17, status: 'loading', loadedAssets: 9 },
+  { id: 'talents-and-effects', nameVi: 'Thiên Phú Và Công Pháp', nameEn: 'Talents And Techniques', requiredAssetCount: 17, status: 'ready', loadedAssets: 17 },
+  { id: 'items-and-equipment', nameVi: 'Vật Phẩm Và Trang Bị', nameEn: 'Items And Equipment', requiredAssetCount: 17, status: 'ready', loadedAssets: 17 },
   { id: 'player-poses', nameVi: 'Tư Thế Nhân Vật Chính', nameEn: 'Player Action Poses', requiredAssetCount: 11, status: 'ready', loadedAssets: 11 },
 ]
 

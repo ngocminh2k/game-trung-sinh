@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { ITEMS, LOCATIONS, NPCS, TALENTS, TECHNIQUES } from '../src/content'
 import { newGame } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
-import { techniqueArtFor } from '../src/ui/rpgArt'
+import { itemArtFor, talentArtFor, techniqueArtFor } from '../src/ui/rpgArt'
 
 function renderScreen(locationId?: string) {
   const game = newGame('game-screen-art')
@@ -108,9 +108,11 @@ describe('illustrated RPG UI', () => {
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids).toHaveLength(NPCS.length + ITEMS.length + TALENTS.length + TECHNIQUES.length + LOCATIONS.length)
 
+    for (const item of ITEMS) expect(itemArtFor(item.id)).toBeDefined()
+    for (const talent of TALENTS) expect(talentArtFor(talent.id)).toBeDefined()
     for (const technique of TECHNIQUES) {
-      if (techniqueArtFor(technique.id) !== undefined) expect(screen.getByAltText(technique.nameVi)).toBeTruthy()
-      else expect(screen.getAllByText('Đang chờ').length).toBeGreaterThan(0)
+      expect(techniqueArtFor(technique.id)).toBeDefined()
+      expect(screen.getByAltText(technique.nameVi)).toBeTruthy()
     }
     for (const location of LOCATIONS) {
       expect(screen.getByAltText(location.nameVi)).toBeTruthy()
