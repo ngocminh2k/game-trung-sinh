@@ -19,7 +19,7 @@ export function runScript(
 
 export function navTo(state: GameState, locationId: string): GameState {
   if (state.player.locationId === locationId) return state
-  const path = findPath(state.player.posX, state.player.posY, locationId)
+  const path = findPath(state.player.posX, state.player.posY, locationId, state.player.locationId)
   if (path === null) throw new Error(`no path to ${locationId}`)
   for (const dir of path) {
     const result = applyAction(state, { kind: 'move', direction: dir })

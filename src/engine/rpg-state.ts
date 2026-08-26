@@ -1,7 +1,37 @@
 import { getEnemy, getEquipmentByItem } from '../content/rpg'
+import { entryPositionFor, getRegionMap, isPassable, regionCellAt } from '../content/locations'
 import type { EquipmentState, GameState } from './types'
 
 const EMPTY_EQUIPMENT: EquipmentState = { weapon: null, robe: null, accessory: null }
+const DIRECTIONS = [
+  { x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 },
+] as const
+
+function hasWalkableNeighbor(locationId: string, x: number, y: number): boolean {
+  return DIRECTIONS.some((direction) => {
+    const cell = regionCellAt(locationId, x + direction.x, y + direction.y)
+    return cell !== undefined && isPassable(cell)
+  })
+}
+
+/** Older saves may point at the retired overview's wilderness or at a tile
+ * that is now an impassable regional rim. Recover them at an authored entry
+ * rather than loading a player who can no longer move. */
+function sanitizeMapPosition(state: GameState): GameState {
+  const locationId = state.player.locationId
+  const currentCell = regionCellAt(locationId, state.player.posX, state.player.posY)
+  const needsRecovery = getRegionMap(locationId) === undefined
+    || currentCell === undefined
+    || !isPassable(currentCell)
+    || !hasWalkableNeighbor(locationId, state.player.posX, state.player.posY)
+  if (!needsRecovery) return state
+  const recoveredLocationId = getRegionMap(locationId) === undefined ? 'village' : locationId
+  const entry = entryPositionFor(recoveredLocationId)
+  return {
+    ...state,
+    player: { ...state.player, locationId: recoveredLocationId, posX: entry.x, posY: entry.y },
+  }
+}
 
 function ownedEquipment(state: GameState, equipment: EquipmentState): EquipmentState {
   const next: EquipmentState = { ...EMPTY_EQUIPMENT }
@@ -33,14 +63,15 @@ export function hasValidEncounter(state: GameState): boolean {
 // than kept as an unescapable turn lock; equipment is always derived from
 // actually owned inventory entries, never from ids alone.
 export function sanitizeRpgState(state: GameState): GameState {
-  const equipment = ownedEquipment(state, state.equipment)
+  const mapped = sanitizeMapPosition(state)
+  const equipment = ownedEquipment(mapped, mapped.equipment)
   const equipmentChanged =
-    equipment.weapon !== state.equipment.weapon ||
-    equipment.robe !== state.equipment.robe ||
-    equipment.accessory !== state.equipment.accessory
-  const encounter = hasValidEncounter(state) ? state.encounter : null
-  if (!equipmentChanged && encounter === state.encounter) return state
-  return { ...state, equipment, encounter }
+    equipment.weapon !== mapped.equipment.weapon ||
+    equipment.robe !== mapped.equipment.robe ||
+    equipment.accessory !== mapped.equipment.accessory
+  const encounter = hasValidEncounter(mapped) ? mapped.encounter : null
+  if (!equipmentChanged && encounter === mapped.encounter) return mapped
+  return { ...mapped, equipment, encounter }
 }
 
 export function isEquippedItem(state: GameState, itemId: string): boolean {

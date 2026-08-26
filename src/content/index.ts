@@ -19,7 +19,7 @@ import { BEATS } from './beats-data'
 import { CHAPTERS } from './chapters'
 import { ENDINGS } from './endings-data'
 import { ITEMS } from './items'
-import { CELLS, LOCATIONS, MAP_HEIGHT, MAP_WIDTH } from './locations'
+import { CELLS, isPassable, LOCATIONS, MAP_HEIGHT, MAP_WIDTH, REGION_MAPS } from './locations'
 import { NPCS } from './npcs'
 import { QUESTS } from './quests'
 import { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from './rpg'
@@ -31,12 +31,16 @@ export { ENDINGS } from './endings-data'
 export {
   cellAt,
   CELLS,
+  entryPositionFor,
   getLocation,
+  getRegionMap,
   isPassable,
   LOCATIONS,
   locationDanger,
   MAP_HEIGHT,
   MAP_WIDTH,
+  REGION_MAPS,
+  regionCellAt,
 } from './locations'
 export { getItem, ITEMS, SHOP_STOCK } from './items'
 export { getNpc, NPCS, npcsAt } from './npcs'
@@ -94,6 +98,18 @@ export function validateAllContent(): ContentValidationReport {
   }
   const itemIds = new Set(ITEMS.map((item) => item.id))
   const locationIds = new Set(LOCATIONS.map((location) => location.id))
+  if (REGION_MAPS.length !== LOCATIONS.length) errors.push('REGION_MAPS: every location needs one local map')
+  for (const map of REGION_MAPS) {
+    if (!locationIds.has(map.locationId)) errors.push(`REGION_MAPS: unknown location ${map.locationId}`)
+    if (map.cells.length !== MAP_WIDTH * MAP_HEIGHT) errors.push(`REGION_MAPS: ${map.locationId} must have ${String(MAP_WIDTH * MAP_HEIGHT)} cells`)
+    const positions = new Set(map.cells.map((cell) => `${cell.x},${cell.y}`))
+    if (positions.size !== map.cells.length) errors.push(`REGION_MAPS: ${map.locationId} has duplicate cells`)
+    const entry = map.cells.find((cell) => cell.x === map.entry.x && cell.y === map.entry.y)
+    if (entry === undefined || !isPassable(entry)) errors.push(`REGION_MAPS: ${map.locationId} needs a passable entry`)
+    for (const cell of map.cells) {
+      if (cell.exitTo !== undefined && !locationIds.has(cell.exitTo)) errors.push(`REGION_MAPS: ${map.locationId} exits to unknown ${cell.exitTo}`)
+    }
+  }
   const techniqueIds = new Set(TECHNIQUES.map((technique) => technique.id))
   for (const equipment of EQUIPMENT) {
     if (!itemIds.has(equipment.itemId)) errors.push(`EQUIPMENT: item ${equipment.itemId} missing`)

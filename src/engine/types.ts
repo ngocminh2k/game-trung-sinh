@@ -126,6 +126,7 @@ export type ErrorCode = (typeof ERROR_CODES)[number]
 export type GameEvent =
   | { type: 'GAME_STARTED'; seed: string }
   | { type: 'MOVED'; from: string; to: string }
+  | { type: 'NODE_REACHED'; nodeId: string; nameVi: string; nameEn: string; kind: 'npc' | 'event' | 'exit' | 'danger' }
   | { type: 'DAY_PASSED'; day: number }
   | { type: 'RESTED'; hpHeal: number }
   | { type: 'TRAINED'; gain: number; stage: number }

@@ -7,7 +7,7 @@ function withTalisman(base: GameState): GameState {
 }
 
 function walkTo(state: GameState, locationId: string): { state: GameState; events: GameEvent[] } {
-  const path = findPath(state.player.posX, state.player.posY, locationId)
+  const path = findPath(state.player.posX, state.player.posY, locationId, state.player.locationId)
   if (path === null) throw new Error(`no path to ${locationId}`)
   let events: GameEvent[] = []
   for (const dir of path as Direction[]) {
@@ -47,7 +47,10 @@ describe('warding talismans are consumed only at high-danger locations', () => {
 
   it('the cursed rift is warded the same way', () => {
     const base = newGame('danger-rift')
-    const { state, events } = walkTo(withTalisman(base), 'cursed_rift')
+    // The authored local route passes the cave entrance and its cracked seal
+    // before the rift, then wards the rift itself.
+    const prepared = { ...base, inventory: { ...base.inventory, warding_talisman: 3 } }
+    const { state, events } = walkTo(prepared, 'cursed_rift')
     expect(events.some((e) => e.type === 'WARD_USED')).toBe(true)
     expect(events.some((e) => e.type === 'DAMAGED')).toBe(false)
     expect(state.player.alive).toBe(true)

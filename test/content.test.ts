@@ -140,12 +140,12 @@ describe('state schema', () => {
       player: { ...base.player, posX: MAP_WIDTH, posY: MAP_HEIGHT },
     }
     expect(() => validateGameState(outOfBounds)).toThrow()
-    const edge = {
+    const localWalkableCell = {
       ...base,
-      player: { ...base.player, posX: MAP_WIDTH - 1, posY: MAP_HEIGHT - 1 },
+      player: { ...base.player, posX: MAP_WIDTH - 2, posY: MAP_HEIGHT - 2 },
     }
-    const parsed = validateGameState(edge)
-    expect(parsed.player.posX).toBe(MAP_WIDTH - 1)
-    expect(parsed.player.posY).toBe(MAP_HEIGHT - 1)
+    const parsed = validateGameState(localWalkableCell)
+    expect(parsed.player.posX).toBe(MAP_WIDTH - 2)
+    expect(parsed.player.posY).toBe(MAP_HEIGHT - 2)
   })
 })

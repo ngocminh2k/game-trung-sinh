@@ -15,11 +15,11 @@ describe('GameScreen', () => {
       />,
     )
 
-    expect(markup).toContain('Bản đồ hành trình')
+    expect(markup).toContain('Bản đồ khu vực')
     expect(markup).toContain('Lựa chọn của ngươi')
     expect(markup).toContain('Viết hành động khác')
     expect(markup).toContain('Phế Căn Ký')
-    expect(markup).toContain('Bản đồ thế giới tu tiên')
+    expect(markup).toContain('Bản đồ khu vực có lối ra và điểm sự kiện')
     expect(markup).toContain('Tư thế nhân vật: idle')
     expect(markup).toContain('Hành trang &amp; giang hồ')
     expect(markup).toContain('role="tablist"')

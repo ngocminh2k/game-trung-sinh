@@ -1,4 +1,4 @@
-import type { CellDef, LocationDef } from '../engine/content-types'
+import type { CellDef, LocationDef, MapNodeDef, RegionCellDef, RegionMapDef, Terrain } from '../engine/content-types'
 
 export const MAP_WIDTH = 7
 export const MAP_HEIGHT = 7
@@ -128,8 +128,136 @@ export const CELLS: CellDef[] = [
   cell(6, 6, 'plain', 'cloud_peak'),
 ]
 
+type RegionCellPatch = {
+  x: number
+  y: number
+  terrain?: Terrain
+  node?: MapNodeDef
+  exitTo?: string
+}
+
+const node = (id: string, nameVi: string, nameEn: string, kind: MapNodeDef['kind']): MapNodeDef => ({ id, nameVi, nameEn, kind })
+
+/**
+ * A region is a playable local scene, not a label on the old overview map.
+ * The default terrain gives each scene a readable body; patches create paths,
+ * impassable edges, named event points and exits.  Keeping all 49 cells
+ * authored via this factory also makes map validation straightforward.
+ */
+function region(
+  locationId: string,
+  baseTerrain: Terrain,
+  entry: RegionMapDef['entry'],
+  arrivals: RegionMapDef['arrivals'],
+  patches: RegionCellPatch[],
+): RegionMapDef {
+  const byPosition = new Map(patches.map((patch) => [`${patch.x},${patch.y}`, patch]))
+  const cells: RegionCellDef[] = []
+  for (let y = 0; y < MAP_HEIGHT; y += 1) {
+    for (let x = 0; x < MAP_WIDTH; x += 1) {
+      const patch = byPosition.get(`${x},${y}`)
+      cells.push({ x, y, terrain: patch?.terrain ?? baseTerrain, node: patch?.node, exitTo: patch?.exitTo })
+    }
+  }
+  return { locationId, cells, entry, arrivals }
+}
+
+const rim = (terrain: Terrain = 'mountain'): RegionCellPatch[] => [
+  ...Array.from({ length: MAP_WIDTH }, (_, x) => ({ x, y: 0, terrain })),
+  ...Array.from({ length: MAP_WIDTH }, (_, x) => ({ x, y: MAP_HEIGHT - 1, terrain })),
+  ...Array.from({ length: MAP_HEIGHT - 2 }, (_, index) => ({ x: 0, y: index + 1, terrain })),
+  ...Array.from({ length: MAP_HEIGHT - 2 }, (_, index) => ({ x: MAP_WIDTH - 1, y: index + 1, terrain })),
+]
+
+/** All Scenario I locations have an independent, walkable local map. */
+export const REGION_MAPS: RegionMapDef[] = [
+  region('village', 'plain', { x: 3, y: 3 }, {
+    market: { x: 3, y: 3 }, sect: { x: 3, y: 3 }, herb_field: { x: 3, y: 3 }, misty_forest: { x: 3, y: 3 },
+  }, [
+    ...rim('water'),
+    { x: 1, y: 1, terrain: 'forest', node: node('village-bamboo', 'Lũy tre', 'Bamboo hedge', 'event') },
+    { x: 2, y: 2, terrain: 'road', node: node('village-elder', 'Hiên nhà Cụ Mai Hoa', 'Elder Mai Hoa’s porch', 'npc') },
+    { x: 3, y: 2, terrain: 'road', node: node('village-forest-exit', 'Đường vào rừng sương', 'Misty Woods trail', 'exit'), exitTo: 'misty_forest' },
+    { x: 2, y: 3, terrain: 'road', node: node('village-market-exit', 'Cổng chợ Vân Tập', 'Cloudgather Market gate', 'exit'), exitTo: 'market' },
+    { x: 3, y: 3, terrain: 'road', node: node('village-home', 'Nhà cũ của ngươi', 'Your old hut', 'event') },
+    { x: 4, y: 3, terrain: 'road', node: node('village-sect-exit', 'Sơn môn Vân Ẩn', 'Hidden Cloud Sect road', 'exit'), exitTo: 'sect' },
+    { x: 3, y: 4, terrain: 'road', node: node('village-herb-exit', 'Bờ ruộng linh thảo', 'Herb terrace path', 'exit'), exitTo: 'herb_field' },
+    { x: 5, y: 4, terrain: 'water', node: node('village-well', 'Giếng làng', 'Village well', 'event') },
+  ]),
+  region('market', 'road', { x: 4, y: 3 }, { village: { x: 4, y: 3 } }, [
+    ...rim('mountain'),
+    { x: 4, y: 3, terrain: 'road', node: node('market-village-exit', 'Đường về Thanh Mộc', 'Road to Greenwood', 'exit'), exitTo: 'village' },
+    { x: 3, y: 3, terrain: 'road', node: node('market-square', 'Quảng trường Vân Tập', 'Cloudgather square', 'npc') },
+    { x: 2, y: 2, terrain: 'road', node: node('market-lottery', 'Quầy quay vận mệnh', 'Fortune draw stall', 'event') },
+    { x: 2, y: 4, terrain: 'road', node: node('market-stalls', 'Dãy hàng linh vật', 'Spirit-goods stalls', 'npc') },
+    { x: 5, y: 2, terrain: 'water' },
+    { x: 5, y: 3, terrain: 'plain', node: node('market-teahouse', 'Trà quán nghe chuyện', 'Storyteller teahouse', 'event') },
+  ]),
+  region('sect', 'plain', { x: 3, y: 3 }, { village: { x: 3, y: 3 } }, [
+    ...rim('mountain'),
+    { x: 3, y: 3, terrain: 'road', node: node('sect-village-exit', 'Bậc đá xuống núi', 'Mountain stair to Greenwood', 'exit'), exitTo: 'village' },
+    { x: 4, y: 3, terrain: 'road', node: node('sect-training', 'Diễn võ trường', 'Training court', 'event') },
+    { x: 2, y: 2, terrain: 'road', node: node('sect-hall', 'Chính điện Vân Ẩn', 'Hidden Cloud hall', 'npc') },
+    { x: 2, y: 4, terrain: 'road', node: node('sect-storehouse', 'Tàng vật các', 'Storehouse', 'event') },
+    { x: 3, y: 4, terrain: 'mountain' },
+    { x: 5, y: 4, terrain: 'forest', node: node('sect-meditation', 'Vách tĩnh tâm', 'Meditation cliff', 'event') },
+  ]),
+  region('herb_field', 'plain', { x: 3, y: 3 }, { village: { x: 3, y: 3 } }, [
+    ...rim('water'),
+    { x: 3, y: 3, terrain: 'road', node: node('herb-village-exit', 'Đường về làng', 'Path to Greenwood', 'exit'), exitTo: 'village' },
+    { x: 3, y: 2, terrain: 'road', node: node('herb-garden', 'Ruộng linh thảo', 'Spirit herb plots', 'event') },
+    { x: 2, y: 4, terrain: 'plain', node: node('herb-keeper', 'Lều người trông ruộng', 'Terrace keeper’s shed', 'npc') },
+    { x: 5, y: 2, terrain: 'water' },
+    { x: 4, y: 4, terrain: 'forest', node: node('herb-hive', 'Tổ ong linh', 'Spirit-bee hive', 'danger') },
+  ]),
+  region('misty_forest', 'forest', { x: 3, y: 4 }, { village: { x: 3, y: 4 }, sealed_cave: { x: 3, y: 3 } }, [
+    ...rim('mountain'),
+    { x: 3, y: 4, terrain: 'road', node: node('forest-village-exit', 'Lối về Thanh Mộc', 'Trail to Greenwood', 'exit'), exitTo: 'village' },
+    { x: 3, y: 3, terrain: 'road', node: node('forest-crossroads', 'Ngã ba sương dày', 'Fogbound crossroads', 'event') },
+    { x: 3, y: 2, terrain: 'cave', node: node('forest-cave-exit', 'Dấu ấn cổ bên hang', 'Ancient seal trail', 'exit'), exitTo: 'sealed_cave' },
+    { x: 4, y: 1, terrain: 'forest', node: node('forest-wolf', 'Dấu chân lang yêu', 'Demon-wolf tracks', 'danger') },
+    { x: 2, y: 3, terrain: 'forest', node: node('forest-herbalist', 'Chòi người hái thuốc', 'Herbalist’s shelter', 'npc') },
+  ]),
+  region('sealed_cave', 'cave', { x: 3, y: 4 }, { misty_forest: { x: 3, y: 4 }, cursed_rift: { x: 3, y: 3 } }, [
+    ...rim('mountain'),
+    { x: 3, y: 4, terrain: 'road', node: node('cave-forest-exit', 'Cửa hang nhìn về rừng', 'Cave mouth to the woods', 'exit'), exitTo: 'misty_forest' },
+    { x: 3, y: 3, terrain: 'cave', node: node('cave-seal', 'Phong ấn nứt vỡ', 'Cracked seal', 'danger') },
+    { x: 4, y: 3, terrain: 'rift', node: node('cave-rift-exit', 'Khe đá đen', 'Black stone passage', 'exit'), exitTo: 'cursed_rift' },
+    { x: 2, y: 2, terrain: 'cave', node: node('cave-tablet', 'Bia đá vô danh', 'Nameless stone tablet', 'event') },
+    { x: 5, y: 4, terrain: 'cave', node: node('cave-prisoner', 'Bóng người sau phù', 'Figure behind talismans', 'npc') },
+  ]),
+  region('cursed_rift', 'rift', { x: 3, y: 3 }, { sealed_cave: { x: 3, y: 3 }, cloud_peak: { x: 3, y: 4 } }, [
+    ...rim('mountain'),
+    { x: 3, y: 3, terrain: 'rift', node: node('rift-cave-exit', 'Khe đá về hang phong ấn', 'Passage to the Sealed Cave', 'exit'), exitTo: 'sealed_cave' },
+    { x: 3, y: 2, terrain: 'road', node: node('rift-peak-exit', 'Bậc mây lên đỉnh', 'Cloud stair to the peak', 'exit'), exitTo: 'cloud_peak' },
+    { x: 2, y: 3, terrain: 'rift', node: node('rift-heart', 'Tâm khe nứt', 'Rift heart', 'danger') },
+    { x: 4, y: 4, terrain: 'rift', node: node('rift-wanderer', 'Kẻ lữ hành mất tên', 'Nameless wanderer', 'npc') },
+  ]),
+  region('cloud_peak', 'plain', { x: 3, y: 4 }, { cursed_rift: { x: 3, y: 4 } }, [
+    ...rim('mountain'),
+    { x: 3, y: 4, terrain: 'road', node: node('peak-rift-exit', 'Bậc mây xuống khe', 'Cloud stair to the rift', 'exit'), exitTo: 'cursed_rift' },
+    { x: 3, y: 3, terrain: 'plain', node: node('peak-summit', 'Đài vọng thiên', 'Heavenwatch dais', 'event') },
+    { x: 2, y: 2, terrain: 'plain', node: node('peak-master', 'Bóng người trong mây', 'Figure in the clouds', 'npc') },
+    { x: 5, y: 3, terrain: 'plain', node: node('peak-wind', 'Vách gió kể chuyện', 'Storytelling wind cliff', 'event') },
+  ]),
+]
+
 export function cellAt(x: number, y: number): CellDef | undefined {
   return CELLS.find((c) => c.x === x && c.y === y)
+}
+
+export function getRegionMap(locationId: string): RegionMapDef | undefined {
+  return REGION_MAPS.find((map) => map.locationId === locationId)
+}
+
+export function regionCellAt(locationId: string, x: number, y: number): RegionCellDef | undefined {
+  return getRegionMap(locationId)?.cells.find((cell) => cell.x === x && cell.y === y)
+}
+
+export function entryPositionFor(locationId: string, fromLocationId?: string): { x: number; y: number } {
+  const map = getRegionMap(locationId)
+  if (map === undefined) return { x: 3, y: 3 }
+  return fromLocationId === undefined ? map.entry : (map.arrivals[fromLocationId] ?? map.entry)
 }
 
 export function isPassable(c: CellDef): boolean {

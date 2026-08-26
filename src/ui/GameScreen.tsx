@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
   ACHIEVEMENTS,
-  CELLS,
   CHAPTERS,
   ENEMIES,
   ENDINGS,
@@ -17,6 +16,7 @@ import {
   TECHNIQUES,
   getItem,
   getLocation,
+  getRegionMap,
 } from '../content'
 import { currentBeat, dangerWarning, storageRemaining } from '../engine'
 import type { Action, ConcreteAction, GameState, Locale } from '../engine'
@@ -202,6 +202,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     taglineEn: 'A new road opens.',
   }
   const location = getLocation(game.player.locationId)
+  const regionMap = getRegionMap(game.player.locationId)
   const warning = dangerWarning(game.player.locationId)
   const localNpcs = NPCS.filter((npc) => npc.locationId === game.player.locationId)
   const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
@@ -349,23 +350,22 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <div className="panel-heading">
             <div>
               <p className="eyebrow">{word(locale, 'WASD / phím mũi tên', 'WASD / arrow keys')}</p>
-              <h2 id="map-title">{word(locale, 'Bản đồ hành trình', 'Journey map')}</h2>
+              <h2 id="map-title">{word(locale, 'Bản đồ khu vực', 'Local area map')}</h2>
             </div>
             <span className="location-label" data-testid="location-label">{location === undefined ? game.player.locationId : localized(locale, location)}</span>
           </div>
           <div
             className="world-map illustrated-map"
-            aria-label={word(locale, 'Bản đồ thế giới tu tiên', 'Illustrated cultivation world map')}
+            aria-label={word(locale, 'Bản đồ khu vực có lối ra và điểm sự kiện', 'Local area map with exits and event nodes')}
             style={{ '--map-columns': MAP_WIDTH, '--map-rows': MAP_HEIGHT } as CSSProperties}
           >
-            <img alt={word(locale, 'Bản đồ thế giới tu tiên', 'Illustrated cultivation world map')} className="world-map-art" src={worldMapArt} />
+            <img alt="" aria-hidden="true" className="world-map-art" src={sceneBackdrop} />
             <div className="map-grid-overlay" aria-hidden="true">
-              {CELLS.map((cell) => {
+              {(regionMap?.cells ?? []).map((cell) => {
                 const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
-                const loc = cell.locationId === undefined ? undefined : getLocation(cell.locationId)
                 return (
-                  <div className="map-cell" key={`${cell.x}-${cell.y}`}>
-                    {loc !== undefined && <span className="map-location-pin" title={localized(locale, loc)} />}
+                  <div className={`map-cell terrain-${cell.terrain}`} key={`${cell.x}-${cell.y}`}>
+                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind}`} data-testid={`event-node-${cell.node.id}`} title={locale === 'vi' ? cell.node.nameVi : cell.node.nameEn} />}
                     {isPlayer && <span className={`player-map-marker action-${actionKind ?? 'idle'}`} data-testid="player-map-marker" key={`player-${actionNonce}`} title={word(locale, 'Nhân vật của bạn', 'Your character')} />}
                   </div>
                 )
@@ -374,8 +374,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </div>
           <div className="map-legend" aria-label={word(locale, 'Chú giải bản đồ', 'Map legend')}>
             <span><i className="legend-player" />{word(locale, 'Ngươi', 'You')}</span>
-            <span><i className="legend-town" />{word(locale, 'Địa điểm', 'Location')}</span>
-            <span>{word(locale, 'Di chuyển bằng bàn phím; địa hình nước và núi bị chặn.', 'Move by keyboard; water and mountains block travel.')}</span>
+            <span><i className="legend-town" />{word(locale, 'Điểm sự kiện / NPC', 'Event / NPC node')}</span>
+            <span><i className="legend-exit" />{word(locale, 'Lối sang khu vực khác', 'Exit to another area')}</span>
+            <span>{word(locale, 'Đi đến chấm sáng để gặp người, phát hiện sự kiện hoặc qua cổng. Nước và núi chặn lối.', 'Walk to a glowing point to meet people, find events, or use an exit. Water and mountains block the way.')}</span>
           </div>
         </section>
 

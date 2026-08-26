@@ -21,9 +21,14 @@ const TEMPLATES: Record<string, Handler> = {
   GAME_STARTED: (_ev, l) => (l === 'vi' ? 'Một kiếp mới bắt đầu.' : 'A new life begins.'),
   MOVED: (ev, l) => {
     if (ev.type !== 'MOVED') return ''
+    if (ev.from === ev.to) return l === 'vi' ? 'Ngươi men theo lối nhỏ trong khu vực.' : 'You follow a smaller path through the area.'
     return l === 'vi'
       ? `Ngươi lên đường đến ${ev.to.startsWith('wild_') ? 'bờ hoang phía đó' : ev.to}.`
       : `You travel on toward ${ev.to.startsWith('wild_') ? 'open country' : ev.to}.`
+  },
+  NODE_REACHED: (ev, l) => {
+    if (ev.type !== 'NODE_REACHED') return ''
+    return l === 'vi' ? `Ngươi đến ${ev.nameVi}.` : `You reach ${ev.nameEn}.`
   },
   DAY_PASSED: (ev, l) => {
     if (ev.type !== 'DAY_PASSED') return ''

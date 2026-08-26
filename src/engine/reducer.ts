@@ -1,5 +1,6 @@
 import {
   enemyAt,
+  entryPositionFor,
   getEnemy,
   getEquipmentByItem,
   getItem,
@@ -227,27 +228,38 @@ function execAction(state: GameState, action: ConcreteAction): R {
 }
 
 function doMove(state: GameState, direction: Direction): R {
-  const check = checkMoveFrom(state.player.posX, state.player.posY, direction)
+  const check = checkMoveFrom(state.player.locationId, state.player.posX, state.player.posY, direction)
   if (!check.ok || check.cell === undefined) return err('MOVE_BLOCKED')
   const cell = check.cell
+  const targetLocId = check.destinationId
+  const arrival = targetLocId === undefined ? undefined : entryPositionFor(targetLocId, state.player.locationId)
   let s: GameState = {
     ...state,
     flags: { ...state.flags, movedOnce: true },
     player: {
       ...state.player,
-      posX: cell.x,
-      posY: cell.y,
-      locationId: cell.locationId ?? `wild_${cell.x}_${cell.y}`,
+      posX: arrival?.x ?? cell.x,
+      posY: arrival?.y ?? cell.y,
+      locationId: targetLocId ?? state.player.locationId,
     },
   }
   const events: GameEvent[] = [
     { type: 'MOVED', from: state.player.locationId, to: s.player.locationId },
   ]
-  const targetLocId = cell.locationId
-  if (targetLocId !== undefined) {
-    if (targetLocId === LOCATION_CAVE) s = { ...s, flags: { ...s.flags, seenCave: true } }
-    const warning = dangerWarning(targetLocId)
-    const danger = locationDanger(targetLocId)
+  if (cell.node !== undefined) {
+    events.push({
+      type: 'NODE_REACHED',
+      nodeId: cell.node.id,
+      nameVi: cell.node.nameVi,
+      nameEn: cell.node.nameEn,
+      kind: cell.node.kind,
+    })
+  }
+  const dangerLocationId = targetLocId ?? (cell.node?.kind === 'danger' ? state.player.locationId : undefined)
+  if (dangerLocationId !== undefined) {
+    if (dangerLocationId === LOCATION_CAVE) s = { ...s, flags: { ...s.flags, seenCave: true } }
+    const warning = dangerWarning(dangerLocationId)
+    const danger = locationDanger(dangerLocationId)
     if (warning !== null) {
       events.push({
         type: 'WARNING',
@@ -264,7 +276,7 @@ function doMove(state: GameState, direction: Direction): R {
           ...s,
           inventory: bump(s.inventory, ITEM_TALISMAN, -1),
           flags:
-            targetLocId === LOCATION_CAVE
+            dangerLocationId === LOCATION_CAVE
               ? { ...s.flags, visitedCaveWarded: true }
               : s.flags,
         }
@@ -274,17 +286,17 @@ function doMove(state: GameState, direction: Direction): R {
         s = { ...s, rng: nextRng }
         const newHp = Math.max(0, s.player.hp - damage)
         s = { ...s, player: { ...s.player, hp: newHp } }
-        events.push({ type: 'DAMAGED', amount: damage, source: targetLocId })
+        events.push({ type: 'DAMAGED', amount: damage, source: dangerLocationId })
         if (newHp <= 0) {
           s = { ...s, player: { ...s.player, alive: false } }
-          events.push({ type: 'DEATH', cause: `danger:${targetLocId}` })
+          events.push({ type: 'DEATH', cause: `danger:${dangerLocationId}` })
           return { ok: true, state: s, events }
         }
         if (newHp <= 25) {
           events.push({
             type: 'WARNING',
             level: 0,
-            locationId: targetLocId,
+            locationId: dangerLocationId,
             messageVi: LOW_HP_WARNING.vi,
             messageEn: LOW_HP_WARNING.en,
           })

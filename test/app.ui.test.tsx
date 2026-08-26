@@ -19,7 +19,7 @@ describe('browser game journey', () => {
     expect(screen.getByTestId('player-map-marker').className).toContain('action-move')
 
     await user.click(screen.getByRole('button', { name: 'EN' }))
-    expect(screen.getByRole('heading', { name: 'Journey map' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Local area map' })).toBeTruthy()
 
     await waitFor(() => expect(window.localStorage.getItem('phe-can-ky:save:v1')).toContain('market'))
   })

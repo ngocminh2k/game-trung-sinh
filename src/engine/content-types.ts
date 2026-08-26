@@ -87,6 +87,30 @@ export interface CellDef {
   locationId?: string
 }
 
+/** A labelled point on a local-area map.  Nodes are deliberately content data,
+ * not a UI-only list: a player reaches them by moving onto their cell. */
+export interface MapNodeDef {
+  id: string
+  nameVi: string
+  nameEn: string
+  kind: 'npc' | 'event' | 'exit' | 'danger'
+}
+
+export interface RegionCellDef extends CellDef {
+  node?: MapNodeDef
+  /** Stepping onto an exit changes region and uses that region's authored entry. */
+  exitTo?: string
+}
+
+export interface RegionMapDef {
+  locationId: string
+  cells: RegionCellDef[]
+  /** Safe default/arrival point.  Every regional map has one. */
+  entry: { x: number; y: number }
+  /** Arrival points keyed by the region the player came from. */
+  arrivals: Record<string, { x: number; y: number }>
+}
+
 export interface NpcDef {
   id: string
   nameVi: string

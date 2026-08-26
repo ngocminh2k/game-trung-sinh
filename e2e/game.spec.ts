@@ -56,11 +56,11 @@ test('a player can see the map, switch language, and walk west with the keyboard
   await openGame(page)
 
   await expect(page.getByRole('heading', { name: /Phế Căn Ký/ })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Bản đồ hành trình' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bản đồ khu vực' })).toBeVisible()
   await expect(page.getByTestId('location-label')).toHaveText('Làng Thanh Mộc')
 
   await page.getByRole('button', { name: 'EN', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Journey map' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Local area map' })).toBeVisible()
   await expect(page.getByLabel('Chronicle')).toBeVisible()
   await page.getByRole('button', { name: 'VI', exact: true }).click()
 
@@ -68,6 +68,17 @@ test('a player can see the map, switch language, and walk west with the keyboard
   await expect(page.getByTestId('location-label')).toHaveText('Chợ Vân Tập')
   await page.reload()
   await expect(page.getByTestId('location-label')).toHaveText('Chợ Vân Tập')
+})
+
+test('regional maps show authored event nodes and use a local exit to change areas', async ({ page }) => {
+  await openGame(page)
+
+  await expect(page.getByTestId('event-node-village-market-exit')).toBeVisible()
+  await expect(page.getByTestId('event-node-village-elder')).toBeVisible()
+  await page.keyboard.press('ArrowLeft')
+  await expect(page.getByTestId('location-label')).toHaveText('Chợ Vân Tập')
+  await expect(page.getByTestId('event-node-market-square')).toBeVisible()
+  await expect(page.getByTestId('event-node-market-village-exit')).toBeVisible()
 })
 
 test('the three story choices and free-text convergence keep a new run on a valid path', async ({ page }) => {
@@ -159,11 +170,12 @@ const authoredEndings: Array<{
   {
     name: 'a road left unfinished through danger',
     ending: 'Kết cục: Đường về dang dở',
-    game: atLocation('wild_5_5', 5, 5, (game) => ({
+    game: atLocation('cursed_rift', 3, 3, (game) => ({
       ...game,
       player: { ...game.player, hp: 1 },
     })),
-    act: async (page) => { await page.keyboard.press('ArrowRight') },
+    // West is the authored Rift-heart danger node on the local Cursed Rift map.
+    act: async (page) => { await page.keyboard.press('ArrowLeft') },
   },
   {
     name: 'ascension through a final cultivation action',
