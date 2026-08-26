@@ -1,7 +1,7 @@
 export const VI = {
   common: {
     appName: 'Phế Căn Ký',
-    tagline: 'Trò chơi tu tiên trọng sinh — cong queo nhưng chân thật',
+    tagline: 'Một chuyến trùng sinh tu tiên — linh căn phế, chí khí không phế',
     newGame: 'Kiếp mới',
     continueGame: 'Tiếp tục',
     settings: 'Thiết lập',
@@ -23,8 +23,8 @@ export const VI = {
     storage: 'Nhà kho',
     quests: 'Nhiệm vụ',
     achievements: 'Thành tựu',
-    corrections: 'Lời lẩm bẩm vô nghĩa',
-    seed: 'Mật mã kiếp này',
+    corrections: 'Ý niệm chệch hướng',
+    seed: 'Mệnh số kiếp này',
   },
   stages: {
     s0: 'Luyện Khí',
@@ -56,7 +56,7 @@ export const VI = {
     completeQuest: 'Hoàn thành nhiệm vụ',
     freeText: 'Nhập tự do',
     restart: 'Bắt đầu lại',
-    suggestedActions: 'Gợi ý hành động',
+    suggestedActions: 'Lựa chọn gợi ý',
   },
   errors: {
     TERMINAL: 'Kiếp này đã khép lại. Hãy bắt đầu một kiếp mới.',
@@ -66,20 +66,20 @@ export const VI = {
     INSUFFICIENT_QI: 'Linh khí cạn rồi, hãy nghỉ trước.',
     NO_ITEM: 'Trong túi không có món đó.',
     ITEM_NOT_USABLE: 'Món này không thể dùng trực tiếp.',
-    ITEM_UNAVAILABLE: 'Món này không bán ở đây.',
+    ITEM_UNAVAILABLE: 'Việc này chưa hợp với tình thế hiện tại.',
     INVALID_QTY: 'Số lượng không hợp lệ.',
     STORAGE_FULL: 'Nhà kho đã đầy.',
     STORAGE_EMPTY: 'Trong kho không có món đó để lấy ra.',
     LOTTERY_ALREADY_DRAWN: 'Hôm nay đã rút vé số rồi, mai quay lại nhé.',
     LOTTERY_NEED_GOLD: 'Không đủ tiền mua vé số.',
     QUEST_UNKNOWN: 'Nhiệm vụ không tồn tại.',
-    QUEST_WRONG_STATE: 'Nhiệm vụ chưa ở trạng thái phù hợp.',
+    QUEST_WRONG_STATE: 'Nhiệm vụ này chưa đến lúc có thể tiếp tục.',
     NPC_UNKNOWN: 'Không có ai tên ấy cả.',
     NPC_NOT_HERE: 'Người đó không ở đây.',
   },
   narrator: {
-    logTitle: 'Chuyện vừa xảy ra',
-    emptyLog: 'Giấy còn trắng.',
+    logTitle: 'Dấu chân trên đường tu',
+    emptyLog: 'Trang sử còn đợi ngươi viết tiếp.',
   },
 }
 

@@ -103,7 +103,7 @@ function directionLabel(direction: 'north' | 'south' | 'east' | 'west', locale: 
 }
 
 function stageRequirement(locale: Locale, stage: number): string {
-  return word(locale, `Cần cảnh ${String(stage)}`, `Requires realm ${String(stage)}`)
+  return word(locale, `Yêu cầu cảnh giới ${String(stage)}`, `Requires realm ${String(stage)}`)
 }
 
 function obscuredName(locale: Locale, kind: 'talent' | 'technique' | 'equipment'): string {
@@ -339,7 +339,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         {encounterEnemy !== undefined && game.encounter !== null && (
           <section aria-live="polite" className="encounter-banner" role="status" aria-label={word(locale, 'Giao chiến đang diễn ra', 'Active encounter')}>
             <div>
-              <p className="eyebrow">{word(locale, 'Giao chiến deterministic', 'Deterministic encounter')}</p>
+              <p className="eyebrow">{word(locale, 'Giao tranh sinh tử', 'Deterministic encounter')}</p>
               <h2>{localized(locale, encounterEnemy)}</h2>
               <span>{word(locale, 'Sinh lực địch', 'Enemy health')}: {game.encounter.hp}/{game.encounter.maxHp}</span>
             </div>
@@ -396,7 +396,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         <section className="story-panel parchment-panel" aria-labelledby="story-title">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">{word(locale, 'Cốt truyện deterministic', 'Deterministic story')}</p>
+              <p className="eyebrow">{word(locale, 'Mạch truyện', 'Deterministic story')}</p>
               <h2 id="story-title">{locale === 'vi' ? beat.titleVi : beat.titleEn}</h2>
             </div>
             <span className="root-badge">{word(locale, 'Linh căn', 'Spirit root')}: {locale === 'vi' ? game.spiritRoot.elementVi : game.spiritRoot.elementEn}</span>
@@ -463,7 +463,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <Meter label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={120} tone="gold" />
             <div className="stat-strip">
               <span>◎ {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
-              <span>{word(locale, 'Căn hiệu', 'root rate')} {Math.round(game.spiritRoot.efficiency * 100)}%</span>
+              <span>{word(locale, 'Độ tương hợp', 'root rate')} {Math.round(game.spiritRoot.efficiency * 100)}%</span>
             </div>
             <dl className="attributes">
               <div><dt>{word(locale, 'Thân', 'Body')}</dt><dd>{game.player.attrs.body}</dd></div>
@@ -643,7 +643,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </>}
         </div>)}
             <details className="codex-drawer" data-testid="codex-drawer" onToggle={(event) => setCodexOpen(event.currentTarget.open)} open={codexOpen}>
-              <summary>{word(locale, 'Mở tu điển: NPC, vật phẩm, thiên phú & asset pack', 'Open codex: NPCs, items, talents & asset packs')}</summary>
+              <summary>{word(locale, 'Mở tu điển: nhân vật, vật phẩm, thiên phú & gói minh họa', 'Open codex: NPCs, items, talents & asset packs')}</summary>
               {codexOpen && <CodexPanel entries={codexEntries} locale={locale} packs={ASSET_PACK_MANIFEST} />}
             </details>
           </section>

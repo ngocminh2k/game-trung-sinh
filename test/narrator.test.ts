@@ -79,6 +79,26 @@ describe('narrator', () => {
     }
   })
 
+  it('turns internal ids into natural Vietnamese names and keeps correction mechanics out of view', () => {
+    const lines = [
+      narrateLine({ type: 'MOVED', from: 'village', to: 'market' }, 'vi'),
+      narrateLine({ type: 'QUEST_ACCEPTED', questId: 'q_herb_delivery' }, 'vi'),
+      narrateLine({ type: 'TALENT_CHOSEN', talentId: 'iron_bones' }, 'vi'),
+      narrateLine({ type: 'TECHNIQUE_LEARNED', techniqueId: 'crooked_circulation', level: 1 }, 'vi'),
+      narrateLine({ type: 'ENCOUNTER_STARTED', enemyId: 'mist_boar' }, 'vi'),
+      narrateLine({ type: 'DEATH', cause: 'danger:cursed_rift' }, 'vi'),
+      narrateLine({ type: 'FORCED_CONVERGENCE', action: { kind: 'rest' } }, 'vi'),
+    ]
+
+    expect(lines.join(' ')).toContain('Chợ Vân Tập')
+    expect(lines.join(' ')).toContain('Lọ thuốc cho cụ Mai Hoa')
+    expect(lines.join(' ')).toContain('Gân Cốt Sắt')
+    expect(lines.join(' ')).toContain('Chu Thiên Cong Queo')
+    expect(lines.join(' ')).toContain('Trư Nha Sương')
+    expect(lines.join(' ')).toContain('Khe Hở Nguyền Rủa')
+    expect(lines.join(' ')).not.toMatch(/market|q_herb_delivery|iron_bones|crooked_circulation|mist_boar|cursed_rift|convergence/i)
+  })
+
   it('narration never mutates game state', () => {
     const before = newGame('narrator-pure')
     const snapshot = JSON.stringify(before)

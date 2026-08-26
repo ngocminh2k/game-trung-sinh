@@ -8,7 +8,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Trọng sinh ở làng Thanh Mộc',
     titleEn: 'Reborn in Greenwood Village',
     textVi:
-      'Ngươi mở mắt trên chiếc giường rơm quen thuộc. Kiếp trước kiếp này, linh căn vẫn cong queo như cũ. Nhưng hôm nay, giỏ herbs đã đan xong.',
+      'Ngươi mở mắt trên chiếc giường rơm quen thuộc. Qua một kiếp, linh căn vẫn phế như xưa; chỉ có lòng ngươi không còn chịu cúi đầu. Bên cửa, chiếc giỏ hái thuốc đã được đan xong.',
     textEn:
       'You wake on the familiar straw bed. This life or the last, the spirit root stays crooked. But today, the herb basket is finally woven.',
     suggested: [
@@ -24,7 +24,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Bước chân đầu tiên ra thế giới',
     titleEn: 'First Steps Into the World',
     textVi:
-      'Đường đất còn vương sương. Ngươi nắm chặt túi tiền và lắng nghe tiếng chuông chợ từ phía tây.',
+      'Con đường đất còn đẫm sương. Ngươi siết chặt túi tiền lép kẹp, nghe tiếng chuông chợ vọng về từ phía tây.',
     textEn:
       'The road still holds the morning mist. You clutch your coin purse and listen to the market bell to the west.',
     suggested: [
@@ -40,7 +40,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Linh căn khuyết lên tiếng',
     titleEn: 'The Flawed Root Speaks Up',
     textVi:
-      'Khí tuần hoàn lệch một nhịp, rồi hai. Linh căn hỗn tạp chỉ hút được một nửa công lực — nhưng nửa nào cũng thật.',
+      'Linh khí vận hành lệch một nhịp, rồi lại lệch thêm. Linh căn hỗn tạp chỉ giữ nổi nửa phần công lực, nhưng nửa phần ấy là của chính ngươi.',
     textEn:
       'Your qi skips a beat, then another. The muddled root draws only half the usual power — but that half is honest.',
     suggested: [
@@ -56,7 +56,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Tin đồn ở chợ Vân Tập',
     titleEn: 'Rumors at Cloudgather Market',
     textVi:
-      'Giữa tiếng rao, ai đó thì thầm về hang phong ấn và một cuốn bí kíp dành cho linh căn dị biệt.',
+      'Giữa tiếng rao hàng chen chúc, có người hạ giọng nhắc đến hang phong ấn và một quyển bí kíp chỉ nhận kẻ có linh căn khác thường.',
     textEn:
       'Between hawkers\u2019 cries, someone whispers of a sealed cave and a manual for unconventional roots.',
     suggested: [
@@ -72,7 +72,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Lời hứa với cụ Mai Hoa',
     titleEn: 'A Promise to Elder Meihua',
     textVi:
-      'Cụ cười, răng ít nhưng mắt nhiều. Ba nhánh linh thảo, một lọ thuốc, một lời cảm ơn nặng hơn vàng.',
+      'Cụ Mai Hoa mỉm cười; nụ cười ít răng mà đầy ấm áp. Ba nhánh linh thảo, một lọ thuốc, và lời cảm ơn nặng hơn cả vàng.',
     textEn:
       'She smiles with few teeth and many eyes. Three herbs, one pill, a thanks heavier than gold.',
     suggested: [
@@ -88,7 +88,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Miệng hang thổi hơi lạnh',
     titleEn: 'Cold Breath From the Cave Mouth',
     textVi:
-      'Phù hiệu cũ trên đá rung nhẹ. Cốc chủ nói đúng: mang bùa, hoặc mang vận may.',
+      'Phù văn cũ trên vách đá rung lên khe khẽ. Ẩn sĩ Cốc nói không sai: vào đây thì mang bùa, nếu không hãy mang theo vận may.',
     textEn:
       'Old sigils shiver on the stone. The hermit was right: bring a talisman, or bring luck.',
     suggested: [
@@ -104,7 +104,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Lửa nhỏ trong đan điền',
     titleEn: 'A Small Fire in the Dantian',
     textVi:
-      'Bí kíp cong queo dạy cách đi vòng quanh điểm gãy. Khí bắt đầu chịu ngoặt theo ngươi.',
+      'Quyển bí kíp kỳ quặc dạy ngươi lách qua những chỗ kinh mạch đứt đoạn. Từ đó, linh khí mới chịu nghe lời mà uốn theo ý ngươi.',
     textEn:
       'The crooked manual teaches you to curve around the break. Your qi begins to bend your way.',
     suggested: [
@@ -120,7 +120,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Thương đạo cũng là đạo',
     titleEn: 'Trade Is Also a Path',
     textVi:
-      'Tiếng chuông chợ, tiếng tính sổ, tiếng cười của người bán được hàng — tất cả đều dưỡng tâm.',
+      'Tiếng chuông chợ, tiếng bàn tính, tiếng cười của kẻ vừa bán được hàng — hóa ra thương đạo cũng có thể dưỡng tâm.',
     textEn:
       'Bell, abacus, a seller\u2019s laughter — all of it nourishes the heart.',
     suggested: [
@@ -136,7 +136,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Cửa ải cuối cùng',
     titleEn: 'The Final Barrier',
     textVi:
-      'Trên đỉnh mây, tiên hạc chờ. Một bước nữa thôi — bước này cần cả tĩnh lẫn động.',
+      'Trên đỉnh mây, linh hạc đã chờ từ lâu. Chỉ còn một bước, nhưng bước ấy phải gom đủ cả tĩnh tâm lẫn quyết ý.',
     textEn:
       'On Cloud Peak a crane waits. One more step — a step needing both stillness and motion.',
     suggested: [
@@ -152,7 +152,7 @@ export const BEATS: BeatDef[] = [
     titleVi: 'Đêm nay trời mở cửa',
     titleEn: 'Tonight Heaven Opens Its Door',
     textVi:
-      'Mưa sao rơi nghiêng. Ngươi ngồi xuống, không còn gì để chứng minh ngoài việc bước tiếp.',
+      'Mưa sao nghiêng qua trời đêm. Ngươi ngồi xuống, không còn cần chứng minh điều gì ngoài việc bước tiếp.',
     textEn:
       'Star-rain falls slantwise. You sit down with nothing left to prove except the next step.',
     suggested: [

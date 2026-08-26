@@ -94,7 +94,7 @@ test('the three story choices and free-text convergence keep a new run on a vali
     await command.fill('ta biến thành hoàng đế của mặt trăng ngay lập tức')
     await page.getByRole('button', { name: 'Thử vận', exact: true }).click()
   }
-  await expect(page.getByLabel('Biên niên ký')).toContainText('Một lực dịu dàng xoay ý nghĩ')
+  await expect(page.getByLabel('Biên niên ký')).toContainText('Cảnh vật quanh ngươi dần rõ nét trở lại')
   await expect(page.getByTestId('location-label')).toHaveText('Chợ Vân Tập')
 })
 
@@ -106,7 +106,7 @@ test('items, sect storage, market shop, achievement, and reload persistence work
   })))
 
   await itemRow(page, 'Viên hồi nguyên').getByRole('button', { name: 'Dùng', exact: true }).click()
-  await expect(page.getByLabel('Biên niên ký')).toContainText('Dùng Viên hồi nguyên')
+  await expect(page.getByLabel('Biên niên ký')).toContainText('Ngươi dùng Viên hồi nguyên')
   await expect(page.getByText('75/100', { exact: true })).toBeVisible()
 
   await itemRow(page, 'Linh thảo').getByRole('button', { name: 'Gửi', exact: true }).click()
@@ -158,7 +158,7 @@ test('talent, technique, equipment, and combat controls operate in browser', asy
     await attack.click()
   }
   await expect(page.getByLabel('Giao chiến đang diễn ra')).toHaveCount(0)
-  await expect(page.getByLabel('Biên niên ký')).toContainText('Hạ mist_boar')
+  await expect(page.getByLabel('Biên niên ký')).toContainText('Hạ Trư Nha Sương')
 })
 
 const authoredEndings: Array<{

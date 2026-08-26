@@ -11,7 +11,7 @@ function freshSession(locale: Locale = 'vi'): GameSession {
     game,
     locale,
     chronicle: locale === 'vi'
-      ? ['Ngươi tỉnh dậy ở làng Thanh Mộc. Linh căn cong queo vẫn còn, nhưng đường đời thì mới.']
+      ? ['Ngươi tỉnh dậy tại làng Thanh Mộc. Linh căn phế vẫn đó, nhưng kiếp này, con đường do chính ngươi chọn.']
       : ['You wake in Greenwood Village. The crooked spirit root remains, but the road is new.'],
   }
 }
