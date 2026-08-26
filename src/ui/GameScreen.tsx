@@ -26,6 +26,7 @@ import itemsStillLife from '../assets/art/items-still-life.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
 import { locationBackdropFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
+import { deriveObjective } from './objective'
 import { itemArtFor, talentArtFor, techniqueArtFor } from './rpgArt'
 import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
@@ -257,6 +258,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     previousLocationId.current = game.player.locationId
     setActiveDock(contextualDockFor(game.player.locationId))
   }, [game.player.locationId])
+  const objective = deriveObjective(game, locale)
   const beat = useMemo(() => currentBeat(game), [game])
   const chapter = CHAPTERS.find((entry) => entry.index === beat.chapter) ?? {
     index: 1,
@@ -491,6 +493,13 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             </div>
             <small>{word(locale, 'Cứ nói điều ngươi thật sự muốn làm; thế giới sẽ đáp lại theo lẽ của nó.', 'State what you truly mean to do; the world will answer in its own way.')}</small>
           </form>
+
+          {objective !== null && (
+            <p className="objective-line" aria-live="polite" data-testid="objective-line">
+              <span className="objective-seal" aria-hidden="true">目</span>
+              <span>{objective}</span>
+            </p>
+          )}
 
           <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')}>
             <p className="section-kicker">{word(locale, 'Biên niên ký', 'Chronicle')}</p>

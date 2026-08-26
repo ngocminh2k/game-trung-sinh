@@ -17,14 +17,14 @@ const NEW_EQUIPMENT_IDS = [
 ] as const
 
 describe('Scenario I progression content', () => {
-  it('gives every new item a stable bilingual definition while its art is honestly queued', () => {
+  it('gives every new item a stable bilingual definition and shipped art', () => {
     for (const id of NEW_ITEM_IDS) {
       const item = ITEMS.find((entry) => entry.id === id)
       expect(item, id).toBeDefined()
       expect(item?.nameVi).not.toEqual(item?.nameEn)
       expect(item?.descVi.length).toBeGreaterThan(0)
       expect(item?.descEn.length).toBeGreaterThan(0)
-      expect(itemArtFor(id)).toBeUndefined()
+      expect(itemArtFor(id)).toMatch(/\.png$/)
     }
   })
 
@@ -33,13 +33,13 @@ describe('Scenario I progression content', () => {
       const technique = TECHNIQUES.find((entry) => entry.id === techniqueId)
       expect(technique?.sourceItemId).toBeDefined()
       expect(ITEMS.some((item) => item.id === technique?.sourceItemId)).toBe(true)
-      expect(techniqueArtFor(techniqueId)).toBeUndefined()
+      expect(techniqueArtFor(techniqueId)).toMatch(/\.png$/)
     }
     for (const equipmentId of NEW_EQUIPMENT_IDS) {
       const equipment = EQUIPMENT.find((entry) => entry.id === equipmentId)
       const item = ITEMS.find((entry) => entry.id === equipment?.itemId)
       expect(item?.equipmentSlot).toBe(equipment?.slot)
-      expect(itemArtFor(equipmentId)).toBeUndefined()
+      expect(itemArtFor(equipmentId)).toMatch(/\.png$/)
     }
   })
 

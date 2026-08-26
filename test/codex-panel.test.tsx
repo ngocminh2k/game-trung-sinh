@@ -71,11 +71,11 @@ describe('CodexPanel', () => {
     ])).toEqual({ loaded: 9, total: 26, readyPacks: 1, totalPacks: 2 })
   })
 
-  it('keeps incomplete content packs out of the ready total', () => {
+  it('reports every content pack as ready once all shipped art is present', () => {
     expect(assetPackProgress(ASSET_PACK_MANIFEST)).toEqual({
-      loaded: 83,
+      loaded: 103,
       total: 103,
-      readyPacks: ASSET_PACK_MANIFEST.length - 2,
+      readyPacks: ASSET_PACK_MANIFEST.length,
       totalPacks: ASSET_PACK_MANIFEST.length,
     })
   })
