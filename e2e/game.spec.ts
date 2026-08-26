@@ -128,6 +128,20 @@ test('items, sect storage, market shop, achievement, and reload persistence work
   await expect(page.getByTestId('location-label')).toHaveText('Chợ Vân Tập')
 })
 
+test('combat trophies can be exchanged for expedition protection instead of being sold', async ({ page }) => {
+  await openGame(page, atLocation('market', 3, 3, (game) => ({
+    ...game,
+    inventory: { ...game.inventory, beast_fang: 1, spirit_herb: 2 },
+  })))
+
+  await expect(page.getByRole('heading', { name: 'Quầy đổi linh tài' })).toBeVisible()
+  const exchange = page.getByTestId('refinement-warding_exchange')
+  await expect(exchange).toContainText('Bùa hồi lộ')
+  await exchange.getByRole('button', { name: 'Đổi', exact: true }).click()
+  await expect(page.getByLabel('Biên niên ký')).toContainText('Bùa trừ tà')
+  await expect(itemRow(page, 'Bùa trừ tà')).toContainText('×1')
+})
+
 test('talent, technique, equipment, and combat controls operate in browser', async ({ page }) => {
   await openGame(page, atLocation('misty_forest', 4, 1, (game) => ({
     ...game,
