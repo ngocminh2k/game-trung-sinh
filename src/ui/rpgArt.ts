@@ -15,6 +15,24 @@ import spiritRing from '../assets/art/items/spirit-ring.png'
 import tatteredRobe from '../assets/art/items/tattered-robe.png'
 import wardingTalisman from '../assets/art/items/warding-talisman.png'
 import woodenStaff from '../assets/art/items/wooden-staff.png'
+import bambooSaber from '../assets/art/items/bamboo-saber.png'
+import beastFang from '../assets/art/items/beast-fang.png'
+import boneWardCharm from '../assets/art/items/bone-ward-charm.png'
+import cloudsilkThread from '../assets/art/items/cloudsilk-thread.png'
+import cloudveilRobe from '../assets/art/items/cloudveil-robe.png'
+import coldIronOre from '../assets/art/items/cold-iron-ore.png'
+import craneFeather from '../assets/art/items/crane-feather.png'
+import dewPill from '../assets/art/items/dew-pill.png'
+import frostfangSaber from '../assets/art/items/frostfang-saber.png'
+import marrowGatherPill from '../assets/art/items/marrow-gather-pill.png'
+import moonMoss from '../assets/art/items/moon-moss.png'
+import moonstonePendant from '../assets/art/items/moonstone-pendant.png'
+import ninefoldPill from '../assets/art/items/ninefold-pill.png'
+import plumQiWine from '../assets/art/items/plum-qi-wine.png'
+import stoneAegisManual from '../assets/art/items/stone-aegis-manual.png'
+import tideBreathManual from '../assets/art/items/tide-breath-manual.png'
+import trailRations from '../assets/art/items/trail-rations.png'
+import travelersCoat from '../assets/art/items/travelers-coat.png'
 import basicStaffForm from '../assets/art/talents/basic-staff-form.png'
 import cloudHeart from '../assets/art/talents/cloud-heart.png'
 import cloudwalk from '../assets/art/talents/cloudwalk.png'
@@ -32,6 +50,8 @@ import riftStep from '../assets/art/talents/rift-step.png'
 import runeScar from '../assets/art/talents/rune-scar.png'
 import tenaciousRoot from '../assets/art/talents/tenacious-root.png'
 import wildHerbalist from '../assets/art/talents/wild-herbalist.png'
+import stoneAegis from '../assets/art/talents/stone-aegis.png'
+import tideBreath from '../assets/art/talents/tide-breath.png'
 
 export type ItemArtId =
   | 'spirit_herb'
@@ -51,6 +71,24 @@ export type ItemArtId =
   | 'iron_skin_manual'
   | 'cloudwalk_manual'
   | 'peak_cleaver_manual'
+  | 'dew_pill'
+  | 'plum_qi_wine'
+  | 'ninefold_pill'
+  | 'marrow_gather_pill'
+  | 'trail_rations'
+  | 'moon_moss'
+  | 'cold_iron_ore'
+  | 'beast_fang'
+  | 'cloudsilk_thread'
+  | 'crane_feather'
+  | 'bamboo_saber'
+  | 'travelers_coat'
+  | 'bone_ward_charm'
+  | 'frostfang_saber'
+  | 'cloudveil_robe'
+  | 'moonstone_pendant'
+  | 'tide_breath_manual'
+  | 'stone_aegis_manual'
 
 export type TalentArtId =
   | 'tenacious_root'
@@ -72,6 +110,8 @@ export type TechniqueArtId =
   | 'iron_skin'
   | 'cloudwalk'
   | 'peak_cleaver'
+  | 'tide_breath'
+  | 'stone_aegis'
 
 /**
  * Visual content is keyed by the stable deterministic IDs used in saves. This
@@ -95,6 +135,24 @@ export const ITEM_ART: Readonly<Record<ItemArtId, string>> = {
   iron_skin_manual: ironSkinManual,
   cloudwalk_manual: cloudwalkManual,
   peak_cleaver_manual: peakCleaverManual,
+  dew_pill: dewPill,
+  plum_qi_wine: plumQiWine,
+  ninefold_pill: ninefoldPill,
+  marrow_gather_pill: marrowGatherPill,
+  trail_rations: trailRations,
+  moon_moss: moonMoss,
+  cold_iron_ore: coldIronOre,
+  beast_fang: beastFang,
+  cloudsilk_thread: cloudsilkThread,
+  crane_feather: craneFeather,
+  bamboo_saber: bambooSaber,
+  travelers_coat: travelersCoat,
+  bone_ward_charm: boneWardCharm,
+  frostfang_saber: frostfangSaber,
+  cloudveil_robe: cloudveilRobe,
+  moonstone_pendant: moonstonePendant,
+  tide_breath_manual: tideBreathManual,
+  stone_aegis_manual: stoneAegisManual,
 }
 
 export const TALENT_ART: Readonly<Record<TalentArtId, string>> = {
@@ -118,6 +176,8 @@ export const TECHNIQUE_ART: Readonly<Record<TechniqueArtId, string>> = {
   iron_skin: ironSkin,
   cloudwalk,
   peak_cleaver: peakCleaver,
+  tide_breath: tideBreath,
+  stone_aegis: stoneAegis,
 }
 
 export function itemArtFor(itemId: string): string | undefined {

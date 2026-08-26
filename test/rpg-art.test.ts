@@ -4,16 +4,17 @@ import { ASSET_PACK_MANIFEST, assetPackProgress } from '../src/ui/assetPacks'
 import { ITEM_ART, TALENT_ART, TECHNIQUE_ART, itemArtFor, talentArtFor, techniqueArtFor } from '../src/ui/rpgArt'
 
 describe('RPG art registry', () => {
-  it('registers distinct art only for items whose promised illustration is actually shipped', () => {
+  it('registers one distinct shipped illustration for every authored item', () => {
     for (const artwork of Object.values(ITEM_ART)) expect(artwork).toMatch(/\.png$/)
     expect(new Set(Object.values(ITEM_ART)).size).toBe(Object.keys(ITEM_ART).length)
-    for (const itemId of Object.keys(ITEM_ART)) expect(ITEMS.some((item) => item.id === itemId)).toBe(true)
+    expect(Object.keys(ITEM_ART)).toHaveLength(ITEMS.length)
+    for (const item of ITEMS) expect(itemArtFor(item.id)).toMatch(/\.png$/)
   })
 
   it('registers a distinct shipped raster illustration for every talent and technique', () => {
     for (const artwork of [...Object.values(TALENT_ART), ...Object.values(TECHNIQUE_ART)]) expect(artwork).toMatch(/\.png$/)
     expect(new Set(Object.values(TALENT_ART)).size).toBe(TALENTS.length)
-    expect(new Set(Object.values(TECHNIQUE_ART)).size).toBe(Object.keys(TECHNIQUE_ART).length)
+    expect(new Set(Object.values(TECHNIQUE_ART)).size).toBe(TECHNIQUES.length)
     for (const talent of TALENTS) expect(talentArtFor(talent.id)).toMatch(/\.png$/)
     for (const techniqueId of Object.keys(TECHNIQUE_ART)) expect(TECHNIQUES.some((technique) => technique.id === techniqueId)).toBe(true)
   })
@@ -29,12 +30,12 @@ describe('RPG art registry', () => {
     const itemPack = ASSET_PACK_MANIFEST.find((pack) => pack.id === 'items-and-equipment')
 
     expect(talentPack?.requiredAssetCount).toBe(TALENTS.length + TECHNIQUES.length)
-    expect(talentPack?.loadedAssets).toBe(17)
-    expect(talentPack?.status).toBe('loading')
+    expect(talentPack?.loadedAssets).toBe(TALENTS.length + TECHNIQUES.length)
+    expect(talentPack?.status).toBe('ready')
     expect(itemPack?.requiredAssetCount).toBe(ITEMS.length)
-    expect(itemPack?.loadedAssets).toBe(17)
-    expect(itemPack?.status).toBe('loading')
-    expect(assetPackProgress(ASSET_PACK_MANIFEST).loaded).toBe(83)
+    expect(itemPack?.loadedAssets).toBe(ITEMS.length)
+    expect(itemPack?.status).toBe('ready')
+    expect(assetPackProgress(ASSET_PACK_MANIFEST).loaded).toBe(103)
     expect(assetPackProgress(ASSET_PACK_MANIFEST).total).toBe(103)
   })
 })
