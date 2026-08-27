@@ -1,0 +1,391 @@
+/* ============================================================================
+   Cinematic screens — Loading & Death (Game Over)
+   100% code-drawn: SVG strokes + CSS keyframes. No image assets.
+   Aesthetic: ink-wash (sumi) cultivation, rebirth of the broken root.
+   ========================================================================== */
+
+/* ---------- shared overlay shell ---------- */
+.loading-screen,
+.death-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: Spectral, 'Noto Serif', Georgia, serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ===========================================================================
+   LOADING SCREEN
+   =========================================================================== */
+.loading-screen {
+  cursor: pointer;
+  gap: 0;
+  color: #21332a;
+  background:
+    radial-gradient(circle at 50% 38%, #f5eeda 0%, #e9dfc4 42%, #cdbf9f 100%);
+}
+.loading-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(120, 150, 120, .20), transparent 38%),
+    radial-gradient(circle at 78% 82%, rgba(110, 90, 60, .18), transparent 44%),
+    repeating-linear-gradient(0deg, rgba(80, 70, 50, .045) 0 1px, transparent 1px 5px);
+}
+.loading-stage {
+  position: relative;
+  width: min(46vmin, 320px);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  margin-bottom: 6px;
+}
+.enso {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.enso-ring {
+  fill: none;
+  stroke: #1f3328;
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: .9;
+}
+.enso-ring-ghost {
+  stroke: #3a5a44;
+  stroke-width: 2;
+  opacity: .5;
+}
+.root {
+  position: relative;
+  width: 34%;
+  height: 46%;
+}
+.root-stem {
+  fill: none;
+  stroke: #6f7a68;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.root-heal {
+  fill: none;
+  stroke: #e8b54a;
+  stroke-width: 4;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(232, 181, 74, .8));
+}
+.root-leaf {
+  fill: rgba(70, 120, 80, .5);
+  stroke: #3f7a52;
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.root-tendril {
+  fill: none;
+  stroke: #6f7a68;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.loading-motes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.mote {
+  position: absolute;
+  bottom: -24px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f6dd95, #c9a24a);
+  box-shadow: 0 0 6px rgba(232, 181, 74, .6);
+  opacity: 0;
+}
+.loading-title {
+  position: relative;
+  margin: 18px 0 0;
+  font-family: 'Noto Serif', Spectral, serif;
+  font-weight: 700;
+  font-size: clamp(30px, 6vmin, 54px);
+  letter-spacing: .04em;
+  color: #1d3328;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .4);
+}
+.loading-subtitle {
+  margin: 6px 0 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #5d6358;
+}
+.loading-hint {
+  margin-top: 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: .2em;
+  color: #7a6a3c;
+}
+.loading-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(40, 60, 45, .15);
+}
+.loading-progress i {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, #c9a24a, transparent);
+}
+
+/* ===========================================================================
+   DEATH / GAME OVER SCREEN
+   =========================================================================== */
+.death-screen {
+  gap: 0;
+  color: #e9e2d2;
+  background:
+    radial-gradient(circle at 50% 46%, #16221b 0%, #0a110d 55%, #05080 100%);
+}
+.death-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(0, 0, 0, .72) 100%);
+}
+.death-enso {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(72vmin, 580px);
+  height: min(72vmin, 580px);
+  transform: translate(-50%, -54%);
+  opacity: .5;
+  pointer-events: none;
+}
+.death-enso-ring {
+  fill: none;
+  stroke: #c9b27a;
+  stroke-width: 3;
+  opacity: .5;
+}
+.death-enso-crack {
+  fill: none;
+  stroke: #e7d9b0;
+  stroke-width: 2;
+  opacity: .7;
+}
+.death-petals {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.petal {
+  position: absolute;
+  top: -6%;
+  width: 10px;
+  height: 14px;
+  background: linear-gradient(180deg, #cdbfae, #8a8276);
+  border-radius: 60% 60% 60% 60% / 70% 70% 40% 40%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, .3);
+  opacity: 0;
+}
+.death-core {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  text-align: center;
+}
+.death-token {
+  width: min(22vmin, 150px);
+  height: min(22vmin, 150px);
+}
+.token-ring {
+  fill: rgba(20, 30, 24, .6);
+  stroke: #9d3e2e;
+  stroke-width: 3;
+}
+.token-glyph {
+  fill: #e9e2d2;
+  font-family: 'Noto Serif', serif;
+  font-size: 54px;
+}
+.token-crack {
+  fill: none;
+  stroke: #e7d9b0;
+  stroke-width: 2;
+}
+.death-title {
+  margin: 0;
+  font-family: 'Noto Serif', Spectral, serif;
+  font-weight: 700;
+  font-size: clamp(28px, 5.4vmin, 46px);
+  letter-spacing: .06em;
+  color: #f1e8d4;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .6);
+}
+.death-epitaph {
+  margin: 0;
+  max-width: 38ch;
+  font-style: italic;
+  font-size: clamp(14px, 2.2vmin, 18px);
+  line-height: 1.6;
+  color: #c9c2b2;
+}
+.death-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.death-restart,
+.death-dismiss {
+  border-radius: 8px;
+  padding: 11px 22px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  letter-spacing: .06em;
+}
+.death-restart {
+  border: 1px solid #2f6b4c;
+  color: #0c130f;
+  background: #3f9c6e;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .4);
+}
+.death-restart:hover { background: #4cb27d; }
+.death-dismiss {
+  border: 1px solid rgba(233, 226, 210, .4);
+  color: #e9e2d2;
+  background: transparent;
+}
+.death-dismiss:hover { border-color: #e9e2d2; }
+
+/* ===========================================================================
+   MOTION (only when the player has not requested reduced motion)
+   =========================================================================== */
+@media (prefers-reduced-motion: no-preference) {
+  /* loading */
+  .enso-ring {
+    stroke-dasharray: 528;
+    stroke-dashoffset: 528;
+    animation: enso-draw 2s ease-out forwards;
+  }
+  .enso-ring-ghost {
+    stroke-dasharray: 528;
+    stroke-dashoffset: 528;
+    animation: enso-draw 2s ease-out .15s forwards;
+  }
+  .root-heal {
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    animation: stroke-fill 1.6s ease-in-out 1s forwards;
+  }
+  .root-tendril {
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: stroke-fill 1s ease-out 1.2s forwards;
+  }
+  .root-leaf {
+    opacity: 0;
+    transform: scale(.2) rotate(-18deg);
+    animation: leaf-open .9s ease-out 1.4s forwards;
+  }
+  .root-leaf.leaf-r {
+    transform: scale(.2) rotate(18deg);
+    animation-delay: 1.6s;
+  }
+  .mote {
+    animation-name: mote-rise;
+    animation-timing-function: ease-in;
+    animation-iteration-count: infinite;
+  }
+  .loading-title {
+    clip-path: inset(0 100% 0 0);
+    animation: title-reveal 1.1s ease-out .9s forwards;
+  }
+  .loading-subtitle {
+    opacity: 0;
+    animation: fade-up .8s ease-out 1.5s forwards;
+  }
+  .loading-hint { animation: hint-pulse 1.6s ease-in-out infinite; }
+  .loading-progress i {
+    animation: progress-slide 1.6s linear infinite;
+  }
+
+  /* death */
+  .death-vignette { animation: vig-breathe 6s ease-in-out infinite; }
+  .death-enso-ring {
+    stroke-dasharray: 578;
+    stroke-dashoffset: 578;
+    animation: enso-draw 2.2s ease-out forwards;
+  }
+  .death-enso-crack {
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    animation: stroke-fill 1.2s ease-out 1.6s forwards;
+  }
+  .death-token { animation: token-fade 1s ease-out both; }
+  .token-crack {
+    stroke-dasharray: 140;
+    stroke-dashoffset: 140;
+    animation: stroke-fill 1s ease-out 1.2s forwards;
+  }
+  .death-title { opacity: 0; animation: fade-up 1s ease-out 1.1s forwards; }
+  .death-epitaph { opacity: 0; animation: fade-up 1s ease-out 1.5s forwards; }
+  .death-actions { opacity: 0; animation: fade-up 1s ease-out 1.9s forwards; }
+  .petal {
+    animation-name: petal-fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+}
+
+@keyframes enso-draw { to { stroke-dashoffset: 0; } }
+@keyframes stroke-fill { to { stroke-dashoffset: 0; } }
+@keyframes leaf-open {
+  from { opacity: 0; transform: scale(.2) rotate(-18deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes mote-rise {
+  0% { opacity: 0; transform: translateY(0) translateX(0); }
+  12% { opacity: .9; }
+  100% { opacity: 0; transform: translateY(-92vh) translateX(20px); }
+}
+@keyframes title-reveal { to { clip-path: inset(0 0 0 0); } }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes hint-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
+@keyframes progress-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(350%); }
+}
+@keyframes vig-breathe { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+@keyframes token-fade {
+  0% { opacity: 0; transform: scale(.85); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes petal-fall {
+  0% { opacity: 0; transform: translateY(-10vh) translateX(0) rotate(0); }
+  10% { opacity: .8; }
+  100% { opacity: 0; transform: translateY(110vh) translateX(var(--drift, 20px)) rotate(360deg); }
+}

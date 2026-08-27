@@ -3,7 +3,9 @@ import { DEFAULT_SEED, applyAction, currentBeat, narrate, newGame } from './engi
 import type { Action, GameEvent, Locale } from './engine'
 import { requestNarration } from './ai/narration'
 import { GameScreen } from './ui/GameScreen'
+import { LoadingScreen } from './ui/LoadingScreen'
 import { loadSession, saveSession, type GameSession } from './ui/session'
+import './ui/screens.css'
 
 function freshSession(locale: Locale = 'vi'): GameSession {
   const game = newGame(DEFAULT_SEED)
@@ -50,6 +52,7 @@ export function visualActionFor(action: Action, events: GameEvent[]): Action['ki
 function App() {
   const [session, setSession] = useState<GameSession>(initialSession)
   const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
+  const [phase, setPhase] = useState<'loading' | 'playing'>('loading')
   const sessionRef = useRef(session)
 
   useEffect(() => {
@@ -121,7 +124,18 @@ function App() {
     setSession(next)
   }, [])
 
-  return <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} />
+  const restart = useCallback(() => {
+    const fresh = freshSession(sessionRef.current.locale)
+    sessionRef.current = fresh
+    setSession(fresh)
+    setPhase('loading')
+  }, [])
+
+  if (phase === 'loading') {
+    return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
+  }
+
+  return <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} />
 }
 
 export default App

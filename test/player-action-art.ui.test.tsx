@@ -150,6 +150,7 @@ describe('player action artwork', () => {
 
   it('uses the reducer-resolved action for a free-text command pose', () => {
     render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /tải|loading/i }))
 
     fireEvent.change(screen.getByLabelText('Viết hành động khác'), { target: { value: 'tu luyện' } })
     fireEvent.click(screen.getByRole('button', { name: 'Thử vận' }))

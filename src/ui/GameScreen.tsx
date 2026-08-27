@@ -27,6 +27,7 @@ import worldMapArt from '../assets/art/world-map-inkwash.png'
 import { locationBackdropFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
 import { deriveObjective } from './objective'
+import { DeathScreen } from './DeathScreen'
 import { itemArtFor, talentArtFor, techniqueArtFor } from './rpgArt'
 import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
@@ -40,6 +41,7 @@ export interface GameScreenProps {
   chronicle: string[]
   onAction: (action: Action) => void
   onLocaleChange: (locale: Locale) => void
+  onRestart?: () => void
 }
 
 function word(locale: Locale, vi: string, en: string): string {
@@ -228,7 +230,7 @@ function moveDockFocus(event: KeyboardEvent<HTMLButtonElement>, current: DockPan
   document.getElementById(`dock-tab-${next}`)?.focus()
 }
 
-export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange }: GameScreenProps) {
+export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange, onRestart = () => {} }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
   const [activeDock, setActiveDock] = useState<DockPanel>(() => contextualDockFor(game.player.locationId))
@@ -259,6 +261,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     setActiveDock(contextualDockFor(game.player.locationId))
   }, [game.player.locationId])
   const objective = deriveObjective(game, locale)
+  const [deathDismissed, setDeathDismissed] = useState(false)
+  useEffect(() => {
+    if (!game.terminal) setDeathDismissed(false)
+  }, [game.terminal])
   const beat = useMemo(() => currentBeat(game), [game])
   const chapter = CHAPTERS.find((entry) => entry.index === beat.chapter) ?? {
     index: 1,
@@ -272,6 +278,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const warning = dangerWarning(game.player.locationId)
   const localNpcs = NPCS.filter((npc) => npc.locationId === game.player.locationId)
   const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
+  const isDeath = game.terminal && game.endingId === 'tragic_death'
   const entries = Object.entries(game.inventory).filter(([, qty]) => qty > 0)
   const stored = Object.entries(game.storage).filter(([, qty]) => qty > 0)
   const encounterEnemy = game.encounter === null ? undefined : ENEMIES.find((enemy) => enemy.id === game.encounter?.enemyId)
@@ -381,7 +388,16 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </section>
         )}
 
-        {game.terminal && ending !== undefined && (
+        {isDeath && !deathDismissed && ending !== undefined && (
+          <DeathScreen
+            locale={locale}
+            ending={ending}
+            onRestart={onRestart}
+            onDismiss={() => setDeathDismissed(true)}
+          />
+        )}
+
+        {game.terminal && ending !== undefined && !(isDeath && !deathDismissed) && (
           <section className="ending-banner" role="status">
             <p>{word(locale, 'Kết cục đã định', 'Your ending')}</p>
             <h2>{localized(locale, ending)}</h2>
@@ -431,7 +447,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
                 return (
                   <div className={`map-cell terrain-${cell.terrain}`} key={`${cell.x}-${cell.y}`}>
-                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind}`} data-testid={`event-node-${cell.node.id}`} title={locale === 'vi' ? cell.node.nameVi : cell.node.nameEn} />}
+                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind}`} data-testid={`event-node-${cell.node.id}`} title={word(locale, `Chấm ${cell.node.kind}: ${cell.node.nameVi}`, `${cell.node.kind} point: ${cell.node.nameEn}`)} />}
+                    {cell.node !== undefined && <span className="map-node-label" aria-hidden="true">{locale === 'vi' ? cell.node.nameVi : cell.node.nameEn}</span>}
                     {isPlayer && <span className={`player-map-marker action-${actionKind ?? 'idle'}`} data-testid="player-map-marker" key={`player-${actionNonce}`} title={word(locale, 'Nhân vật của bạn', 'Your character')} />}
                   </div>
                 )
@@ -440,9 +457,11 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </div>
           <div className="map-legend" aria-label={word(locale, 'Chú giải bản đồ', 'Map legend')}>
             <span><i className="legend-player" />{word(locale, 'Ngươi', 'You')}</span>
-            <span><i className="legend-town" />{word(locale, 'Điểm sự kiện / NPC', 'Event / NPC node')}</span>
-            <span><i className="legend-exit" />{word(locale, 'Lối sang khu vực khác', 'Exit to another area')}</span>
-            <span>{word(locale, 'Đi đến chấm sáng để gặp người, phát hiện sự kiện hoặc qua cổng. Nước và núi chặn lối.', 'Walk to a glowing point to meet people, find events, or use an exit. Water and mountains block the way.')}</span>
+            <span><i className="legend-npc" />{word(locale, 'Người — nói chuyện, nhận việc', 'People — talk, take quests')}</span>
+            <span><i className="legend-event" />{word(locale, 'Sự kiện — tương tác, vận mệnh', 'Event — interact, fortune')}</span>
+            <span><i className="legend-exit" />{word(locale, 'Lối ra — sang vùng khác', 'Exit — travel to another region')}</span>
+            <span><i className="legend-danger" />{word(locale, 'Hiểm họa — giao chiến, mất máu', 'Danger — combat, lose health')}</span>
+            <span>{word(locale, 'Đi đến chấm sáng để gặp người, gặp sự kiện, hoặc qua cổng. Nước và núi chặn lối. Chấm đỏ là hiểm họa — hãy nghỉ (Rest) hồi máu trước khi vào.', 'Walk to a glowing point to meet people, find events, or use an exit. Water and mountains block the way. Red points are danger — rest to heal before you enter.')}</span>
           </div>
         </section>
 
