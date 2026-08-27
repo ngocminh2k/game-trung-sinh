@@ -42,6 +42,23 @@ export const FALLBACK_TEXT: Record<Locale, string> = {
   en: 'Something happened...',
 }
 
+// Unrecognized free-text never acts for the player. The reply varies by how
+// many times they have reached for the void, and each one points at concrete
+// things the world actually answers — so the player always keeps the wheel.
+const REJECTION_POOL_VI = [
+  'Ý niệm của ngươi trôi khỏi thực tại — nơi này chỉ đáp lời việc có thật. Thử: “đi về hướng bắc”, “hái thảo dược”, hay “nói chuyện với cụ Mai Hoa”.',
+  'Linh khí không đọng lại theo ý tưởng ấy. Ngươi có thể: “tu luyện”, “nghỉ ngơi một đêm”, hoặc “đi đến chợ”.',
+  'Cảnh vật chưa thay đổi. Những lời thường có hiệu lực: “tấn công”, “phòng thủ”, “mua viên tụ khí”, “bán thảo dược”.',
+  'Ta không thể hiện hình ý đó. Muốn thử: “dùng viên hồi nguyên”, “xoay vòng quay vận mệnh”, hay “nhận nhiệm vụ”?',
+]
+
+const REJECTION_POOL_EN = [
+  'Your thought slips free of reality — this place answers only what is real. Try: "go north", "gather herbs", or "talk to Elder Mei Hua".',
+  'The qi will not settle around that idea. You could: "cultivate", "rest for the night", or "head to the market".',
+  'The scene does not shift. Words that usually work: "attack", "defend", "buy a qi pill", "sell herbs".',
+  'I cannot give shape to that intent. Perhaps: "use a healing pill", "turn the wheel of fate", or "take up a quest"?',
+]
+
 const TEMPLATES: Record<string, Handler> = {
   GAME_STARTED: (_ev, l) => (l === 'vi' ? 'Một kiếp mới bắt đầu.' : 'A new life begins.'),
   MOVED: (ev, l) => {
@@ -225,14 +242,10 @@ const TEMPLATES: Record<string, Handler> = {
   },
   CORRECTION_REJECTED: (ev, l) => {
     if (ev.type !== 'CORRECTION_REJECTED') return ''
-    return l === 'vi'
-      ? 'Ý niệm của ngươi trôi khỏi thực tại trong chốc lát.'
-      : `You mutter something unintelligible (time ${String(ev.count)}).`
+    const pool = l === 'vi' ? REJECTION_POOL_VI : REJECTION_POOL_EN
+    const idx = ((ev.count - 1) % pool.length + pool.length) % pool.length
+    return pool[idx] ?? ''
   },
-  FORCED_CONVERGENCE: (_ev, l) =>
-    l === 'vi'
-      ? 'Cảnh vật quanh ngươi dần rõ nét trở lại; một lối đi hợp lý hiện ra trước mắt.'
-      : 'A gentle force turns your mind back to what must be done.',
   ERROR: (ev, l) => {
     if (ev.type !== 'ERROR') return ''
     return l === 'vi'

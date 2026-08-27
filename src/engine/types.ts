@@ -66,7 +66,6 @@ export interface GameState {
   encounter: EncounterState | null
   lastLotteryDay: number | null
   corrections: number
-  convergenceCount: number
   terminal: boolean
   endingId: string | null
 }
@@ -156,7 +155,6 @@ export type GameEvent =
   | { type: 'ACHIEVEMENT_UNLOCKED'; achievementId: string }
   | { type: 'ENDING'; endingId: string }
   | { type: 'CORRECTION_REJECTED'; count: number }
-  | { type: 'FORCED_CONVERGENCE'; action: ConcreteAction }
   | { type: 'ERROR'; code: ErrorCode }
 
 export interface TransitionResult {

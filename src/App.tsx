@@ -42,7 +42,6 @@ export function visualActionFor(action: Action, events: GameEvent[]): Action['ki
         if (event.actor === 'player') return 'combat_attack'
         break
       case 'COMBAT_GUARDED': return 'combat_defend'
-      case 'FORCED_CONVERGENCE': return event.action.kind
     }
   }
 

@@ -56,7 +56,6 @@ describe('narrator', () => {
       { type: 'ACHIEVEMENT_UNLOCKED', achievementId: 'first_step' },
       { type: 'ENDING', endingId: 'ascension' },
       { type: 'CORRECTION_REJECTED', count: 1 },
-      { type: 'FORCED_CONVERGENCE', action: { kind: 'rest' } },
       { type: 'ERROR', code: 'MOVE_BLOCKED' },
     ]
     for (const ev of samples) {
@@ -87,7 +86,6 @@ describe('narrator', () => {
       narrateLine({ type: 'TECHNIQUE_LEARNED', techniqueId: 'crooked_circulation', level: 1 }, 'vi'),
       narrateLine({ type: 'ENCOUNTER_STARTED', enemyId: 'mist_boar' }, 'vi'),
       narrateLine({ type: 'DEATH', cause: 'danger:cursed_rift' }, 'vi'),
-      narrateLine({ type: 'FORCED_CONVERGENCE', action: { kind: 'rest' } }, 'vi'),
     ]
 
     expect(lines.join(' ')).toContain('Chợ Vân Tập')
@@ -146,17 +144,10 @@ describe('narrator', () => {
           result = applyAction(state, { kind: 'train' })
           break
         case 3: {
-          // Garbage text must stay inside the correction bound and converge
-          // on the third strike without deadlocking.
+          // Garbage text never acts for the player and never errors.
           result = applyAction(state, { kind: 'free_text', raw: 'blorptastic frumious' })
-          expect(result.state.corrections).toBeLessThanOrEqual(2)
-          if (result.events.some((e) => e.type === 'FORCED_CONVERGENCE')) {
-            expect(result.events.some((e) => e.type === 'ERROR')).toBe(false)
-            // Convergence acted: the world changed or time moved.
-            expect(
-              JSON.stringify(result.state) !== JSON.stringify(state) || result.state.terminal,
-            ).toBe(true)
-          }
+          expect(result.state.corrections).toBeGreaterThan(state.corrections)
+          expect(result.events.some((e) => e.type === 'ERROR')).toBe(false)
           break
         }
         case 4:
@@ -170,7 +161,6 @@ describe('narrator', () => {
       }
       state = result.state
       if (!state.terminal) {
-        expect(state.corrections).toBeLessThanOrEqual(2)
         lastDay = Math.max(lastDay, state.day)
       }
     }

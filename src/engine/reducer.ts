@@ -12,9 +12,7 @@ import {
   locationDanger,
 } from '../content'
 import { newlyQualifiedAchievements } from './achievements'
-import { currentBeat } from './beats'
 import {
-  CORRECTION_LIMIT,
   HIGH_DANGER_LEVEL,
   ITEM_TALISMAN,
   LOCATION_CAVE,
@@ -72,85 +70,23 @@ export function applyAction(state: GameState, action: Action): TransitionResult 
   return finalize(result.state, result.events)
 }
 
-const REST_ACTION: ConcreteAction = { kind: 'rest' }
-
 function applyFreeText(state: GameState, raw: string): TransitionResult {
   const parsed = parseFreeText(raw)
   if (!parsed.ok) {
-    const count = state.corrections + 1
-    if (count >= CORRECTION_LIMIT) {
-      const beat = currentBeat(state)
-      const staged: GameState = {
-        ...state,
-        corrections: 0,
-        convergenceCount: state.convergenceCount + 1,
-      }
-      const preEvents: GameEvent[] = [
-        { type: 'CORRECTION_REJECTED', count },
-      ]
-      // Canonical fallback: try each lore-consistent suggestion against the
-      // staged state; `rest` has no failure precondition, so one of them
-      // always applies (no-softlock guarantee). Whichever applies, the result
-      // flows through the normal finalize pipeline so achievements and
-      // endings are evaluated on the very same transition.
-      //
-      // Ending guarantee: after a bounded number of fruitless convergences,
-      // escalate from beat nudges to the canonical cultivation plan — train,
-      // else rest. That plan is always executable (rest refills qi, heals,
-      // and every train makes progress ≥ 1), so the seeded stream provably
-      // reaches an ending (ascension, or death through qi deviation) instead
-      // of idling forever.
-      const CONVERGENCE_ESCALATION_BOUND = CORRECTION_LIMIT * 4
-      const escalated = state.convergenceCount >= CONVERGENCE_ESCALATION_BOUND
-      const combatCandidates = state.encounter === null ? [] : combatConvergenceCandidates(state)
-      const candidates: ConcreteAction[] = combatCandidates.length > 0
-        ? combatCandidates
-        : escalated
-          ? [
-              { kind: 'train' },
-              { kind: 'rest' },
-            ]
-          : beat.suggested
-      let chosen: ConcreteAction | undefined
-      let applied: { state: GameState; events: GameEvent[] } | undefined
-      for (const sug of candidates) {
-        const probe = execAction(staged, sug)
-        if (probe.ok) {
-          chosen = sug
-          applied = probe
-          break
-        }
-      }
-      if (applied === undefined || chosen === undefined) {
-        chosen = staged.encounter === null ? REST_ACTION : { kind: 'combat_defend' }
-        const probe = execAction(staged, chosen)
-        applied = probe.ok ? probe : { state: staged, events: [] }
-      }
-      return finalize(applied.state, [
-        ...preEvents,
-        { type: 'FORCED_CONVERGENCE', action: chosen },
-        ...applied.events,
-      ])
-    }
+    // The world ignores unrecognized intent — it never acts on the player's
+    // behalf. We only count the attempt so the narrator can vary its reply and
+    // so a later valid command still clears the streak. No movement, no shop,
+    // no auto-resolve: the player keeps full control of every step.
+    const corrections = state.corrections + 1
     return {
-      state: { ...state, corrections: count },
-      events: [{ type: 'CORRECTION_REJECTED', count }],
+      state: { ...state, corrections },
+      events: [{ type: 'CORRECTION_REJECTED', count: corrections }],
     }
   }
   const staged: GameState = { ...state, corrections: 0 }
   const result = execAction(staged, parsed.action)
   if (!result.ok) return { state: staged, events: [{ type: 'ERROR', code: result.code }] }
   return finalize(result.state, result.events)
-}
-
-function combatConvergenceCandidates(state: GameState): ConcreteAction[] {
-  const knownTechnique = Object.keys(state.techniques).find((id) => (state.techniques[id] ?? 0) > 0)
-  return knownTechnique === undefined
-    ? [{ kind: 'combat_defend' }]
-    : [
-        { kind: 'combat_attack', techniqueId: knownTechnique },
-        { kind: 'combat_defend' },
-      ]
 }
 
 function finalize(state: GameState, events: GameEvent[]): TransitionResult {

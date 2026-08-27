@@ -85,7 +85,6 @@ export function newGame(seed: string): GameState {
     encounter: null,
     lastLotteryDay: null,
     corrections: 0,
-    convergenceCount: 0,
     terminal: false,
     endingId: null,
   }

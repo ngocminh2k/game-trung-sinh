@@ -59,7 +59,6 @@ export const GameStateSchema = z.object({
     .default(null),
   lastLotteryDay: z.number().int().min(1).nullable(),
   corrections: z.number().int().min(0),
-  convergenceCount: z.number().int().min(0),
   terminal: z.boolean(),
   endingId: z.string().nullable(),
 })

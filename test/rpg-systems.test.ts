@@ -36,7 +36,6 @@ const PRE_RPG_V1_SAVE = {
   achievements: [],
   lastLotteryDay: null,
   corrections: 0,
-  convergenceCount: 0,
   terminal: false,
   endingId: null,
 }
@@ -219,14 +218,15 @@ describe('deterministic RPG systems', () => {
     expect(store.state.inventory.tattered_robe).toBe(1)
   })
 
-  it('routes combat corrections to executable combat actions and keeps death terminal', () => {
+  it('free-text nonsense in combat never acts for the player, and losing combat stays terminal', () => {
     let state = at(newGame('combat-convergence'), 'misty_forest')
     state = applyAction(state, { kind: 'start_encounter' }).state
+    const beforeHp = state.encounter?.hp
     state = applyAction(state, { kind: 'free_text', raw: 'nonsense' }).state
     state = applyAction(state, { kind: 'free_text', raw: 'nonsense' }).state
-    const converged = applyAction(state, { kind: 'free_text', raw: 'nonsense' })
-    expect(converged.events.some((event) => event.type === 'FORCED_CONVERGENCE' && event.action.kind === 'combat_attack')).toBe(true)
-    expect(converged.state.encounter?.hp).toBeLessThan(32)
+    const ignored = applyAction(state, { kind: 'free_text', raw: 'nonsense' })
+    expect(ignored.events.some((event) => event.type === 'CORRECTION_REJECTED')).toBe(true)
+    expect(ignored.state.encounter?.hp).toBe(beforeHp)
 
     let doomed = at(newGame('combat-death'), 'cursed_rift')
     doomed = { ...doomed, player: { ...doomed.player, hp: 1 } }
