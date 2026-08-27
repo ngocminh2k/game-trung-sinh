@@ -542,7 +542,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             </figure>
             <Meter label="HP" value={game.player.hp} max={100} tone="red" />
             <Meter label="Qi" value={game.player.qi} max={60} tone="jade" />
-            <Meter label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={120} tone="gold" />
+            <Meter className="meter-progress" label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={120} tone="gold" />
             <div className="stat-strip">
               <span>◎ {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
               <span>{word(locale, 'Độ tương hợp', 'root rate')} {Math.round(game.spiritRoot.efficiency * 100)}%</span>
@@ -787,15 +787,16 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 }
 
 interface MeterProps {
+  className?: string
   label: string
   value: number
   max: number
   tone: 'red' | 'jade' | 'gold'
 }
 
-function Meter({ label, value, max, tone }: MeterProps) {
+function Meter({ className = '', label, value, max, tone }: MeterProps) {
   const percent = Math.max(0, Math.min(100, (value / max) * 100))
-  return <div className="meter"><div><span>{label}</span><strong>{value}/{max}</strong></div><span className={`meter-track ${tone}`}><i style={{ width: `${percent}%` }} /></span></div>
+  return <div className={`meter ${className}`}><div><span>{label}</span><strong>{value}/{max}</strong></div><span className={`meter-track ${tone}`}><i style={{ width: `${percent}%` }} /></span></div>
 }
 
 interface RealmLadderProps {
