@@ -1,5 +1,5 @@
 import { ENEMIES, getLocation } from '../content'
-import type { GameState, Locale } from '../engine'
+import { currentStoryScene, type GameState, type Locale } from '../engine'
 import { t } from '../i18n'
 
 function locationName(locationId: string, locale: Locale): string {
@@ -20,6 +20,9 @@ export function deriveObjective(game: GameState, locale: Locale): string | null 
   if (localEnemy !== undefined && game.flags[`defeated_${localEnemy.id}`] !== true) {
     return t(locale, 'ui.objective.danger', { enemy: locale === 'vi' ? localEnemy.nameVi : localEnemy.nameEn, location: locationName(game.player.locationId, locale) })
   }
+  const storyBeat = currentStoryScene(game).id
+  const storyObjective = t(locale, `ui.objective.beats.${storyBeat}`)
+  if (storyObjective !== `ui.objective.beats.${storyBeat}`) return storyObjective
   if (game.player.progress < 120) {
     return t(locale, 'ui.objective.progress', { progress: game.player.progress })
   }

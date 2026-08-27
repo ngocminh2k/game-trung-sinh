@@ -30,20 +30,26 @@ describe('deriveObjective', () => {
     expect(line).not.toContain('cultivate')
   })
 
-  it('falls back to cultivation progress on safe ground', () => {
+  it('moves the objective with the authored story beat', () => {
     const state = seededState()
-    state.player.progress = 4
-    expect(deriveObjective(state, 'en')).toContain('4/120')
-    expect(deriveObjective(state, 'vi')).toContain('tu luyện')
+    state.flags.story_scene = 'cave_witness'
+    expect(deriveObjective(state, 'en')).toContain('Ha’s testimony')
+    expect(deriveObjective(state, 'vi')).toContain('lời chứng của Hà')
   })
 
-  it('asks for a breakthrough once progress is full', () => {
+  it('uses the current narrative beat as the early-game objective', () => {
     const state = seededState()
-    state.player.progress = 120
-    state.player.stage = 2
+
+    expect(deriveObjective(state, 'vi')).toContain('Linh căn phế')
+    expect(deriveObjective(state, 'en')).toContain('broken root')
+  })
+
+  it('keeps the final story decision legible', () => {
+    const state = seededState()
+    state.flags.story_scene = 'last_page'
     const line = deriveObjective(state, 'en')
-    expect(line).toContain('Tier 3')
-    expect(line).toContain('breakthrough')
+    expect(line).toContain('final decision')
+    expect(line).toContain('no one else')
   })
 
   it('is deterministic for both locales', () => {
@@ -53,7 +59,7 @@ describe('deriveObjective', () => {
     const vi = deriveObjective(state, 'vi' as Locale)
     const en = deriveObjective(state, 'en' as Locale)
     expect(vi).not.toEqual(en)
-    expect(vi).toContain('40/120')
-    expect(en).toContain('40/120')
+    expect(vi).toContain('Linh căn phế')
+    expect(en).toContain('broken root')
   })
 })

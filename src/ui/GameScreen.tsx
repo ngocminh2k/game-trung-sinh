@@ -32,6 +32,7 @@ import { itemArtFor, talentArtFor, techniqueArtFor } from './rpgArt'
 import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
 import { playerArtFor, type PlayerActionKey } from './playerArt'
+import { t } from '../i18n'
 
 export interface GameScreenProps {
   actionKind?: Action['kind'] | null
@@ -495,10 +496,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </form>
 
           {objective !== null && (
-            <p className="objective-line" aria-live="polite" data-testid="objective-line">
-              <span className="objective-seal" aria-hidden="true">目</span>
-              <span>{objective}</span>
-            </p>
+            <section className="objective-widget" aria-live="polite" aria-label={t(locale, 'ui.objective.title')} data-testid="objective-line">
+              <p className="objective-heading"><span className="objective-seal" aria-hidden="true">目</span>{t(locale, 'ui.objective.title')}</p>
+              <p className="objective-line">{objective}</p>
+            </section>
           )}
 
           <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')}>
