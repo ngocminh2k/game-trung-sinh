@@ -52,6 +52,7 @@ describe('illustrated RPG UI', () => {
     expect(bagTab.getAttribute('aria-label')).toMatch(/Túi đồ & kho: \d+/)
     expect(bagTab.querySelector('.dock-tab-count')?.getAttribute('aria-hidden')).toBe('true')
     expect(screen.getByRole('tabpanel').getAttribute('id')).toBe('dock-panel-inventory')
+    expect(within(screen.getByTestId('inventory-inspector')).getByRole('heading')).toBeTruthy()
     expect(screen.queryByRole('heading', { name: 'Nhiệm vụ' })).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Đạo đồ & trang bị' })).toBeNull()
 

@@ -175,6 +175,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const [codexOpen, setCodexOpen] = useState(false)
   const [journalOpen, setJournalOpen] = useState(false)
   const [activeDock, setActiveDock] = useState<DockPanel>(() => contextualDockFor(game.player.locationId))
+  const [selectedInventoryItemId, setSelectedInventoryItemId] = useState<string | null>(null)
   const [hurtFeedbackNonce, setHurtFeedbackNonce] = useState<number | null>(null)
   const journalLauncher = useRef<HTMLButtonElement>(null)
   const previousHp = useRef(game.player.hp)
@@ -248,6 +249,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const isDeath = game.terminal && game.endingId === 'tragic_death'
   const entries = Object.entries(game.inventory).filter(([, qty]) => qty > 0)
   const stored = Object.entries(game.storage).filter(([, qty]) => qty > 0)
+  const selectedInventoryId = selectedInventoryItemId !== null && entries.some(([id]) => id === selectedInventoryItemId)
+    ? selectedInventoryItemId
+    : entries[0]?.[0]
+  const selectedInventoryItem = selectedInventoryId === undefined ? undefined : getItem(selectedInventoryId)
+  const selectedInventoryArt = selectedInventoryId === undefined ? undefined : itemArtFor(selectedInventoryId)
+  const selectedInventoryEquipment = selectedInventoryId === undefined ? undefined : EQUIPMENT.find((equipment) => equipment.itemId === selectedInventoryId)
   const encounterEnemy = game.encounter === null ? undefined : ENEMIES.find((enemy) => enemy.id === game.encounter?.enemyId)
   const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
   const knownTechniques = TECHNIQUES.filter((technique) => (game.techniques[technique.id] ?? 0) > 0)
@@ -633,16 +640,34 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           {activeDock === 'inventory' && <section aria-labelledby="inventory-title">
             <div className="panel-heading compact"><h2 id="inventory-title">{word(locale, 'Túi đồ & kho', 'Inventory & storage')}</h2><span>{storageRemaining(game)} {word(locale, 'ô kho', 'storage left')}</span></div>
             <p className="dock-context">{word(locale, 'Túi đồ luôn theo ngươi; kho ghi nhận vật phẩm đã gửi.', 'Your bag travels with you; storage records deposited items.')}</p>
-            <img alt={word(locale, 'Bộ sưu tập vật phẩm tu tiên', 'Cultivation item collection')} className={`item-collection-art ${actionKind === 'use_item' ? 'is-used' : ''}`} src={itemsStillLife} />
-            <ul className="item-list">
-              {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
-                const item = getItem(id)
-                const artwork = itemArtFor(id)
-                const tier = itemTier(item)
-                return <li className={`item-row tier-${tier}`} key={id}>{artwork !== undefined && <img alt={word(locale, `Minh họa ${itemName(id, locale)}`, `Artwork of ${itemName(id, locale)}`)} className="item-art-thumb" src={artwork} />}<div className="item-copy"><strong>{itemName(id, locale)} ×{qty}</strong><span>{item === undefined ? '' : locale === 'vi' ? item.descVi : item.descEn}</span>{item?.sellPrice !== null && item?.sellPrice !== undefined && <em className="item-value-chip" title={word(locale, 'Giá bán tại chợ', 'Market sell price')}>◎ {item.sellPrice}</em>}</div><div className="item-actions">{item?.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: id })} type="button">{word(locale, 'Dùng', 'Use')}</button>}<button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'store', itemId: id, qty: 1 })} type="button">{word(locale, 'Gửi', 'Store')}</button></div></li>
-              })}
-            </ul>
-            {stored.length > 0 && <div className="storage-list"><p className="section-kicker">{word(locale, 'Trong kho', 'In storage')}</p>{stored.map(([id, qty]) => <button disabled={game.terminal || encounterLocked} key={id} onClick={() => onAction({ kind: 'withdraw', itemId: id, qty: 1 })} type="button">{itemName(id, locale)} ×{qty} · {word(locale, 'lấy', 'take')}</button>)}</div>}
+            <div className="inventory-layout">
+              <div className="inventory-list-column">
+                <img alt={word(locale, 'Bộ sưu tập vật phẩm tu tiên', 'Cultivation item collection')} className={`item-collection-art ${actionKind === 'use_item' ? 'is-used' : ''}`} src={itemsStillLife} />
+                <ul className="item-list">
+                  {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
+                    const item = getItem(id)
+                    const artwork = itemArtFor(id)
+                    const tier = itemTier(item)
+                    const selected = id === selectedInventoryId
+                    return <li className={`item-row tier-${tier} ${selected ? 'is-selected' : ''}`} key={id}><button aria-pressed={selected} className="item-inspect-trigger" onClick={() => setSelectedInventoryItemId(id)} type="button">{artwork !== undefined && <img alt={word(locale, `Minh họa ${itemName(id, locale)}`, `Artwork of ${itemName(id, locale)}`)} className="item-art-thumb" src={artwork} />}<span className="item-copy"><strong>{itemName(id, locale)} ×{qty}</strong><span>{item === undefined ? '' : locale === 'vi' ? item.descVi : item.descEn}</span>{item?.sellPrice !== null && item?.sellPrice !== undefined && <em className="item-value-chip" title={word(locale, 'Giá bán tại chợ', 'Market sell price')}>◎ {item.sellPrice}</em>}</span></button><div className="item-actions">{item?.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: id })} type="button">{word(locale, 'Dùng', 'Use')}</button>}<button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'store', itemId: id, qty: 1 })} type="button">{word(locale, 'Gửi', 'Store')}</button></div></li>
+                  })}
+                </ul>
+                {stored.length > 0 && <div className="storage-list"><p className="section-kicker">{word(locale, 'Trong kho', 'In storage')}</p>{stored.map(([id, qty]) => <button disabled={game.terminal || encounterLocked} key={id} onClick={() => onAction({ kind: 'withdraw', itemId: id, qty: 1 })} type="button">{itemName(id, locale)} ×{qty} · {word(locale, 'lấy', 'take')}</button>)}</div>}
+              </div>
+              <aside className="inventory-inspector" data-testid="inventory-inspector">
+                {selectedInventoryItem === undefined || selectedInventoryId === undefined ? <p className="muted">{word(locale, 'Chọn một vật phẩm để xem chi tiết.', 'Choose an item to inspect it.')}</p> : <>
+                  <p className="section-kicker">{word(locale, `Phẩm cấp ${itemTier(selectedInventoryItem)}`, `${itemTier(selectedInventoryItem)} tier`)}</p>
+                  <img alt={word(locale, `Minh họa lớn ${itemName(selectedInventoryId, locale)}`, `Large artwork of ${itemName(selectedInventoryId, locale)}`)} className="inventory-inspector-art" src={selectedInventoryArt ?? itemsStillLife} />
+                  <h3>{itemName(selectedInventoryId, locale)}</h3>
+                  <p>{locale === 'vi' ? selectedInventoryItem.descVi : selectedInventoryItem.descEn}</p>
+                  <dl>
+                    <div><dt>{word(locale, 'Giá trị', 'Value')}</dt><dd>{selectedInventoryItem.sellPrice === null || selectedInventoryItem.sellPrice === undefined ? word(locale, 'Không bán', 'Not for sale') : `◎ ${selectedInventoryItem.sellPrice}`}</dd></div>
+                    {selectedInventoryEquipment !== undefined && <div><dt>{word(locale, 'Trang bị', 'Equipment')}</dt><dd>{word(locale, `${selectedInventoryEquipment.slot} · Công ${selectedInventoryEquipment.attackBonus} / Thủ ${selectedInventoryEquipment.defenseBonus}`, `${selectedInventoryEquipment.slot} · ATK ${selectedInventoryEquipment.attackBonus} / DEF ${selectedInventoryEquipment.defenseBonus}`)}</dd></div>}
+                  </dl>
+                  <div className="inventory-inspector-actions">{selectedInventoryItem.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: selectedInventoryId })} type="button">{word(locale, 'Dùng vật phẩm', 'Use item')}</button>}{selectedInventoryEquipment !== undefined && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'equip_item', itemId: selectedInventoryId })} type="button">{word(locale, 'Trang bị ngay', 'Equip now')}</button>}</div>
+                </>}
+              </aside>
+            </div>
           </section>}
 
           {activeDock === 'market' && <section aria-labelledby="market-title">
