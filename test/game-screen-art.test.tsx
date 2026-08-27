@@ -19,6 +19,10 @@ function renderScreen(locationId?: string) {
   )
 }
 
+function openJournal() {
+  fireEvent.click(screen.getByRole('button', { name: /Mở Hành trang và giang hồ/ }))
+}
+
 afterEach(() => cleanup())
 
 describe('illustrated RPG UI', () => {
@@ -27,6 +31,7 @@ describe('illustrated RPG UI', () => {
 
     expect(screen.queryByAltText('Minh họa Mộc Trượng Cũ')).toBeNull()
     expect(screen.queryByAltText('Minh họa Linh Căn Lì Lợm')).toBeNull()
+    openJournal()
     fireEvent.click(screen.getByRole('tab', { name: /Đạo đồ & trang bị/ }))
     expect(screen.getByAltText('Minh họa Mộc Trượng Cũ')).toBeTruthy()
     expect(screen.getByAltText('Minh họa Linh Căn Lì Lợm')).toBeTruthy()
@@ -34,16 +39,17 @@ describe('illustrated RPG UI', () => {
     expect(screen.getByAltText('Minh họa Làng Thanh Mộc')).toBeTruthy()
   })
 
-  it('keeps one contextual dock panel open and switches secondary systems accessibly', () => {
+  it('keeps one Journal section open and switches its systems accessibly', () => {
     renderScreen()
+    openJournal()
 
     const peopleTab = screen.getByRole('tab', { name: /Người ở đây/ })
     const questsTab = screen.getByRole('tab', { name: /Nhiệm vụ/ })
     const bagTab = screen.getByRole('tab', { name: /Túi đồ & kho/ })
     const pathTab = screen.getByRole('tab', { name: /Đạo đồ & trang bị/ })
 
-    expect(peopleTab.getAttribute('aria-selected')).toBe('true')
-    expect(screen.getByRole('tabpanel').getAttribute('id')).toBe('dock-panel-people')
+    expect(bagTab.getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('tabpanel').getAttribute('id')).toBe('dock-panel-inventory')
     expect(screen.queryByRole('heading', { name: 'Nhiệm vụ' })).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Đạo đồ & trang bị' })).toBeNull()
 
@@ -67,6 +73,7 @@ describe('illustrated RPG UI', () => {
 
   it('dims unreached progression without exposing its names or full effects', () => {
     renderScreen()
+    openJournal()
     fireEvent.click(screen.getByRole('tab', { name: /Đạo đồ & trang bị/ }))
 
     expect(screen.queryByText('Thính Sương')).toBeNull()
@@ -76,16 +83,19 @@ describe('illustrated RPG UI', () => {
     expect(document.querySelectorAll('.rpg-entry.is-locked').length).toBeGreaterThan(0)
   })
 
-  it('keeps the wide systems dock outside the compact HUD until its Codex drawer opens', () => {
+  it('opens Journal mode instead of leaving the world underneath a dock', () => {
     renderScreen()
 
-    const dock = screen.getByTestId('system-dock')
-    const drawer = screen.getByTestId('codex-drawer') as HTMLDetailsElement
-    expect(dock.closest('aside.hud-panel')).toBeNull()
-    expect(dock.previousElementSibling?.classList.contains('game-grid')).toBe(true)
-    expect(dock.contains(drawer)).toBe(true)
+    const world = screen.getByTestId('world-content')
+    const journal = screen.getByTestId('journal-screen')
+    expect(world.hidden).toBe(false)
+    expect(journal.hidden).toBe(true)
     expect(screen.queryByTestId('codex-panel')).toBeNull()
 
+    fireEvent.keyDown(window, { key: 'i' })
+    expect(world.hidden).toBe(true)
+    expect(journal.hidden).toBe(false)
+    const drawer = screen.getByTestId('codex-drawer') as HTMLDetailsElement
     drawer.open = true
     fireEvent(drawer, new Event('toggle'))
 
@@ -95,10 +105,15 @@ describe('illustrated RPG UI', () => {
     expect(within(codex).getByAltText('Linh Căn Lì Lợm')).toBeTruthy()
     expect(within(codex).getAllByText('Thiên phú')).toHaveLength(TALENTS.length)
     expect(within(codex).getAllByText('Công pháp')).toHaveLength(TECHNIQUES.length)
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(world.hidden).toBe(false)
+    expect(journal.hidden).toBe(true)
   })
 
   it('catalogs every authored location and technique exactly once after opening', () => {
     renderScreen()
+    openJournal()
 
     const drawer = screen.getByTestId('codex-drawer') as HTMLDetailsElement
     drawer.open = true

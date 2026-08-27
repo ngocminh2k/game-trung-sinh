@@ -233,8 +233,10 @@ function moveDockFocus(event: KeyboardEvent<HTMLButtonElement>, current: DockPan
 export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange, onRestart = () => {} }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
+  const [journalOpen, setJournalOpen] = useState(false)
   const [activeDock, setActiveDock] = useState<DockPanel>(() => contextualDockFor(game.player.locationId))
   const [hurtFeedbackNonce, setHurtFeedbackNonce] = useState<number | null>(null)
+  const journalLauncher = useRef<HTMLButtonElement>(null)
   const previousHp = useRef(game.player.hp)
   const processedActionNonce = useRef<number | null>(null)
   const previousLocationId = useRef(game.player.locationId)
@@ -260,6 +262,27 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     previousLocationId.current = game.player.locationId
     setActiveDock(contextualDockFor(game.player.locationId))
   }, [game.player.locationId])
+  useEffect(() => {
+    const handleJournalShortcut = (event: globalThis.KeyboardEvent) => {
+      const target = event.target
+      const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement
+
+      if (event.key === 'Escape' && journalOpen) {
+        event.preventDefault()
+        setJournalOpen(false)
+        window.requestAnimationFrame(() => journalLauncher.current?.focus())
+        return
+      }
+      if (event.key.toLowerCase() === 'i' && !journalOpen && !isTyping) {
+        event.preventDefault()
+        setActiveDock('inventory')
+        setJournalOpen(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleJournalShortcut)
+    return () => window.removeEventListener('keydown', handleJournalShortcut)
+  }, [journalOpen])
   const objective = deriveObjective(game, locale)
   const [deathDismissed, setDeathDismissed] = useState(false)
   useEffect(() => {
@@ -356,7 +379,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   }
 
   return (
-    <main className={`game-shell action-${actionKind ?? 'idle'}`} data-testid="game-screen">
+    <main className={`game-shell action-${actionKind ?? 'idle'} ${journalOpen ? 'journal-open' : ''}`} data-testid="game-screen">
       <header className="topbar">
         <div className="brand">
           <span className="brand-seal" aria-hidden="true">玄</span>
@@ -367,6 +390,22 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
         <div className="topbar-actions">
           <span className="day-chip">{word(locale, 'Ngày', 'Day')} {game.day}</span>
+          {!journalOpen && <button
+            aria-controls="journal-screen"
+            aria-label={word(locale, 'Mở Hành trang và giang hồ', 'Open Journey journal')}
+            className="journal-launcher"
+            id="journal-launcher"
+            onClick={() => {
+              setActiveDock('inventory')
+              setJournalOpen(true)
+            }}
+            ref={journalLauncher}
+            type="button"
+          >
+            <span>{word(locale, 'Hành trang', 'Journal')}</span>
+            <em>{entries.reduce((sum, [, qty]) => sum + qty, 0)}</em>
+            <kbd>I</kbd>
+          </button>}
           <div className="language-toggle" role="group" aria-label="Language">
             <button className={locale === 'vi' ? 'active' : ''} onClick={() => onLocaleChange('vi')} type="button">VI</button>
             <button className={locale === 'en' ? 'active' : ''} onClick={() => onLocaleChange('en')} type="button">EN</button>
@@ -374,6 +413,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
       </header>
 
+      <div className="world-content" data-testid="world-content" hidden={journalOpen}>
       <div className="stage-notices">
         <section className="chapter-banner" aria-label={word(locale, 'Chương truyện hiện tại', 'Current story chapter')}>
           <p>{word(locale, 'Chương hiện tại', 'Current chapter')}</p>
@@ -562,14 +602,20 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </section>
         </aside>
       </div>
+      </div>
 
-      <section className="system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="system-dock">
-        <div className="dock-heading">
+      <section className="journal-screen system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="journal-screen" hidden={!journalOpen} id="journal-screen">
+        <div className="journal-heading dock-heading">
           <div>
-            <p className="eyebrow">{word(locale, 'Mở khi cần', 'Open when needed')}</p>
+            <p className="eyebrow">{word(locale, 'Sổ tay hành tẩu', 'Wandering journal')}</p>
             <h2 id="system-dock-title">{word(locale, 'Hành trang & giang hồ', 'Journey systems')}</h2>
           </div>
-          <span>{word(locale, 'Không che đường tu hành', 'Keeps the play surface clear')}</span>
+          <button className="journal-return" onClick={() => {
+            setJournalOpen(false)
+            window.requestAnimationFrame(() => journalLauncher.current?.focus())
+          }} type="button">
+            {word(locale, '← Về thế giới', '← Back to world')} <kbd>Esc</kbd>
+          </button>
         </div>
         <div className="dock-tabs" aria-label={word(locale, 'Hệ thống phụ', 'Secondary systems')} role="tablist">
           {([
