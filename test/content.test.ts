@@ -11,6 +11,7 @@ import {
   NPCS,
   QUESTS,
   SHOP_STOCK,
+  STORY_SCENES,
   npcsAt,
   validateAllContent,
 } from '../src/content'
@@ -44,9 +45,9 @@ describe('content integrity', () => {
     for (const npc of village) expect(npc.locationId).toBe('village')
   })
 
-  it('exactly five chapters with sequential bilingual names', () => {
-    expect(CHAPTERS).toHaveLength(5)
-    expect(CHAPTERS.map((c) => c.index)).toEqual([1, 2, 3, 4, 5])
+  it('has six chapters with sequential bilingual names', () => {
+    expect(CHAPTERS).toHaveLength(6)
+    expect(CHAPTERS.map((c) => c.index)).toEqual([1, 2, 3, 4, 5, 6])
     for (const c of CHAPTERS) {
       expect(c.nameVi.length).toBeGreaterThan(0)
       expect(c.nameEn.length).toBeGreaterThan(0)
@@ -54,9 +55,10 @@ describe('content integrity', () => {
     }
   })
 
-  it('exactly five ending definitions', () => {
-    expect(ENDINGS).toHaveLength(5)
-    expect(new Set(ENDINGS.map((e) => e.id)).size).toBe(5)
+  it('has ten narrative endings plus a separate death failure', () => {
+    expect(ENDINGS).toHaveLength(11)
+    expect(new Set(ENDINGS.map((e) => e.id)).size).toBe(11)
+    expect(ENDINGS.filter((e) => e.id !== 'tragic_death')).toHaveLength(10)
     for (const e of ENDINGS) {
       expect(e.epitaphVi.length).toBeGreaterThan(0)
       expect(e.epitaphEn.length).toBeGreaterThan(0)
@@ -95,6 +97,16 @@ describe('content integrity', () => {
 })
 
 describe('beats', () => {
+  it('has six authored story scenes with three consequential choices each', () => {
+    expect(STORY_SCENES).toHaveLength(6)
+    for (const scene of STORY_SCENES) {
+      expect(scene.choices).toHaveLength(3)
+      for (const choice of scene.choices) {
+        expect(choice.labelVi.length).toBeGreaterThan(0)
+        expect(choice.consequenceVi.length).toBeGreaterThan(0)
+      }
+    }
+  })
   it('every story beat suggests exactly three actions', () => {
     for (const beat of BEATS) {
       expect(beat.suggested).toHaveLength(3)

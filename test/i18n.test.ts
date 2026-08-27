@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EN, VI, flattenDict, i18nParity, t } from '../src/i18n'
-import { BEATS, CHAPTERS, ENDINGS, NPCS } from '../src/content'
+import { BEATS, CHAPTERS, ENDINGS, NPCS, STORY_SCENES } from '../src/content'
 
 describe('i18n parity', () => {
   it('vi and en dictionaries expose identical key sets', () => {
@@ -52,8 +52,8 @@ describe('bilingual content parity', () => {
   })
 
   it('chapters and endings carry both languages', () => {
-    expect(CHAPTERS).toHaveLength(5)
-    expect(ENDINGS).toHaveLength(5)
+    expect(CHAPTERS).toHaveLength(6)
+    expect(ENDINGS).toHaveLength(11)
     for (const c of CHAPTERS) {
       expect(c.nameVi.length).toBeGreaterThan(0)
       expect(c.nameEn.length).toBeGreaterThan(0)
@@ -71,6 +71,18 @@ describe('bilingual content parity', () => {
       expect(b.titleVi.length).toBeGreaterThan(0)
       expect(b.titleEn.length).toBeGreaterThan(0)
       expect(b.suggested).toHaveLength(3)
+    }
+  })
+
+  it('story scenes carry bilingual decision text and consequence text', () => {
+    for (const scene of STORY_SCENES) {
+      expect(scene.textVi.length).toBeGreaterThan(0)
+      expect(scene.textEn.length).toBeGreaterThan(0)
+      expect(scene.choices).toHaveLength(3)
+      for (const choice of scene.choices) {
+        expect(choice.labelEn.length).toBeGreaterThan(0)
+        expect(choice.consequenceEn.length).toBeGreaterThan(0)
+      }
     }
   })
 })

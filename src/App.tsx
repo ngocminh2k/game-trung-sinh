@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DEFAULT_SEED, applyAction, currentBeat, narrate, newGame } from './engine'
+import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame } from './engine'
 import type { Action, GameEvent, Locale } from './engine'
 import { requestNarration } from './ai/narration'
 import { GameScreen } from './ui/GameScreen'
@@ -106,10 +106,10 @@ function App() {
       }
       const choice = Number(event.key)
       if (choice >= 1 && choice <= 3) {
-        const suggested = currentBeat(sessionRef.current.game).suggested[choice - 1]
-        if (suggested !== undefined) {
+        const storyChoice = currentStoryScene(sessionRef.current.game).choices[choice - 1]
+        if (storyChoice !== undefined) {
           event.preventDefault()
-          act(suggested)
+          act({ kind: 'story_choice', choiceId: storyChoice.id })
         }
       }
     }

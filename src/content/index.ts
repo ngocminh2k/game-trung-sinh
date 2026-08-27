@@ -25,12 +25,14 @@ import { CELLS, isPassable, LOCATIONS, MAP_HEIGHT, MAP_WIDTH, REGION_MAPS } from
 import { NPCS } from './npcs'
 import { QUESTS } from './quests'
 import { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from './rpg'
+import { STORY_SCENES } from './story'
 
 export { ACHIEVEMENTS, getAchievement } from './achievements-data'
 export { BEATS, BEAT_PREDICATE_IDS } from './beats-data'
 export type { BeatPredicateId } from './beats-data'
 export { CHAPTERS } from './chapters'
 export { ENDINGS } from './endings-data'
+export { getStoryScene, STORY_SCENES } from './story'
 export {
   cellAt,
   CELLS,
@@ -86,11 +88,12 @@ export function validateAllContent(): ContentValidationReport {
   check(z.array(LocationDefSchema).min(1), LOCATIONS, 'LOCATIONS')
   check(z.array(CellDefSchema).length(MAP_WIDTH * MAP_HEIGHT), CELLS, 'CELLS')
   check(NpcDefSchema.array().length(30), NPCS, 'NPCS')
-  check(z.array(ChapterDefSchema).length(5), CHAPTERS, 'CHAPTERS')
-  check(z.array(EndingDefSchema).length(5), ENDINGS, 'ENDINGS')
+  check(z.array(ChapterDefSchema).length(6), CHAPTERS, 'CHAPTERS')
+  check(z.array(EndingDefSchema).length(11), ENDINGS, 'ENDINGS')
   check(z.array(QuestDefSchema).min(1), QUESTS, 'QUESTS')
   check(z.array(AchievementDefSchema).min(1), ACHIEVEMENTS, 'ACHIEVEMENTS')
   check(z.array(BeatDefSchema).min(1), BEATS, 'BEATS')
+  if (STORY_SCENES.length < 6) errors.push('STORY_SCENES: six authored scenes are required')
 
   const checkUniqueIds = (label: string, records: ReadonlyArray<{ id: string }>): void => {
     const seen = new Set<string>()

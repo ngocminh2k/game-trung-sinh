@@ -76,10 +76,17 @@ export const VI = {
     QUEST_WRONG_STATE: 'Nhiệm vụ này chưa đến lúc có thể tiếp tục.',
     NPC_UNKNOWN: 'Không có ai tên ấy cả.',
     NPC_NOT_HERE: 'Người đó không ở đây.',
+    STORY_CHOICE_UNAVAILABLE: 'Lựa chọn này không thuộc cảnh truyện hiện tại.',
   },
   narrator: {
     logTitle: 'Dấu chân trên đường tu',
     emptyLog: 'Trang sử còn đợi ngươi viết tiếp.',
+  },
+  ui: {
+    loading: { aria: 'Màn hình tải — nhấn để bắt đầu', subtitle: 'Truyền kỳ trọng sinh · linh căn phế', begin: 'Nhấn để bước vào' },
+    death: { aria: 'Kết thúc', title: 'Kiếp này khép lại', restart: 'Trọng sinh lại', dismiss: 'Thu lại' },
+    codex: { title: 'Tu điển giang hồ', kicker: 'Nội dung & minh họa', progress: 'Tiến độ tải asset', registered: 'Asset đã đăng ký trong game', packsReady: 'gói sẵn sàng', packs: 'Gói asset', entries: 'Mục tu điển', open: 'Mở', view: 'Xem', kind: { npc: 'Nhân vật', item: 'Vật phẩm', talent: 'Thiên phú', technique: 'Công pháp', location: 'Địa điểm' }, status: { queued: 'Đang chờ', loading: 'Đang tải', ready: 'Sẵn sàng', failed: 'Cần tải lại' } },
+    objective: { battle: 'Giao chiến: xuất chiêu hoặc thủ thế', danger: 'Hiểm họa cận kề: đối mặt {{enemy}} tại {{location}}', progress: 'Mục tiêu: tu luyện tích lũy tiến độ cảnh giới ({{progress}}/120)', breakthrough: 'Tiến độ đã đủ — tìm cơ duyên đột phá lên Cảnh {{stage}}' },
   },
 }
 

@@ -189,3 +189,27 @@ export interface BeatDef {
   textEn: string
   suggested: ConcreteAction[]
 }
+
+/** A authored decision point. Effects are recorded in flags so saves remain
+ * forward-compatible and the ending can read the player's whole history. */
+export interface StoryChoiceDef {
+  id: string
+  labelVi: string
+  labelEn: string
+  consequenceVi: string
+  consequenceEn: string
+  nextSceneId: string | null
+  effects?: Record<string, number | boolean | string>
+  requires?: Record<string, number | boolean | string>
+  final?: boolean
+}
+
+export interface StorySceneDef {
+  id: string
+  chapter: number
+  titleVi: string
+  titleEn: string
+  textVi: string
+  textEn: string
+  choices: StoryChoiceDef[]
+}

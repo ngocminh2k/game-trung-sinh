@@ -93,6 +93,7 @@ export type Action =
   | { kind: 'start_encounter' }
   | { kind: 'combat_attack'; techniqueId: string }
   | { kind: 'combat_defend' }
+  | { kind: 'story_choice'; choiceId: string }
   | { kind: 'free_text'; raw: string }
   | { kind: 'restart'; seed: string }
 
@@ -119,6 +120,7 @@ export const ERROR_CODES = [
   'QUEST_WRONG_STATE',
   'NPC_UNKNOWN',
   'NPC_NOT_HERE',
+  'STORY_CHOICE_UNAVAILABLE',
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]
@@ -138,7 +140,8 @@ export type GameEvent =
   | { type: 'STORED'; itemId: string; qty: number }
   | { type: 'WITHDRAWN'; itemId: string; qty: number }
   | { type: 'DRAW_RESULT'; tier: 'grand' | 'major' | 'minor' | 'herb' | 'none'; goldDelta: number; itemId?: string }
-  | { type: 'TALKED'; npcId: string }
+  | { type: 'TALKED'; npcId: string; lineVi?: string; lineEn?: string }
+  | { type: 'STORY_CHOICE'; sceneId: string; choiceId: string; nextSceneId: string | null }
   | { type: 'QUEST_ACCEPTED'; questId: string }
   | { type: 'QUEST_COMPLETED'; questId: string; rewardGold: number }
   | { type: 'TALENT_CHOSEN'; talentId: string }

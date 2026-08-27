@@ -1,9 +1,6 @@
 import { ENEMIES, getLocation } from '../content'
 import type { GameState, Locale } from '../engine'
-
-function word(locale: Locale, vi: string, en: string): string {
-  return locale === 'vi' ? vi : en
-}
+import { t } from '../i18n'
 
 function locationName(locationId: string, locale: Locale): string {
   const location = getLocation(locationId)
@@ -17,26 +14,14 @@ function locationName(locationId: string, locale: Locale): string {
 export function deriveObjective(game: GameState, locale: Locale): string | null {
   if (game.terminal) return null
   if (game.encounter !== null) {
-    return word(locale, 'Giao chiến: xuất chiêu hoặc thủ thế', 'In battle: strike or defend')
+    return t(locale, 'ui.objective.battle')
   }
   const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
   if (localEnemy !== undefined && game.flags[`defeated_${localEnemy.id}`] !== true) {
-    return word(
-      locale,
-      `Hiểm họa cận kề: đối mặt ${localEnemy.nameVi} tại ${locationName(game.player.locationId, locale)}`,
-      `Local danger: face ${localEnemy.nameEn} in ${locationName(game.player.locationId, locale)}`,
-    )
+    return t(locale, 'ui.objective.danger', { enemy: locale === 'vi' ? localEnemy.nameVi : localEnemy.nameEn, location: locationName(game.player.locationId, locale) })
   }
   if (game.player.progress < 120) {
-    return word(
-      locale,
-      `Mục tiêu: tu luyện tích lũy tiến độ cảnh giới (${game.player.progress}/120)`,
-      `Objective: cultivate to build realm progress (${game.player.progress}/120)`,
-    )
+    return t(locale, 'ui.objective.progress', { progress: game.player.progress })
   }
-  return word(
-    locale,
-    `Tiến độ đã đủ — tìm cơ duyên đột phá lên Cảnh ${game.player.stage + 1}`,
-    `Progress is full — seek a breakthrough to Tier ${game.player.stage + 1}`,
-  )
+  return t(locale, 'ui.objective.breakthrough', { stage: game.player.stage + 1 })
 }

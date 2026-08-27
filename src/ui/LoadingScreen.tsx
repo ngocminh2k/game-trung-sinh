@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Locale } from '../engine'
+import { t } from '../i18n'
 
 // Drifting qi motes — fixed, deterministic positions (no RNG in UI either).
 const MOTES = [
@@ -41,7 +42,7 @@ export function LoadingScreen({ locale, onDone }: LoadingScreenProps) {
       className="loading-screen"
       role="button"
       tabIndex={0}
-      aria-label={locale === 'vi' ? 'Màn hình tải — nhấn để bắt đầu' : 'Loading — press to begin'}
+      aria-label={t(locale, 'ui.loading.aria')}
       onClick={finish}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -83,11 +84,11 @@ export function LoadingScreen({ locale, onDone }: LoadingScreenProps) {
         ))}
       </div>
 
-      <h1 className="loading-title">{locale === 'vi' ? 'Phế Căn Ký' : 'Tale of the Broken Root'}</h1>
+      <h1 className="loading-title">{t(locale, 'common.appName')}</h1>
       <p className="loading-subtitle">
-        {locale === 'vi' ? 'Truyền kỳ trọng sinh · linh căn phế' : 'A Reborn-Cultivator Saga · The Broken Root'}
+        {t(locale, 'ui.loading.subtitle')}
       </p>
-      {ready && <p className="loading-hint">{locale === 'vi' ? 'Nhấn để bước vào' : 'Press to begin'}</p>}
+      {ready && <p className="loading-hint">{t(locale, 'ui.loading.begin')}</p>}
 
       <div className="loading-progress" aria-hidden="true"><i /></div>
     </div>

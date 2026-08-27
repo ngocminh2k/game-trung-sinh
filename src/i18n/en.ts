@@ -78,9 +78,16 @@ export const EN: Dict = {
     QUEST_WRONG_STATE: 'The quest is not in the right state.',
     NPC_UNKNOWN: 'Nobody by that name here.',
     NPC_NOT_HERE: 'That person is not here.',
+    STORY_CHOICE_UNAVAILABLE: 'That choice does not belong to the current story scene.',
   },
   narrator: {
     logTitle: 'What just happened',
     emptyLog: 'The paper is still blank.',
+  },
+  ui: {
+    loading: { aria: 'Loading — press to begin', subtitle: 'A Reborn-Cultivator Saga · The Broken Root', begin: 'Press to begin' },
+    death: { aria: 'Game over', title: 'This Life Closes', restart: 'Be Reborn', dismiss: 'Step Back' },
+    codex: { title: 'Wandering Codex', kicker: 'Content & artwork', progress: 'Asset loading progress', registered: 'Assets registered in the game', packsReady: 'packs ready', packs: 'Asset packs', entries: 'Codex entries', open: 'Open', view: 'View', kind: { npc: 'Character', item: 'Item', talent: 'Talent', technique: 'Technique', location: 'Location' }, status: { queued: 'Queued', loading: 'Loading', ready: 'Ready', failed: 'Needs retry' } },
+    objective: { battle: 'In battle: strike or defend', danger: 'Local danger: face {{enemy}} in {{location}}', progress: 'Objective: cultivate to build realm progress ({{progress}}/120)', breakthrough: 'Progress is full — seek a breakthrough to Tier {{stage}}' },
   },
 }

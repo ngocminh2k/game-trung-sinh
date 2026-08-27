@@ -36,6 +36,7 @@ import { checkLottery, drawEventFor, rollLottery } from './lottery'
 import { checkMoveFrom } from './map'
 import { applyProgress, trainProgressGain } from './stats'
 import { canAcceptQuest, canCompleteQuest } from './quests'
+import { applyStoryEffects, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding } from './story'
 import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
@@ -158,6 +159,8 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doCombatAttack(state, action.techniqueId)
     case 'combat_defend':
       return doCombatDefend(state)
+    case 'story_choice':
+      return doStoryChoice(state, action.choiceId)
     default: {
       const impossible: never = action
       void impossible
@@ -614,7 +617,23 @@ function doTalk(state: GameState, npcId: string): R {
       [affKey]: flagNum(state.flags, affKey) + 1,
     },
   }
-  return { ok: true, state: s, events: [{ type: 'TALKED', npcId }] }
+  const line = dialogueForNpc(s, npcId)
+  return { ok: true, state: s, events: [{ type: 'TALKED', npcId, lineVi: line.vi, lineEn: line.en }] }
+}
+
+function doStoryChoice(state: GameState, choiceId: string): R {
+  const scene = currentStoryScene(state)
+  const choice = findStoryChoice(state, choiceId)
+  if (choice === undefined) return err('STORY_CHOICE_UNAVAILABLE')
+  let s = applyStoryEffects(state, choice)
+  if (choice.final === true) {
+    s = { ...s, flags: { ...s.flags, story_ending: resolveStoryEnding(s, choiceId) } }
+  }
+  return {
+    ok: true,
+    state: s,
+    events: [{ type: 'STORY_CHOICE', sceneId: scene.id, choiceId, nextSceneId: choice.nextSceneId }],
+  }
 }
 
 function doAcceptQuest(state: GameState, questId: string): R {

@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { Locale } from '../engine'
 import type { EndingDef } from '../engine/content-types'
+import { t } from '../i18n'
 
 // Falling ashes / petals — fixed, deterministic spread (no RNG).
 const PETALS = [
@@ -37,7 +38,7 @@ export function DeathScreen({ locale, ending, onRestart, onDismiss }: DeathScree
   const epitaph = locale === 'vi' ? ending.epitaphVi : ending.epitaphEn
 
   return (
-    <div className="death-screen" role="dialog" aria-modal="true" aria-label={locale === 'vi' ? 'Kết thúc' : 'Game over'}>
+    <div className="death-screen" role="dialog" aria-modal="true" aria-label={t(locale, 'ui.death.aria')}>
       <div className="death-vignette" aria-hidden="true" />
 
       <svg className="death-enso" viewBox="0 0 240 240" aria-hidden="true">
@@ -68,15 +69,15 @@ export function DeathScreen({ locale, ending, onRestart, onDismiss }: DeathScree
           <path className="token-crack" d="M60 16 L 54 44 L 66 70 L 56 96 L 64 120" />
         </svg>
 
-        <h2 className="death-title">{locale === 'vi' ? 'Kiếp này khép lại' : 'This Life Closes'}</h2>
+        <h2 className="death-title">{t(locale, 'ui.death.title')}</h2>
         <p className="death-epitaph">{epitaph}</p>
 
         <div className="death-actions">
           <button type="button" className="death-restart" onClick={onRestart}>
-            {locale === 'vi' ? 'Trọng sinh lại' : 'Be Reborn'}
+            {t(locale, 'ui.death.restart')}
           </button>
           <button type="button" className="death-dismiss" onClick={onDismiss}>
-            {locale === 'vi' ? 'Thu lại' : 'Step Back'}
+            {t(locale, 'ui.death.dismiss')}
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 export { newlyQualifiedAchievements } from './achievements'
 export { currentBeat } from './beats'
+export { currentStoryScene } from './story'
 export {
   CORRECTION_LIMIT,
   DEFAULT_SEED,

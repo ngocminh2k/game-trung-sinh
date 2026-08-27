@@ -19,8 +19,8 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { currentBeat, dangerWarning, storageRemaining } from '../engine'
-import type { Action, ConcreteAction, GameState, Locale } from '../engine'
+import { currentStoryScene, dangerWarning, storageRemaining } from '../engine'
+import type { Action, GameState, Locale } from '../engine'
 import type { ItemDef } from '../engine/content-types'
 import itemsStillLife from '../assets/art/items-still-life.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
@@ -50,65 +50,6 @@ function word(locale: Locale, vi: string, en: string): string {
 
 function localized(locale: Locale, item: { nameVi: string; nameEn: string }): string {
   return locale === 'vi' ? item.nameVi : item.nameEn
-}
-
-function actionLabel(action: ConcreteAction, locale: Locale): string {
-  switch (action.kind) {
-    case 'move':
-      return word(locale, `Đi ${directionLabel(action.direction, locale)}`, `Walk ${directionLabel(action.direction, locale)}`)
-    case 'rest':
-      return word(locale, 'Nghỉ dưỡng thương', 'Rest and recover')
-    case 'train':
-      return word(locale, 'Tu luyện', 'Cultivate')
-    case 'gather':
-      return word(locale, 'Hái linh thảo', 'Gather spirit herbs')
-    case 'refine': {
-      const recipe = RECIPES.find((entry) => entry.id === action.recipeId)
-      return word(locale, `Đổi linh tài: ${recipe === undefined ? action.recipeId : localized(locale, recipe)}`, `Exchange materials: ${recipe === undefined ? action.recipeId : localized(locale, recipe)}`)
-    }
-    case 'buy':
-      return word(locale, `Mua ${itemName(action.itemId, locale)}`, `Buy ${itemName(action.itemId, locale)}`)
-    case 'sell':
-      return word(locale, `Bán ${itemName(action.itemId, locale)}`, `Sell ${itemName(action.itemId, locale)}`)
-    case 'use_item':
-      return word(locale, `Dùng ${itemName(action.itemId, locale)}`, `Use ${itemName(action.itemId, locale)}`)
-    case 'store':
-      return word(locale, `Gửi ${itemName(action.itemId, locale)}`, `Store ${itemName(action.itemId, locale)}`)
-    case 'withdraw':
-      return word(locale, `Lấy ${itemName(action.itemId, locale)}`, `Withdraw ${itemName(action.itemId, locale)}`)
-    case 'draw_lottery':
-      return word(locale, 'Quay vận mệnh', 'Draw fortune')
-    case 'talk': {
-      const npc = NPCS.find((entry) => entry.id === action.npcId)
-      return word(locale, `Nói chuyện với ${npc === undefined ? action.npcId : localized(locale, npc)}`, `Speak to ${npc === undefined ? action.npcId : localized(locale, npc)}`)
-    }
-    case 'accept_quest':
-      return word(locale, 'Nhận nhiệm vụ', 'Accept quest')
-    case 'complete_quest':
-      return word(locale, 'Hoàn thành nhiệm vụ', 'Complete quest')
-    case 'choose_talent':
-      return word(locale, 'Chọn thiên phú', 'Choose talent')
-    case 'learn_technique':
-      return word(locale, 'Học công pháp', 'Learn technique')
-    case 'equip_item':
-      return word(locale, `Trang bị ${itemName(action.itemId, locale)}`, `Equip ${itemName(action.itemId, locale)}`)
-    case 'start_encounter':
-      return word(locale, 'Đối mặt hiểm họa', 'Face the danger')
-    case 'combat_attack':
-      return word(locale, 'Xuất chiêu', 'Attack')
-    case 'combat_defend':
-      return word(locale, 'Thủ thế', 'Defend')
-  }
-}
-
-function directionLabel(direction: 'north' | 'south' | 'east' | 'west', locale: Locale): string {
-  const labels = {
-    north: word(locale, 'bắc', 'north'),
-    south: word(locale, 'nam', 'south'),
-    east: word(locale, 'đông', 'east'),
-    west: word(locale, 'tây', 'west'),
-  }
-  return labels[direction]
 }
 
 function stageRequirement(locale: Locale, stage: number): string {
@@ -171,32 +112,6 @@ const REALM_STAGES: ReadonlyArray<{ vi: string; en: string; seal: string }> = [
   { vi: 'Hóa Thần', en: 'Spirit Transform', seal: '神' },
   { vi: 'Phi Thăng', en: 'Ascension', seal: '仙' },
 ]
-
-const ACTION_SEALS: Partial<Record<Action['kind'], string>> = {
-  move: '行',
-  rest: '息',
-  train: '練',
-  gather: '採',
-  buy: '買',
-  sell: '售',
-  use_item: '用',
-  store: '倉',
-  withdraw: '取',
-  draw_lottery: '籤',
-  talk: '話',
-  accept_quest: '任',
-  complete_quest: '納',
-  choose_talent: '賦',
-  learn_technique: '法',
-  equip_item: '装',
-  start_encounter: '戰',
-  combat_attack: '擊',
-  combat_defend: '守',
-}
-
-function actionSeal(action: ConcreteAction): string {
-  return ACTION_SEALS[action.kind] ?? '行'
-}
 
 // Price tiers double as a rarity read for the collection-minded player:
 // common wares stay quiet, rare finds earn a vermilion edge.
@@ -288,8 +203,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   useEffect(() => {
     if (!game.terminal) setDeathDismissed(false)
   }, [game.terminal])
-  const beat = useMemo(() => currentBeat(game), [game])
-  const chapter = CHAPTERS.find((entry) => entry.index === beat.chapter) ?? {
+  const scene = useMemo(() => currentStoryScene(game), [game])
+  const chapter = CHAPTERS.find((entry) => entry.index === scene.chapter) ?? {
     index: 1,
     nameVi: 'Chương một',
     nameEn: 'Chapter One',
@@ -418,7 +333,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         <section className="chapter-banner" aria-label={word(locale, 'Chương truyện hiện tại', 'Current story chapter')}>
           <p>{word(locale, 'Chương hiện tại', 'Current chapter')}</p>
           <h2>{localized(locale, chapter)}</h2>
-          <span>{locale === 'vi' ? chapter.taglineVi : chapter.taglineEn}<ChapterProgress current={beat.chapter} locale={locale} total={CHAPTERS.length} /></span>
+          <span>{locale === 'vi' ? chapter.taglineVi : chapter.taglineEn}<ChapterProgress current={scene.chapter} locale={locale} total={CHAPTERS.length} /></span>
         </section>
 
         {warning !== null && (
@@ -509,29 +424,29 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <div className="panel-heading">
             <div>
               <p className="eyebrow">{word(locale, 'Mạch truyện', 'Deterministic story')}</p>
-              <h2 id="story-title">{locale === 'vi' ? beat.titleVi : beat.titleEn}</h2>
+              <h2 id="story-title">{locale === 'vi' ? scene.titleVi : scene.titleEn}</h2>
             </div>
             <span className="root-badge">{word(locale, 'Linh căn', 'Spirit root')}: {locale === 'vi' ? game.spiritRoot.elementVi : game.spiritRoot.elementEn}</span>
           </div>
           <figure className="scene-backdrop">
             <img alt={sceneBackdropAlt} src={sceneBackdrop} />
           </figure>
-          <p className="beat-copy">{locale === 'vi' ? beat.textVi : beat.textEn}</p>
+          <p className="beat-copy">{locale === 'vi' ? scene.textVi : scene.textEn}</p>
 
           <div className="choice-area">
             <p className="section-kicker">{word(locale, 'Lựa chọn của ngươi', 'Your choices')}</p>
             <div className="story-choices">
-              {beat.suggested.map((action, index) => (
+              {scene.choices.map((choice, index) => (
                 <button
                   className="choice-button"
                   disabled={game.terminal || encounterLocked}
-                  key={`${action.kind}-${index}`}
-                  onClick={() => onAction(action)}
+                  key={choice.id}
+                  onClick={() => onAction({ kind: 'story_choice', choiceId: choice.id })}
                   type="button"
                 >
                   <span>{index + 1}</span>
-                  {actionLabel(action, locale)}
-                  <i aria-hidden="true" className="choice-seal">{actionSeal(action)}</i>
+                  <span className="story-choice-copy"><strong>{locale === 'vi' ? choice.labelVi : choice.labelEn}</strong><small>{locale === 'vi' ? choice.consequenceVi : choice.consequenceEn}</small></span>
+                  <i aria-hidden="true" className="choice-seal">選</i>
                 </button>
               ))}
             </div>
@@ -550,7 +465,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               />
               <button disabled={game.terminal || command.trim().length === 0} type="submit">{word(locale, 'Thử vận', 'Act')}</button>
             </div>
-            <small>{word(locale, 'Cứ nói điều ngươi thật sự muốn làm; thế giới sẽ đáp lại theo lẽ của nó.', 'State what you truly mean to do; the world will answer in its own way.')}</small>
+            <small>{word(locale, 'Các lựa chọn phía trên là bước ngoặt của truyện. Ngoài ra, hãy nói điều ngươi muốn làm; thế giới sẽ giải thích khi điều đó chưa thể thực hiện.', 'The choices above are story turning points. Outside them, state what you want to do; the world will explain when it cannot happen yet.')}</small>
           </form>
 
           {objective !== null && (

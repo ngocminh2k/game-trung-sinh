@@ -36,4 +36,11 @@ export const CHAPTERS: ChapterDef[] = [
     taglineVi: 'Đường cong đủ dài thì cũng tròn như vòng sáng.',
     taglineEn: 'A crooked line walked far enough becomes a halo.',
   },
+  {
+    index: 6,
+    nameVi: 'Chương sáu: Trang cuối',
+    nameEn: 'Chapter Six: The Last Page',
+    taglineVi: 'Không có thiên mệnh nào viết thay câu trả lời của ngươi.',
+    taglineEn: 'No destiny writes your answer for you.',
+  },
 ]
