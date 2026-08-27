@@ -49,6 +49,8 @@ describe('illustrated RPG UI', () => {
     const pathTab = screen.getByRole('tab', { name: /Đạo đồ & trang bị/ })
 
     expect(bagTab.getAttribute('aria-selected')).toBe('true')
+    expect(bagTab.getAttribute('aria-label')).toMatch(/Túi đồ & kho: \d+/)
+    expect(bagTab.querySelector('.dock-tab-count')?.getAttribute('aria-hidden')).toBe('true')
     expect(screen.getByRole('tabpanel').getAttribute('id')).toBe('dock-panel-inventory')
     expect(screen.queryByRole('heading', { name: 'Nhiệm vụ' })).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Đạo đồ & trang bị' })).toBeNull()

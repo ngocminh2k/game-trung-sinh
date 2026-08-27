@@ -568,6 +568,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             ['path', word(locale, 'Đạo đồ & trang bị', 'Path & equipment'), word(locale, 'tu vi', 'cultivation')],
           ] as const).map(([id, label, count]) => (
             <button
+              aria-label={`${label}: ${count}`}
               aria-controls={`dock-panel-${id}`}
               aria-selected={activeDock === id}
               className={`dock-tab ${activeDock === id ? 'is-active' : ''} ${id === 'market' && game.player.locationId === 'market' ? 'is-contextual' : ''}`}
@@ -579,7 +580,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               tabIndex={activeDock === id ? 0 : -1}
               type="button"
             >
-              <span>{label}</span><em>{count}</em>
+              <span>{label}</span><em aria-hidden="true" className="dock-tab-count">{count}</em>
             </button>
           ))}
         </div>
