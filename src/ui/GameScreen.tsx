@@ -70,6 +70,20 @@ function itemName(itemId: string, locale: Locale): string {
   return item === undefined ? itemId : localized(locale, item)
 }
 
+function terrainLabel(locale: Locale, terrain: string | undefined): string {
+  const labels: Record<string, [string, string]> = {
+    plain: ['Đất bằng', 'Open ground'],
+    road: ['Đường mòn', 'Trail'],
+    water: ['Mặt nước', 'Water'],
+    mountain: ['Vách núi', 'Mountain'],
+    forest: ['Rừng cây', 'Forest'],
+    cave: ['Hang đá', 'Cave'],
+    rift: ['Khe nứt', 'Rift'],
+  }
+  const label = labels[terrain ?? 'plain'] ?? ['Đất bằng', 'Open ground']
+  return locale === 'vi' ? label[0] : label[1]
+}
+
 function npcPackId(locationId: string): AssetPackId {
   const packs: Record<string, AssetPackId> = {
     village: 'greenwood-village',
@@ -213,6 +227,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   }
   const location = getLocation(game.player.locationId)
   const regionMap = getRegionMap(game.player.locationId)
+  const currentCell = regionMap?.cells.find((cell) => cell.x === game.player.posX && cell.y === game.player.posY)
+  const currentCellLabel = currentCell?.node === undefined
+    ? terrainLabel(locale, currentCell?.terrain)
+    : word(locale, currentCell.node.nameVi, currentCell.node.nameEn)
   const warning = dangerWarning(game.player.locationId)
   const localNpcs = NPCS.filter((npc) => npc.locationId === game.player.locationId)
   const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
@@ -397,6 +415,14 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             style={{ '--map-columns': MAP_WIDTH, '--map-rows': MAP_HEIGHT } as CSSProperties}
           >
             <img alt="" aria-hidden="true" className="world-map-art" src={sceneBackdrop} />
+            <div className="map-current-overlay" data-testid="map-current-cell">
+              <span>{word(locale, 'Ngươi đang ở đây', 'You are here')}</span>
+              <strong>{currentCellLabel}</strong>
+              <small>{word(locale, `Ô ${game.player.posX + 1} · ${game.player.posY + 1}`, `Cell ${game.player.posX + 1} · ${game.player.posY + 1}`)}</small>
+            </div>
+            <div className="map-compass" role="img" aria-label={word(locale, 'La bàn: Bắc ở phía trên', 'Compass: north is up')}>
+              <span>N</span><i aria-hidden="true" />
+            </div>
             <div className="map-grid-overlay" aria-hidden="true">
               {(regionMap?.cells ?? []).map((cell) => {
                 const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY

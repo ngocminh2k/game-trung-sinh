@@ -150,4 +150,12 @@ describe('illustrated RPG UI', () => {
 
     expect(screen.getByAltText('Bản đồ khu vực chưa được đặt tên')).toBeTruthy()
   })
+
+  it('orients exploration around the player’s current cell', () => {
+    renderScreen()
+
+    expect(screen.getByTestId('map-current-cell').textContent).toContain('Nhà cũ của ngươi')
+    expect(screen.getByRole('img', { name: 'La bàn: Bắc ở phía trên' })).toBeTruthy()
+    expect(screen.getByTestId('player-map-marker').className).toContain('player-map-marker')
+  })
 })
