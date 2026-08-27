@@ -49,6 +49,16 @@ function word(locale: Locale, vi: string, en: string): string {
   return locale === 'vi' ? vi : en
 }
 
+const HAN_SEALS = { mystery: '玄', objective: '目', choice: '選', achievement: '成' } as const
+
+function InkCorner({ corner }: { corner: 'top-left' | 'top-right' | 'bottom-left' }): JSX.Element {
+  return <svg aria-hidden="true" className={`ink-corner ink-corner--${corner}`} data-testid="ink-corner" viewBox="0 0 72 52">
+    <path d="M3 45C16 40 13 24 29 24c13 0 12-15 37-18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2.4" />
+    <path d="M7 49c14-2 15-12 24-16 8-3 20-2 35-22" fill="none" opacity=".55" stroke="currentColor" strokeLinecap="round" strokeWidth="1.25" />
+    <path d="M49 8c8 1 14 0 20-5" fill="none" opacity=".36" stroke="currentColor" strokeLinecap="round" strokeWidth="1" />
+  </svg>
+}
+
 function localized(locale: Locale, item: { nameVi: string; nameEn: string }): string {
   return locale === 'vi' ? item.nameVi : item.nameEn
 }
@@ -316,7 +326,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     <main className={`game-shell action-${actionKind ?? 'idle'} ${journalOpen ? 'journal-open' : ''}`} data-testid="game-screen">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-seal" aria-hidden="true">玄</span>
+          <span className="brand-seal" aria-hidden="true">{HAN_SEALS.mystery}</span>
           <div>
             <p className="eyebrow">{word(locale, 'Kịch bản I · một mạng duy nhất', 'Scenario I · one life only')}</p>
             <h1>Phế Căn Ký <span>/ Tale of the Broken Root</span></h1>
@@ -403,6 +413,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 
       <div className="game-grid">
         <section className="map-panel parchment-panel" aria-labelledby="map-title">
+          <InkCorner corner="top-left" />
           <div className="panel-heading">
             <div>
               <p className="eyebrow">{word(locale, 'WASD / phím mũi tên', 'WASD / arrow keys')}</p>
@@ -448,6 +459,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </section>
 
         <section className="story-panel parchment-panel" aria-labelledby="story-title">
+          <InkCorner corner="top-right" />
           <div className="panel-heading">
             <div>
               <p className="eyebrow">{word(locale, 'Mạch truyện', 'Deterministic story')}</p>
@@ -473,7 +485,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 >
                   <span>{index + 1}</span>
                   <span className="story-choice-copy"><strong>{locale === 'vi' ? choice.labelVi : choice.labelEn}</strong><small>{locale === 'vi' ? choice.consequenceVi : choice.consequenceEn}</small></span>
-                  <i aria-hidden="true" className="choice-seal">選</i>
+                  <i aria-hidden="true" className="choice-seal">{HAN_SEALS.choice}</i>
                 </button>
               ))}
             </div>
@@ -497,7 +509,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 
           {objective !== null && (
             <section className="objective-widget" aria-live="polite" aria-label={t(locale, 'ui.objective.title')} data-testid="objective-line">
-              <p className="objective-heading"><span className="objective-seal" aria-hidden="true">目</span>{t(locale, 'ui.objective.title')}</p>
+              <p className="objective-heading"><span className="objective-seal" aria-hidden="true">{HAN_SEALS.objective}</span>{t(locale, 'ui.objective.title')}</p>
               <p className="objective-line">{objective}</p>
             </section>
           )}
@@ -547,6 +559,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       </div>
 
       <section className="journal-screen system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="journal-screen" hidden={!journalOpen} id="journal-screen">
+        <InkCorner corner="bottom-left" />
         <div className="journal-heading dock-heading">
           <div>
             <p className="eyebrow">{word(locale, 'Sổ tay hành tẩu', 'Wandering journal')}</p>
@@ -672,7 +685,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               </ul>
             </section>
             <div className="achievements">
-              {ACHIEVEMENTS.map((achievement) => <span className={game.achievements.includes(achievement.id) ? 'unlocked' : ''} key={achievement.id} title={locale === 'vi' ? achievement.descVi : achievement.descEn}>{localized(locale, achievement)}</span>)}
+              {ACHIEVEMENTS.map((achievement) => {
+                const unlocked = game.achievements.includes(achievement.id)
+                return <span className={unlocked ? 'unlocked' : ''} key={achievement.id} title={locale === 'vi' ? achievement.descVi : achievement.descEn}>{unlocked && <i aria-hidden="true" className="achievement-seal" data-testid="achievement-seal">{HAN_SEALS.achievement}</i>}{localized(locale, achievement)}</span>
+              })}
             </div>
           </section>}
 

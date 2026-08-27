@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ITEMS, LOCATIONS, NPCS, TALENTS, TECHNIQUES } from '../src/content'
+import { ACHIEVEMENTS, ITEMS, LOCATIONS, NPCS, TALENTS, TECHNIQUES } from '../src/content'
 import { newGame } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
 import { itemArtFor, talentArtFor, techniqueArtFor } from '../src/ui/rpgArt'
@@ -159,5 +159,16 @@ describe('illustrated RPG UI', () => {
     expect(screen.getByTestId('map-current-cell').textContent).toContain('Nhà cũ của ngươi')
     expect(screen.getByRole('img', { name: 'La bàn: Bắc ở phía trên' })).toBeTruthy()
     expect(screen.getByTestId('player-map-marker').className).toContain('player-map-marker')
+  })
+
+  it('uses ink flourishes and a vermilion seal for earned deeds', () => {
+    const game = newGame('achievement-seal')
+    game.achievements = [ACHIEVEMENTS[0]!.id]
+    render(<GameScreen game={game} locale="vi" chronicle={[]} onAction={() => undefined} onLocaleChange={() => undefined} />)
+
+    expect(screen.getAllByTestId('ink-corner')).toHaveLength(3)
+    openJournal()
+    fireEvent.click(screen.getByRole('tab', { name: /Chợ & thành tựu/ }))
+    expect(screen.getByTestId('achievement-seal').textContent).toBe('成')
   })
 })
