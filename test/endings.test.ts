@@ -24,14 +24,31 @@ describe('branching story', () => {
     expect(currentStoryScene(result.state).id).toBe('letter_at_dawn')
   })
 
+  it('splits the second act into three visible routes with immediate mechanical consequences', () => {
+    const routes: Array<[string, string, string, number]> = [
+      ['warn_village', 'village_vow', 'listen_to_thread', 46],
+      ['buy_silence', 'market_bargain', 'buy_ward', 60],
+      ['ask_ngo', 'memory_trail', 'trace_erased_name', 44],
+    ]
+    for (const [firstChoice, routeScene, routeChoice, expectedQi] of routes) {
+      let state = newGame(`route-${routeScene}`)
+      state = choose(state, 'return_pin')
+      state = choose(state, firstChoice)
+      expect(currentStoryScene(state).id).toBe(routeScene)
+      state = choose(state, routeChoice)
+      expect(state.player.qi).toBe(expectedQi)
+      expect(currentStoryScene(state).id).toBe('cave_witness')
+    }
+  })
+
   it('turns the same final gesture into different endings from prior choices', () => {
     let truth = newGame('truth-ending')
-    for (const id of ['study_letter', 'ask_ngo', 'record_ha', 'expose_vo', 'confess', 'open_last_page']) truth = choose(truth, id)
+    for (const id of ['study_letter', 'ask_ngo', 'trace_erased_name', 'record_ha', 'expose_vo', 'confess', 'open_last_page']) truth = choose(truth, id)
     expect(truth.terminal).toBe(true)
     expect(truth.endingId).toBe('rootless_star')
 
     let mercy = newGame('mercy-ending')
-    for (const id of ['return_pin', 'warn_village', 'free_ha', 'keep_seal', 'confess', 'share_last_page']) mercy = choose(mercy, id)
+    for (const id of ['return_pin', 'warn_village', 'keep_roll_call', 'free_ha', 'keep_seal', 'confess', 'share_last_page']) mercy = choose(mercy, id)
     expect(mercy.terminal).toBe(true)
     expect(mercy.endingId).toBe('forgiven_enemy')
   })

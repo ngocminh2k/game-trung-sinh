@@ -200,6 +200,8 @@ export interface StoryChoiceDef {
   consequenceEn: string
   nextSceneId: string | null
   effects?: Record<string, number | boolean | string>
+  /** A concrete cost or boon makes a story stance felt before its ending. */
+  playerDelta?: Partial<Record<'hp' | 'qi' | 'gold' | 'progress', number>>
   requires?: Record<string, number | boolean | string>
   final?: boolean
 }

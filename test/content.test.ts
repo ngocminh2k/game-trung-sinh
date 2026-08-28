@@ -97,8 +97,8 @@ describe('content integrity', () => {
 })
 
 describe('beats', () => {
-  it('has six authored story scenes with three consequential choices each', () => {
-    expect(STORY_SCENES).toHaveLength(6)
+  it('has route-exclusive story scenes with three consequential choices each', () => {
+    expect(STORY_SCENES).toHaveLength(9)
     for (const scene of STORY_SCENES) {
       expect(scene.choices).toHaveLength(3)
       for (const choice of scene.choices) {

@@ -1,4 +1,5 @@
 import { getNpc, getStoryScene } from '../content'
+import { MAX_HP, MAX_QI } from './constants'
 import type { StoryChoiceDef, StorySceneDef } from './content-types'
 import type { GameState } from './types'
 
@@ -34,7 +35,19 @@ export function applyStoryEffects(state: GameState, choice: StoryChoiceDef): Gam
     flags[key] = typeof value === 'number' ? flagNumber(state, key) + value : value
   }
   if (choice.nextSceneId !== null) flags.story_scene = choice.nextSceneId
-  return { ...state, flags }
+  const delta = choice.playerDelta
+  if (delta === undefined) return { ...state, flags }
+  return {
+    ...state,
+    flags,
+    player: {
+      ...state.player,
+      hp: Math.max(0, Math.min(MAX_HP, state.player.hp + (delta.hp ?? 0))),
+      qi: Math.max(0, Math.min(MAX_QI, state.player.qi + (delta.qi ?? 0))),
+      gold: Math.max(0, state.player.gold + (delta.gold ?? 0)),
+      progress: Math.max(0, state.player.progress + (delta.progress ?? 0)),
+    },
+  }
 }
 
 // The last visible decision is intentionally ambiguous. The ending is chosen
@@ -68,6 +81,21 @@ export function resolveStoryEnding(state: GameState, choiceId: string): string {
 
 export function dialogueForNpc(state: GameState, npcId: string): { vi: string; en: string } {
   const scene = currentStoryScene(state).id
+  if (npcId === 'n_elder_meihua' && flagTrue(state, 'story_meihua_trusted')) {
+    return { vi: '“Ngươi đã trả lại trâm trước khi đòi câu trả lời. Vậy ta sẽ đi cùng ngươi cho tới khi những cái tên này được gọi lại.”', en: '“You returned the pin before demanding answers. Then I will walk with you until these names are called again.”' }
+  }
+  if (npcId === 'n_elder_meihua' && flagTrue(state, 'story_meihua_betrayed')) {
+    return { vi: '“Trâm vẫn chưa về tay ta, nhưng ít nhất ngươi còn quay lại. Hãy đừng bắt một người già phải trả giá thay cho sự thận trọng của ngươi.”', en: '“The pin has not returned to me, but at least you came back. Do not make an old woman pay for your caution.”' }
+  }
+  if (npcId === 'n_merchant_bao' && flagTrue(state, 'story_bao_has_map')) {
+    return { vi: '“Bản đồ của ngươi bán không đắt. Cái giá thật là: bây giờ ta cũng sợ thứ ở cuối đường.”', en: '“Your map did not sell for much. The real price is that I now fear what waits at its end too.”' }
+  }
+  if (npcId === 'n_storyteller_ngo' && flagTrue(state, 'story_name_known')) {
+    return { vi: '“Tên của ngươi không biến mất đâu. Nó bị ai đó gấp lại, giấu vào nếp giấy. Phế căn của ngươi nghe được nếp gấp ấy.”', en: '“Your name did not vanish. Someone folded it away, into the crease of a page. Your defective root can hear that crease.”' }
+  }
+  if (npcId === 'n_hermit_coc' && flagTrue(state, 'story_ha_bound')) {
+    return { vi: '“Đừng gọi Hà là vũ khí chỉ vì cô ấy đồng ý giúp. Món nợ tự nguyện vẫn là món nợ.”', en: '“Do not call Ha a weapon just because she agreed to help. A voluntary debt is still a debt.”' }
+  }
   const special: Record<string, { vi: string; en: string }> = {
     n_elder_meihua: scene === 'letter_at_dawn'
       ? { vi: '“Ta đã nhìn thấy nét chữ này một lần, trên bia mộ của ngươi. Đừng hỏi vì sao ta còn nhớ; hãy hỏi ai đã muốn cả làng quên.”', en: '“I saw this hand once, on your grave. Do not ask why I remember; ask who wanted the whole village to forget.”' }

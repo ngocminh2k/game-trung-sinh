@@ -254,6 +254,13 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const nextMapNodeDistance = nextMapNode === undefined
     ? null
     : Math.abs(nextMapNode.x - game.player.posX) + Math.abs(nextMapNode.y - game.player.posY)
+  const routeLead = game.flags.story_route === 'mercy'
+    ? word(locale, 'Mai Hoa đang giữ bó dây đỏ: hãy tìm những cái tên chưa được gọi về.', 'Meihua holds the red thread: find the names not called home.')
+    : game.flags.story_route === 'wealth'
+      ? word(locale, 'Bảo đang chờ ở lối sau chợ với chiếc bùa nứt và một lối tắt.', 'Bao waits in the market back lane with a chipped ward and a shortcut.')
+      : game.flags.story_route === 'truth'
+        ? word(locale, 'Ngô chờ ở trà quán; bảy bát trà giữ những mảnh ký ức thất lạc.', 'Ngo waits in the teahouse; seven cups hold the missing memories.')
+        : null
   const warning = dangerWarning(game.player.locationId)
   const localNpcs = NPCS.filter((npc) => npc.locationId === game.player.locationId)
   const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
@@ -485,6 +492,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               <div>
                 <em>{word(locale, 'Điểm gần nhất', 'Nearest lead')}</em>
                 <b>{word(locale, nextMapNode.node.nameVi, nextMapNode.node.nameEn)} · {nextMapNodeDistance} {word(locale, 'ô', 'cells')}</b>
+              </div>
+            )}
+            {routeLead !== null && (
+              <div>
+                <em>{word(locale, 'Dấu vết câu chuyện', 'Story lead')}</em>
+                <b>{routeLead}</b>
               </div>
             )}
           </aside>
