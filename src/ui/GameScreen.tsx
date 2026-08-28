@@ -178,6 +178,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const [selectedInventoryItemId, setSelectedInventoryItemId] = useState<string | null>(null)
   const [hurtFeedbackNonce, setHurtFeedbackNonce] = useState<number | null>(null)
   const journalLauncher = useRef<HTMLButtonElement>(null)
+  const chronicleRef = useRef<HTMLDivElement>(null)
   const previousHp = useRef(game.player.hp)
   const processedActionNonce = useRef<number | null>(null)
   const previousLocationId = useRef(game.player.locationId)
@@ -243,6 +244,16 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const currentCellLabel = currentCell?.node === undefined
     ? terrainLabel(locale, currentCell?.terrain)
     : word(locale, currentCell.node.nameVi, currentCell.node.nameEn)
+  const nextMapNode = [...(regionMap?.cells ?? [])]
+    .filter((cell) => cell.node !== undefined && (cell.x !== game.player.posX || cell.y !== game.player.posY))
+    .sort((left, right) => {
+      const leftDistance = Math.abs(left.x - game.player.posX) + Math.abs(left.y - game.player.posY)
+      const rightDistance = Math.abs(right.x - game.player.posX) + Math.abs(right.y - game.player.posY)
+      return leftDistance - rightDistance
+    })[0]
+  const nextMapNodeDistance = nextMapNode === undefined
+    ? null
+    : Math.abs(nextMapNode.x - game.player.posX) + Math.abs(nextMapNode.y - game.player.posY)
   const warning = dangerWarning(game.player.locationId)
   const localNpcs = NPCS.filter((npc) => npc.locationId === game.player.locationId)
   const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
@@ -463,6 +474,20 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <span><i className="legend-danger" />{word(locale, 'Hiểm họa — giao chiến, mất máu', 'Danger — combat, lose health')}</span>
             <span>{word(locale, 'Đi đến chấm sáng để gặp người, gặp sự kiện, hoặc qua cổng. Nước và núi chặn lối. Chấm đỏ là hiểm họa — hãy nghỉ (Rest) hồi máu trước khi vào.', 'Walk to a glowing point to meet people, find events, or use an exit. Water and mountains block the way. Red points are danger — rest to heal before you enter.')}</span>
           </div>
+          <aside className="map-context" aria-labelledby="map-context-title">
+            <p className="section-kicker" id="map-context-title">{word(locale, 'Dấu chân trên đường', 'Trail notes')}</p>
+            <strong>{currentCellLabel}</strong>
+            <span>{currentCell?.node === undefined
+              ? word(locale, `Ngươi đang đứng trên ${terrainLabel(locale, currentCell?.terrain).toLowerCase()}.`, `You are standing on ${terrainLabel(locale, currentCell?.terrain).toLowerCase()}.`)
+              : word(locale, 'Một chốn có chuyện để nghe hoặc tự mình đổi thay.', 'A place with someone to hear or something to change yourself.')}
+            </span>
+            {nextMapNode?.node !== undefined && nextMapNodeDistance !== null && (
+              <div>
+                <em>{word(locale, 'Điểm gần nhất', 'Nearest lead')}</em>
+                <b>{word(locale, nextMapNode.node.nameVi, nextMapNode.node.nameEn)} · {nextMapNodeDistance} {word(locale, 'ô', 'cells')}</b>
+              </div>
+            )}
+          </aside>
         </section>
 
         <section className="story-panel parchment-panel" aria-labelledby="story-title">
@@ -478,6 +503,15 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <img alt={sceneBackdropAlt} src={sceneBackdrop} />
           </figure>
           <p className="beat-copy">{locale === 'vi' ? scene.textVi : scene.textEn}</p>
+          <button
+            aria-controls="story-chronicle"
+            className="chronicle-jump"
+            onClick={() => chronicleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })}
+            type="button"
+          >
+            <span>{word(locale, 'Biên niên ký còn ở phía dưới', 'Chronicle continues below')}</span>
+            <em>{chronicle.length} {word(locale, 'bản ghi', 'entries')} ↓</em>
+          </button>
 
           <div className="choice-area">
             <p className="section-kicker">{word(locale, 'Lựa chọn của ngươi', 'Your choices')}</p>
@@ -521,7 +555,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             </section>
           )}
 
-          <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')}>
+          <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')} id="story-chronicle" ref={chronicleRef} tabIndex={-1}>
             <p className="section-kicker">{word(locale, 'Biên niên ký', 'Chronicle')}</p>
             <ol>
               {chronicle.slice(-8).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
