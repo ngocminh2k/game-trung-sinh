@@ -30,5 +30,12 @@ export function endingEpilogue(game: GameState, locale: Locale): string[] {
     : game.flags.story_vo_exposed === true
       ? word(locale, 'Võ cúi đầu trước tông môn; Khoa không nhìn ngươi. Giữa họ và ngươi vẫn còn một cây cầu chưa ai dám bước lên.', 'Vo bows before the sect; Khoa cannot look at you. Between all of you stands a bridge that no one yet dares to cross.')
       : word(locale, 'Võ mang phần ký ức còn lại đi khỏi chính điện, còn Khoa đứng lại ở bậc thềm. Cả hai đều biết cuộc xét xử chưa thật sự kết thúc.', 'Vo carries what remains of the memory out of the hall, and Khoa stays on the steps. Both know the trial has not truly ended.')
-  return [word(locale, outcome.vi, outcome.en), meihuaAndHa, khoaAndVo]
+  const companionEcho = game.flags.story_meihua_companion === true
+    ? word(locale, 'Mai Hoa giữ những sợi dây đỏ đã sờn trong hòm gỗ. Mỗi khi có người quên đường về, bà lại sai trẻ con buộc thêm một nút mới.', 'Meihua keeps the frayed red threads in a wooden box. Whenever someone forgets the way home, she sends the children to tie another knot.')
+    : game.flags.story_bao_companion === true
+      ? word(locale, 'Bảo treo chiếc bùa nứt trước quầy hàng. Ai hỏi nó bán bao nhiêu, hắn chỉ cười: “Có những thứ phải đi cùng chủ mới biết giá.”', 'Bao hangs the chipped ward above his stall. When asked its price, he only smiles: “Some things must travel with their owner before they know their worth.”')
+      : game.flags.story_ngo_companion === true
+        ? word(locale, 'Ngô viết lại câu chuyện lần này, chừa hẳn một trang cho những chỗ chưa ai dám gọi là kết thúc.', 'Ngo writes the story again, leaving a whole page for the parts no one yet dares call an ending.')
+        : word(locale, 'Không ai đi cùng ngươi tới cuối đường, nhưng những dấu chân ngươi để lại vẫn buộc người khác phải chọn xem họ sẽ bước tiếp ra sao.', 'No one walks with you to the end, but the footprints you leave still force others to choose how they will go on.')
+  return [word(locale, outcome.vi, outcome.en), meihuaAndHa, khoaAndVo, companionEcho]
 }

@@ -36,7 +36,7 @@ import { checkLottery, drawEventFor, rollLottery } from './lottery'
 import { checkMoveFrom } from './map'
 import { applyProgress, trainProgressGain } from './stats'
 import { canAcceptQuest, canCompleteQuest } from './quests'
-import { applyStoryEffects, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding } from './story'
+import { applyStoryEffects, applyStoryRouteArrival, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding } from './story'
 import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
@@ -196,6 +196,7 @@ function doMove(state: GameState, direction: Direction): R {
       nameEn: cell.node.nameEn,
       kind: cell.node.kind,
     })
+    s = applyStoryRouteArrival(s, cell.node.id)
   }
   const dangerLocationId = targetLocId ?? (cell.node?.kind === 'danger' ? state.player.locationId : undefined)
   if (dangerLocationId !== undefined) {

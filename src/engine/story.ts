@@ -5,6 +5,14 @@ import type { GameState } from './types'
 
 const FIRST_SCENE_ID = 'letter_at_dawn'
 
+export type StoryRouteTarget = { locationId: string; nodeId: string }
+
+const ROUTE_TARGETS: Record<string, StoryRouteTarget> = {
+  mercy: { locationId: 'village', nodeId: 'village-elder' },
+  wealth: { locationId: 'market', nodeId: 'market-stalls' },
+  truth: { locationId: 'market', nodeId: 'market-teahouse' },
+}
+
 function flagNumber(state: GameState, key: string): number {
   const value = state.flags[key]
   return typeof value === 'number' ? value : 0
@@ -17,6 +25,18 @@ function flagTrue(state: GameState, key: string): boolean {
 export function currentStoryScene(state: GameState): StorySceneDef {
   const id = typeof state.flags.story_scene === 'string' ? state.flags.story_scene : FIRST_SCENE_ID
   return getStoryScene(id) ?? getStoryScene(FIRST_SCENE_ID)!
+}
+
+export function storyRouteTarget(state: GameState): StoryRouteTarget | undefined {
+  if (state.flags.story_route_ready === true) return undefined
+  const route = state.flags.story_route
+  return typeof route === 'string' ? ROUTE_TARGETS[route] : undefined
+}
+
+export function applyStoryRouteArrival(state: GameState, nodeId: string): GameState {
+  const target = storyRouteTarget(state)
+  if (target === undefined || target.locationId !== state.player.locationId || target.nodeId !== nodeId) return state
+  return { ...state, flags: { ...state.flags, story_route_ready: true } }
 }
 
 export function findStoryChoice(state: GameState, choiceId: string): StoryChoiceDef | undefined {
@@ -81,6 +101,15 @@ export function resolveStoryEnding(state: GameState, choiceId: string): string {
 
 export function dialogueForNpc(state: GameState, npcId: string): { vi: string; en: string } {
   const scene = currentStoryScene(state).id
+  if (npcId === 'n_elder_meihua' && flagTrue(state, 'story_meihua_companion')) {
+    return { vi: '“Bó dây đỏ không phải phép thuật, nhưng ta thấy ngươi đã dùng nó như một lời hứa. Đi tiếp đi; ta sẽ giữ cho làng còn nhớ đường về.”', en: '“The red thread is no spell, but I saw you use it as a promise. Go on; I will keep the village remembering the way home.”' }
+  }
+  if (npcId === 'n_merchant_bao' && flagTrue(state, 'story_bao_companion')) {
+    return { vi: '“Ta dẫn ngươi tới hang vì đã nhận tiền, không phải vì nghĩa hiệp. Nhưng nếu thứ kia nuốt lời hứa, thì khoản nợ này ta cũng muốn tự tay đòi.”', en: '“I lead you to the cave because I was paid, not from virtue. But if that thing eats promises, I want to collect this debt myself.”' }
+  }
+  if (npcId === 'n_storyteller_ngo' && flagTrue(state, 'story_ngo_companion')) {
+    return { vi: '“Ta không đi đánh nhau. Ta đi để nhắc ngươi: một câu chuyện bị xé không tự lành chỉ vì ai đó thắng.”', en: '“I am not going to fight. I am going to remind you: a torn story does not heal just because someone wins.”' }
+  }
   if (npcId === 'n_elder_meihua' && flagTrue(state, 'story_meihua_trusted')) {
     return { vi: '“Ngươi đã trả lại trâm trước khi đòi câu trả lời. Vậy ta sẽ đi cùng ngươi cho tới khi những cái tên này được gọi lại.”', en: '“You returned the pin before demanding answers. Then I will walk with you until these names are called again.”' }
   }

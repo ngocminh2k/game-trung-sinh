@@ -18,6 +18,7 @@ describe('browser game journey', () => {
     expect(screen.getByTestId('location-label').textContent).toBe('Làng Thanh Mộc')
     expect(screen.getByAltText('Chân dung Cụ Mai Hoa')).toBeTruthy()
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
     await waitFor(() => expect(screen.getByTestId('location-label').textContent).toBe('Chợ Vân Tập'))
     expect(screen.getByTestId('game-screen').className).toContain('action-move')
     expect(screen.getByTestId('player-map-marker').className).toContain('action-move')

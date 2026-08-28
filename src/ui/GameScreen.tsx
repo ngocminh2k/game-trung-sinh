@@ -19,7 +19,7 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { currentStoryScene, dangerWarning, storageRemaining } from '../engine'
+import { currentStoryScene, dangerWarning, findStoryChoice, storageRemaining, storyRouteTarget } from '../engine'
 import type { Action, GameState, Locale } from '../engine'
 import type { ItemDef } from '../engine/content-types'
 import itemsStillLife from '../assets/art/items-still-life.png'
@@ -262,6 +262,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       : game.flags.story_route === 'truth'
         ? word(locale, 'Ngô chờ ở trà quán; bảy bát trà giữ những mảnh ký ức thất lạc.', 'Ngo waits in the teahouse; seven cups hold the missing memories.')
         : null
+  const routeTarget = storyRouteTarget(game)
+  const routeStatus = routeLead === null
+    ? null
+    : routeTarget === undefined
+      ? word(locale, 'Đầu mối đã được gặp. Giờ hãy quyết định cách đi tiếp.', 'You reached the lead. Now decide how to proceed.')
+      : routeLead
   const warning = dangerWarning(game.player.locationId)
   const localNpcs = NPCS.filter((npc) => npc.locationId === game.player.locationId)
   const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
@@ -470,7 +476,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
                 return (
                   <div className={`map-cell terrain-${cell.terrain}`} key={`${cell.x}-${cell.y}`}>
-                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind}`} data-testid={`event-node-${cell.node.id}`} title={word(locale, `Chấm ${cell.node.kind}: ${cell.node.nameVi}`, `${cell.node.kind} point: ${cell.node.nameEn}`)} />}
+                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind} ${routeTarget?.nodeId === cell.node.id ? 'is-route-target' : ''}`} data-testid={routeTarget?.nodeId === cell.node.id ? 'route-event-node' : `event-node-${cell.node.id}`} title={word(locale, `Chấm ${cell.node.kind}: ${cell.node.nameVi}`, `${cell.node.kind} point: ${cell.node.nameEn}`)} />}
+                    {routeTarget?.nodeId === cell.node?.id && <span aria-hidden="true" className="route-node-seal">{word(locale, 'Dấu vết', 'Lead')}</span>}
                     {cell.node !== undefined && <span className="map-node-label" aria-hidden="true">{locale === 'vi' ? cell.node.nameVi : cell.node.nameEn}</span>}
                     {isPlayer && <span className={`player-map-marker action-${actionKind ?? 'idle'}`} data-testid="player-map-marker" key={`player-${actionNonce}`} title={word(locale, 'Nhân vật của bạn', 'Your character')} />}
                   </div>
@@ -499,10 +506,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 <b>{word(locale, nextMapNode.node.nameVi, nextMapNode.node.nameEn)} · {nextMapNodeDistance} {word(locale, 'ô', 'cells')}</b>
               </div>
             )}
-            {routeLead !== null && (
+            {routeStatus !== null && (
               <div>
                 <em>{word(locale, 'Dấu vết câu chuyện', 'Story lead')}</em>
-                <b>{routeLead}</b>
+                <b>{routeStatus}</b>
               </div>
             )}
           </aside>
@@ -535,17 +542,23 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <p className="section-kicker">{word(locale, 'Lựa chọn của ngươi', 'Your choices')}</p>
             <div className="story-choices">
               {scene.choices.map((choice, index) => (
+                (() => {
+                  const available = findStoryChoice(game, choice.id) !== undefined
+                  const lockedByRoute = !available && routeTarget !== undefined
+                  return (
                 <button
                   className="choice-button"
-                  disabled={game.terminal || encounterLocked}
+                  disabled={game.terminal || encounterLocked || !available}
                   key={choice.id}
                   onClick={() => onAction({ kind: 'story_choice', choiceId: choice.id })}
                   type="button"
                 >
                   <span>{index + 1}</span>
-                  <span className="story-choice-copy"><strong>{locale === 'vi' ? choice.labelVi : choice.labelEn}</strong><small>{locale === 'vi' ? choice.consequenceVi : choice.consequenceEn}</small></span>
+                  <span className="story-choice-copy"><strong>{locale === 'vi' ? choice.labelVi : choice.labelEn}</strong><small>{lockedByRoute ? word(locale, 'Trước hết hãy đến đúng dấu vết được đóng trên bản đồ.', 'First reach the sealed story lead on the map.') : locale === 'vi' ? choice.consequenceVi : choice.consequenceEn}</small></span>
                   <i aria-hidden="true" className="choice-seal">{HAN_SEALS.choice}</i>
                 </button>
+                  )
+                })()
               ))}
             </div>
           </div>

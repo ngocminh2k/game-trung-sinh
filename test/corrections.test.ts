@@ -62,7 +62,9 @@ describe('corrections and bounded forced convergence', () => {
     expect(r1.events.some((e) => e.type === 'TRAINED')).toBe(true)
     const r2 = applyAction(r1.state, { kind: 'free_text', raw: 'go west' })
     expect(r2.events.some((e) => e.type === 'MOVED')).toBe(true)
-    const r3 = applyAction(r2.state, {
+    const r2b = applyAction(r2.state, { kind: 'free_text', raw: 'go west' })
+    expect(r2b.events.some((e) => e.type === 'MOVED')).toBe(true)
+    const r3 = applyAction(r2b.state, {
       kind: 'free_text',
       raw: 'nói chuyện với thương nhân Bảo',
     })
