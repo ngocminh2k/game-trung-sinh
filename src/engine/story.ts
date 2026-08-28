@@ -10,18 +10,27 @@ export type StoryRouteId = 'mercy' | 'wealth' | 'truth'
 
 export type StoryRouteEncounter = {
   route: StoryRouteId
+  contactVi: string
+  contactEn: string
   locationId: string
   nodeId: string
   titleVi: string
   titleEn: string
   textVi: string
   textEn: string
-  actionVi: string
-  actionEn: string
   proofVi: string
   proofEn: string
   aftermathVi: string
   aftermathEn: string
+  choices: StoryRouteEncounterChoice[]
+}
+
+export type StoryRouteEncounterChoice = {
+  approach: 'present' | 'withhold'
+  labelVi: string
+  labelEn: string
+  consequenceVi: string
+  consequenceEn: string
   playerDelta: { progress?: number; qi?: number; gold?: number }
 }
 
@@ -33,37 +42,43 @@ const ROUTE_TARGETS: Record<string, StoryRouteTarget> = {
 
 const ROUTE_ENCOUNTERS: Record<StoryRouteId, StoryRouteEncounter> = {
   mercy: {
-    route: 'mercy', locationId: 'village', nodeId: 'village-elder',
+    route: 'mercy', contactVi: 'Mai Hoa', contactEn: 'Meihua', locationId: 'village', nodeId: 'village-elder',
     titleVi: 'Hiên nhà Mai Hoa · Nút dây cuối', titleEn: 'Meihua’s Porch · The Last Knot',
     textVi: 'Mai Hoa không đưa đáp án. Bà đặt trước mặt ngươi cuộn điểm danh bảy nhà, một cái tên bị mưa làm nhòe. “Đọc nó đi,” bà nói. “Không phải để ta tin ngươi — để người bị quên biết còn có người gọi.” Linh căn phế của ngươi nghe thấy tiếng thở ở khoảng mực trắng.',
     textEn: 'Meihua offers no answer. She lays out the roll call of seven homes, one name blurred by rain. “Read it,” she says. “Not so I believe you — so the forgotten know someone still calls.” Your defective root hears a breath in the white space of the ink.',
-    actionVi: 'Buộc nút dây đỏ vào cái tên bị xóa', actionEn: 'Tie red thread around the erased name',
     proofVi: 'Cuộn điểm danh bảy nhà', proofEn: 'Roll call of seven homes',
     aftermathVi: 'Mai Hoa đóng dấu son lên cuộn điểm danh. Đây không phải lời hứa nữa; đây là tên những người có thể đứng ra làm chứng.',
     aftermathEn: 'Meihua presses vermilion onto the roll. This is no longer a promise; these are names that can testify.',
-    playerDelta: { progress: 6 },
+    choices: [
+      { approach: 'present', labelVi: 'Đọc cái tên trước hiên nhà', labelEn: 'Read the name aloud before the homes', consequenceVi: 'Cả xóm nghe thấy; nhiều người có thể đứng làm chứng, nhưng kẻ xóa tên cũng nghe thấy.', consequenceEn: 'The whole lane hears; more people can testify, but so can the one who erased it.', playerDelta: { progress: 8 } },
+      { approach: 'withhold', labelVi: 'Buộc nút dây trong im lặng', labelEn: 'Tie the knot in silence', consequenceVi: 'Chỉ Mai Hoa biết cái tên. Ngươi giữ được đường lui kín đáo và một hơi thở Qi.', consequenceEn: 'Only Meihua learns the name. You keep a quiet way back and a breath of qi.', playerDelta: { qi: 6, progress: 3 } },
+    ],
   },
   wealth: {
-    route: 'wealth', locationId: 'market', nodeId: 'market-stalls',
+    route: 'wealth', contactVi: 'Bảo', contactEn: 'Bao', locationId: 'market', nodeId: 'market-stalls',
     titleVi: 'Lối sau chợ · Bùa nứt', titleEn: 'Market Back Lane · The Cracked Ward',
     textVi: 'Bảo chặn đường ngươi bằng một mảnh phù nứt, phía sau là tiếng người mua mặc cả như chẳng có ai sắp bị xóa khỏi đời. “Ta không cần ngươi tin ta,” hắn nói. “Ta cần ngươi ký tên vào món nợ này, để kẻ thuê ta biết chúng không mua được cả hai.”',
     textEn: 'Bao bars your way with a cracked ward while buyers bargain behind him as if nobody is about to be erased. “I do not need your trust,” he says. “Sign this debt, so my employer learns they cannot buy us both.”',
-    actionVi: 'Ép dấu tay lên khế nợ và giữ nửa mảnh phù', actionEn: 'Press your thumbprint into the debt and keep half the ward',
     proofVi: 'Nửa phù khế của Bảo', proofEn: 'Bao’s half-contract ward',
     aftermathVi: 'Bảo bẻ phù làm đôi, giữ một nửa và nhét nửa kia vào tay ngươi. Trên mặt phù có dấu hiệu của kẻ đã trả tiền theo dõi ngươi.',
     aftermathEn: 'Bao snaps the ward in two, keeping one half and pushing the other into your palm. Its face bears the mark of whoever paid to watch you.',
-    playerDelta: { gold: 8 },
+    choices: [
+      { approach: 'present', labelVi: 'Ép dấu tay lên khế nợ trước mặt chợ', labelEn: 'Seal the debt in front of the market', consequenceVi: 'Bảo phải đứng tên cùng ngươi. Dấu thuê người theo dõi trở thành chứng cứ công khai.', consequenceEn: 'Bao must stand beside you. The watcher’s mark becomes public evidence.', playerDelta: { gold: -4, progress: 5 } },
+      { approach: 'withhold', labelVi: 'Bẻ phù làm đôi và giấu dấu thuê người', labelEn: 'Split the ward and hide the watcher’s mark', consequenceVi: 'Ngươi giữ đòn bẩy bí mật, đổi lại Bảo có thể chối bỏ ngươi trước đám đông.', consequenceEn: 'You keep private leverage, but Bao can deny you before a crowd.', playerDelta: { gold: 12 } },
+    ],
   },
   truth: {
-    route: 'truth', locationId: 'market', nodeId: 'market-teahouse',
+    route: 'truth', contactVi: 'Ngô', contactEn: 'Ngo', locationId: 'market', nodeId: 'market-teahouse',
     titleVi: 'Trà quán của Ngô · Bát thứ tám', titleEn: 'Ngo’s Teahouse · The Eighth Cup',
     textVi: 'Ngô đặt thêm một bát trà vào vòng bảy bát cũ. Bát thứ tám không có tên, chỉ có một vệt mực bị cạo đi. “Nghe nó,” ông bảo. “Phế căn của ngươi không giữ được linh khí, nhưng nó nhận ra chỗ một câu chuyện bị ai đó xé khỏi trang.”',
     textEn: 'Ngo adds an eighth cup to the old ring of seven. It holds no name, only scraped ink. “Listen,” he says. “Your defective root cannot hold qi, but it knows where someone tore a story from the page.”',
-    actionVi: 'Chép lại nét mực bị cạo bằng linh căn phế', actionEn: 'Trace the scraped ink with your defective root',
     proofVi: 'Bản sao của cái tên thứ tám', proofEn: 'Copy of the eighth name',
     aftermathVi: 'Đầu ngón tay ngươi tê buốt, nhưng nét mực hiện lại trên giấy. Ngô gấp bản sao thành một mảnh nhỏ vừa đủ để giấu trong tay áo.',
     aftermathEn: 'Your fingertips go numb, but the ink returns to the page. Ngo folds the copy into a slip small enough for your sleeve.',
-    playerDelta: { qi: -4, progress: 6 },
+    choices: [
+      { approach: 'present', labelVi: 'Chép tên thứ tám và đọc cho cả quán nghe', labelEn: 'Copy the eighth name and read it to the room', consequenceVi: 'Một ký ức trở về với nhiều người; linh căn phế trả giá bằng Qi.', consequenceEn: 'A memory returns to many people; your defective root pays in qi.', playerDelta: { qi: -6, progress: 9 } },
+      { approach: 'withhold', labelVi: 'Gấp bản sao vào tay áo, chỉ để Ngô biết', labelEn: 'Fold the copy into your sleeve; tell Ngo alone', consequenceVi: 'Ngươi giữ được nhân chứng kín, nhưng tên ấy chưa thể bảo vệ ai trước công đường.', consequenceEn: 'You keep a private witness, but the name cannot yet protect anyone in court.', playerDelta: { progress: 4 } },
+    ],
   },
 }
 
@@ -96,7 +111,9 @@ export function storyRouteEncounter(state: GameState): StoryRouteEncounter | und
 export function storyRouteProof(state: GameState): StoryRouteEncounter | undefined {
   if (state.flags.story_route_ready !== true) return undefined
   const route = state.flags.story_route
-  return typeof route === 'string' && route in ROUTE_ENCOUNTERS ? ROUTE_ENCOUNTERS[route as StoryRouteId] : undefined
+  return typeof route === 'string' && state.flags.story_route_proof === route && route in ROUTE_ENCOUNTERS
+    ? ROUTE_ENCOUNTERS[route as StoryRouteId]
+    : undefined
 }
 
 export function applyStoryRouteArrival(state: GameState, nodeId: string): GameState {

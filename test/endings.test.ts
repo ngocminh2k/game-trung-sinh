@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyAction, currentStoryScene, newGame, storyRouteEncounter, storyRouteProof } from '../src/engine'
+import { applyAction, currentStoryScene, findStoryChoice, newGame, storyRouteEncounter, storyRouteProof } from '../src/engine'
 import type { GameState } from '../src/engine'
 
 function choose(state: GameState, choiceId: string): GameState {
@@ -31,12 +31,12 @@ describe('branching story', () => {
   })
 
   it('splits the second act into three visible routes with immediate mechanical consequences', () => {
-    const routes: Array<[string, string, string, number, Array<'north' | 'south' | 'east' | 'west'>]> = [
-      ['warn_village', 'village_vow', 'listen_to_thread', 46, ['north', 'west']],
-      ['buy_silence', 'market_bargain', 'buy_ward', 60, ['west', 'west', 'west', 'west', 'south']],
-      ['ask_ngo', 'memory_trail', 'trace_erased_name', 40, ['west', 'west', 'east']],
+    const routes: Array<[string, string, string, number, Array<'north' | 'south' | 'east' | 'west'>, 'present' | 'withhold']> = [
+      ['warn_village', 'village_vow', 'listen_to_thread', 46, ['north', 'west'], 'present'],
+      ['buy_silence', 'market_bargain', 'buy_ward', 60, ['west', 'west', 'west', 'west', 'south'], 'present'],
+      ['ask_ngo', 'memory_trail', 'trace_erased_name', 38, ['west', 'west', 'east'], 'present'],
     ]
-    for (const [firstChoice, routeScene, routeChoice, expectedQi, steps] of routes) {
+    for (const [firstChoice, routeScene, routeChoice, expectedQi, steps, approach] of routes) {
       let state = newGame(`route-${routeScene}`)
       state = choose(state, 'return_pin')
       state = choose(state, firstChoice)
@@ -46,7 +46,7 @@ describe('branching story', () => {
       expect(state.flags.story_route_arrived).toBe(true)
       expect(state.flags.story_route_ready).not.toBe(true)
       expect(storyRouteEncounter(state)).toBeDefined()
-      const event = applyAction(state, { kind: 'resolve_route_event' })
+      const event = applyAction(state, { kind: 'resolve_route_event', approach })
       expect(event.events[0]).toMatchObject({ type: 'ROUTE_EVENT_RESOLVED' })
       state = event.state
       expect(state.flags.story_route_ready).toBe(true)
@@ -56,6 +56,24 @@ describe('branching story', () => {
       expect(state.player.qi).toBe(expectedQi)
       expect(currentStoryScene(state).id).toBe('cave_witness')
     }
+  })
+
+  it('turns public and concealed proof into different cave and trial choices', () => {
+    const base = newGame('proof-agency')
+    const publicProof = { ...base, flags: { ...base.flags, story_scene: 'cave_witness', story_route_ready: true, story_route: 'truth', story_proof_present: true } }
+    const concealedProof = { ...base, flags: { ...base.flags, story_scene: 'cave_witness', story_route_ready: true, story_route: 'truth', story_proof_withhold: true } }
+
+    expect(findStoryChoice(publicProof, 'record_ha')).toBeDefined()
+    expect(findStoryChoice(publicProof, 'bind_ha')).toBeUndefined()
+    expect(findStoryChoice(concealedProof, 'bind_ha')).toBeDefined()
+    expect(findStoryChoice(concealedProof, 'record_ha')).toBeUndefined()
+
+    const publicTrial = { ...publicProof, flags: { ...publicProof.flags, story_scene: 'sect_trial' } }
+    const concealedTrial = { ...concealedProof, flags: { ...concealedProof.flags, story_scene: 'sect_trial' } }
+    expect(findStoryChoice(publicTrial, 'expose_vo')).toBeDefined()
+    expect(findStoryChoice(publicTrial, 'take_mirror')).toBeUndefined()
+    expect(findStoryChoice(concealedTrial, 'take_mirror')).toBeDefined()
+    expect(findStoryChoice(concealedTrial, 'expose_vo')).toBeUndefined()
   })
 
   it('turns a route companion into a changed NPC conversation', () => {
@@ -70,7 +88,7 @@ describe('branching story', () => {
   it('turns the same final gesture into different endings from prior choices', () => {
     let truth = newGame('truth-ending')
     for (const id of ['study_letter', 'ask_ngo']) truth = choose(truth, id)
-    truth = { ...truth, flags: { ...truth.flags, story_route_ready: true } }
+    truth = { ...truth, flags: { ...truth.flags, story_route_ready: true, story_proof_present: true } }
     for (const id of ['trace_erased_name', 'record_ha', 'expose_vo', 'confess', 'open_last_page']) truth = choose(truth, id)
     expect(truth.terminal).toBe(true)
     expect(truth.endingId).toBe('rootless_star')

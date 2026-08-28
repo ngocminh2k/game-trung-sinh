@@ -126,7 +126,7 @@ describe('illustrated RPG UI', () => {
     expect(screen.getByTestId('journal-screen').hidden).toBe(true)
     const encounter = screen.getByTestId('route-encounter-screen')
     expect(within(encounter).getByRole('heading')).toBeTruthy()
-    expect(within(encounter).getByRole('button')).toBeTruthy()
+    expect(within(encounter).getAllByRole('button')).toHaveLength(2)
   })
 
   it('catalogs every authored location and technique exactly once after opening', () => {

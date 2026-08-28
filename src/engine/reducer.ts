@@ -160,7 +160,7 @@ function execAction(state: GameState, action: ConcreteAction): R {
     case 'combat_defend':
       return doCombatDefend(state)
     case 'resolve_route_event':
-      return doResolveRouteEvent(state)
+      return doResolveRouteEvent(state, action.approach)
     case 'story_choice':
       return doStoryChoice(state, action.choiceId)
     default: {
@@ -624,10 +624,11 @@ function doTalk(state: GameState, npcId: string): R {
   return { ok: true, state: s, events: [{ type: 'TALKED', npcId, lineVi: line.vi, lineEn: line.en }] }
 }
 
-function doResolveRouteEvent(state: GameState): R {
+function doResolveRouteEvent(state: GameState, approach: 'present' | 'withhold'): R {
   const encounter = storyRouteEncounter(state)
-  if (encounter === undefined) return err('STORY_CHOICE_UNAVAILABLE')
-  const delta = encounter.playerDelta
+  const choice = encounter?.choices.find((entry) => entry.approach === approach)
+  if (encounter === undefined || choice === undefined) return err('STORY_CHOICE_UNAVAILABLE')
+  const delta = choice.playerDelta
   const progressDelta = delta.progress ?? 0
   const qiDelta = delta.qi ?? 0
   const goldDelta = delta.gold ?? 0
@@ -640,6 +641,7 @@ function doResolveRouteEvent(state: GameState): R {
         story_route_arrived: false,
         story_route_ready: true,
         story_route_proof: encounter.route,
+        [`story_proof_${approach}`]: true,
         [`story_${encounter.route}_encountered`]: true,
       },
       player: {
@@ -652,6 +654,7 @@ function doResolveRouteEvent(state: GameState): R {
     events: [{
       type: 'ROUTE_EVENT_RESOLVED',
       route: encounter.route,
+      approach,
       proofVi: encounter.proofVi,
       proofEn: encounter.proofEn,
       progressDelta,

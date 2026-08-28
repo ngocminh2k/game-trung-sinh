@@ -49,6 +49,13 @@ describe('deriveObjective', () => {
     expect(deriveObjective(game, 'en')).toContain('on-site event')
   })
 
+  it('names the specific person waiting at an active route encounter', () => {
+    const base = newGame('route-encounter-contact')
+    const game = { ...base, flags: { ...base.flags, story_route: 'wealth', story_scene: 'market_bargain', story_route_arrived: true } }
+    expect(deriveObjective(game, 'vi')).toContain('Bảo đang chờ')
+    expect(deriveObjective(game, 'en')).toContain('Bao is waiting')
+  })
+
   it('uses the current narrative beat as the early-game objective', () => {
     const state = seededState()
 

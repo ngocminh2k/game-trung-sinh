@@ -591,6 +591,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           {routeProof !== undefined && <aside className="route-proof" data-testid="route-proof" aria-label={word(locale, 'Vật chứng mang theo', 'Carried proof')}>
             <p>{word(locale, 'Vật chứng mang theo', 'Carried proof')}</p>
             <strong>{word(locale, routeProof.proofVi, routeProof.proofEn)}</strong>
+            <em>{game.flags.story_proof_present === true ? word(locale, 'Đã công khai · mở lời chứng ở Hang và phiên xét xử', 'Public · opens testimony at the cave and trial') : word(locale, 'Đã giấu kín · mở đường bí mật ở Hang và phiên xét xử', 'Concealed · opens the covert path at the cave and trial')}</em>
             <span>{scene.id === 'cave_witness'
               ? word(locale, 'Hà nhận ra dấu mực này trước khi ngươi kịp nói tên mình.', 'Ha recognizes this mark before you can say your name.')
               : scene.id === 'sect_trial'
@@ -651,8 +652,13 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <h2 id="route-encounter-title">{word(locale, routeEncounter.titleVi, routeEncounter.titleEn)}</h2>
           <p className="route-encounter-text">{word(locale, routeEncounter.textVi, routeEncounter.textEn)}</p>
           <div className="route-encounter-action">
-            <p>{word(locale, 'Hành động tại chỗ', 'Act here')}</p>
-            <button autoFocus onClick={() => onAction({ kind: 'resolve_route_event' })} type="button">{word(locale, routeEncounter.actionVi, routeEncounter.actionEn)}</button>
+            <p>{word(locale, 'Chọn điều phải đánh đổi', 'Choose what to risk')}</p>
+            <div className="route-encounter-actions">
+              {routeEncounter.choices.map((choice, index) => <button autoFocus={index === 0} key={choice.approach} onClick={() => onAction({ kind: 'resolve_route_event', approach: choice.approach })} type="button">
+                <strong>{word(locale, choice.labelVi, choice.labelEn)}</strong>
+                <span>{word(locale, choice.consequenceVi, choice.consequenceEn)}</span>
+              </button>)}
+            </div>
           </div>
           <aside className="route-encounter-aftermath">
             <p>{word(locale, 'Vật chứng sẽ mang theo', 'Proof you will carry')}</p>

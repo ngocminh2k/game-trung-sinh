@@ -165,9 +165,12 @@ const TEMPLATES: Record<string, Handler> = {
   ROUTE_EVENT_RESOLVED: (ev, l) => {
     if (ev.type !== 'ROUTE_EVENT_RESOLVED') return ''
     const proof = l === 'vi' ? ev.proofVi : ev.proofEn
+    const method = ev.approach === 'present'
+      ? (l === 'vi' ? 'đã công khai' : 'is now public')
+      : (l === 'vi' ? 'đã được giấu kín' : 'is now concealed')
     return l === 'vi'
-      ? `Đầu mối không còn là dấu trên bản đồ. Ngươi mang theo ${proof} vào Hang Phong Ấn.`
-      : `The lead is no longer a mark on the map. You carry ${proof} into the Sealed Cave.`
+      ? `Đầu mối không còn là dấu trên bản đồ. ${proof} ${method}; ngươi mang nó vào Hang Phong Ấn.`
+      : `The lead is no longer a mark on the map. ${proof} ${method}; you carry it into the Sealed Cave.`
   },
   STORY_CHOICE: (ev, l) => {
     if (ev.type !== 'STORY_CHOICE') return ''

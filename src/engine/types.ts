@@ -93,7 +93,7 @@ export type Action =
   | { kind: 'start_encounter' }
   | { kind: 'combat_attack'; techniqueId: string }
   | { kind: 'combat_defend' }
-  | { kind: 'resolve_route_event' }
+  | { kind: 'resolve_route_event'; approach: 'present' | 'withhold' }
   | { kind: 'story_choice'; choiceId: string }
   | { kind: 'free_text'; raw: string }
   | { kind: 'restart'; seed: string }
@@ -142,7 +142,7 @@ export type GameEvent =
   | { type: 'WITHDRAWN'; itemId: string; qty: number }
   | { type: 'DRAW_RESULT'; tier: 'grand' | 'major' | 'minor' | 'herb' | 'none'; goldDelta: number; itemId?: string }
   | { type: 'TALKED'; npcId: string; lineVi?: string; lineEn?: string }
-  | { type: 'ROUTE_EVENT_RESOLVED'; route: 'mercy' | 'wealth' | 'truth'; proofVi: string; proofEn: string; progressDelta: number; qiDelta: number; goldDelta: number }
+  | { type: 'ROUTE_EVENT_RESOLVED'; route: 'mercy' | 'wealth' | 'truth'; approach: 'present' | 'withhold'; proofVi: string; proofEn: string; progressDelta: number; qiDelta: number; goldDelta: number }
   | { type: 'STORY_CHOICE'; sceneId: string; choiceId: string; nextSceneId: string | null }
   | { type: 'QUEST_ACCEPTED'; questId: string }
   | { type: 'QUEST_COMPLETED'; questId: string; rewardGold: number }
