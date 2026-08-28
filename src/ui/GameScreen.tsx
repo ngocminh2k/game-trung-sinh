@@ -28,6 +28,7 @@ import { locationBackdropFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
 import { deriveObjective } from './objective'
 import { DeathScreen } from './DeathScreen'
+import { endingEpilogue } from './endingEpilogue'
 import { itemArtFor, talentArtFor, techniqueArtFor } from './rpgArt'
 import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
@@ -264,6 +265,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const warning = dangerWarning(game.player.locationId)
   const localNpcs = NPCS.filter((npc) => npc.locationId === game.player.locationId)
   const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
+  const endingLines = ending === undefined ? [] : endingEpilogue(game, locale)
   const isDeath = game.terminal && game.endingId === 'tragic_death'
   const entries = Object.entries(game.inventory).filter(([, qty]) => qty > 0)
   const stored = Object.entries(game.storage).filter(([, qty]) => qty > 0)
@@ -411,6 +413,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <p>{word(locale, 'Kết cục đã định', 'Your ending')}</p>
             <h2>{localized(locale, ending)}</h2>
             <span>{locale === 'vi' ? ending.epitaphVi : ending.epitaphEn}</span>
+            <div className="ending-epilogue">
+              {endingLines.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}
+            </div>
           </section>
         )}
 
