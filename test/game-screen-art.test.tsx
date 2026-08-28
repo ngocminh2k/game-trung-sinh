@@ -114,6 +114,21 @@ describe('illustrated RPG UI', () => {
     expect(journal.hidden).toBe(true)
   })
 
+  it('turns a reached route node into a focused story encounter, not an unlocked choice panel', () => {
+    const base = newGame('route-event-screen')
+    const game = {
+      ...base,
+      flags: { ...base.flags, story_route: 'mercy', story_scene: 'village_vow', story_route_arrived: true },
+    }
+    render(<GameScreen game={game} locale="vi" chronicle={[]} onAction={() => undefined} onLocaleChange={() => undefined} />)
+
+    expect(screen.getByTestId('world-content').hidden).toBe(true)
+    expect(screen.getByTestId('journal-screen').hidden).toBe(true)
+    const encounter = screen.getByTestId('route-encounter-screen')
+    expect(within(encounter).getByRole('heading')).toBeTruthy()
+    expect(within(encounter).getByRole('button')).toBeTruthy()
+  })
+
   it('catalogs every authored location and technique exactly once after opening', () => {
     renderScreen()
     openJournal()

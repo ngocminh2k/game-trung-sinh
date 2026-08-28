@@ -1,5 +1,5 @@
 import { ENEMIES, getLocation, getRegionMap } from '../content'
-import { currentStoryScene, storyRouteTarget, type GameState, type Locale } from '../engine'
+import { currentStoryScene, storyRouteEncounter, storyRouteTarget, type GameState, type Locale } from '../engine'
 import { t } from '../i18n'
 
 function locationName(locationId: string, locale: Locale): string {
@@ -15,6 +15,12 @@ export function deriveObjective(game: GameState, locale: Locale): string | null 
   if (game.terminal) return null
   if (game.encounter !== null) {
     return t(locale, 'ui.objective.battle')
+  }
+  const routeEncounter = storyRouteEncounter(game)
+  if (routeEncounter !== undefined) {
+    return locale === 'vi'
+      ? `Mai Hoa/Bảo/Ngô đang chờ câu trả lời của ngươi. Hoàn tất sự kiện tại chỗ trước khi quay lại lựa chọn.`
+      : `Your lead is waiting for an answer. Resolve the on-site event before returning to the choice.`
   }
   const routeTarget = storyRouteTarget(game)
   if (routeTarget !== undefined) {

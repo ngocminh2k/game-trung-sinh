@@ -43,6 +43,12 @@ describe('deriveObjective', () => {
     expect(deriveObjective(game, 'vi')).toContain('Hiên nhà Cụ Mai Hoa')
   })
 
+  it('keeps a reached route as an on-site encounter until its action is resolved', () => {
+    const base = newGame('route-encounter-objective')
+    const game = { ...base, flags: { ...base.flags, story_route: 'mercy', story_scene: 'village_vow', story_route_arrived: true } }
+    expect(deriveObjective(game, 'en')).toContain('on-site event')
+  })
+
   it('uses the current narrative beat as the early-game objective', () => {
     const state = seededState()
 

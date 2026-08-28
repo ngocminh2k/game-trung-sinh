@@ -1,6 +1,6 @@
 export { newlyQualifiedAchievements } from './achievements'
 export { currentBeat } from './beats'
-export { currentStoryScene, findStoryChoice, storyRouteTarget } from './story'
+export { currentStoryScene, findStoryChoice, storyRouteEncounter, storyRouteProof, storyRouteTarget } from './story'
 export {
   CORRECTION_LIMIT,
   DEFAULT_SEED,

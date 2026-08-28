@@ -36,7 +36,7 @@ import { checkLottery, drawEventFor, rollLottery } from './lottery'
 import { checkMoveFrom } from './map'
 import { applyProgress, trainProgressGain } from './stats'
 import { canAcceptQuest, canCompleteQuest } from './quests'
-import { applyStoryEffects, applyStoryRouteArrival, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding } from './story'
+import { applyStoryEffects, applyStoryRouteArrival, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding, storyRouteEncounter } from './story'
 import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
@@ -159,6 +159,8 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doCombatAttack(state, action.techniqueId)
     case 'combat_defend':
       return doCombatDefend(state)
+    case 'resolve_route_event':
+      return doResolveRouteEvent(state)
     case 'story_choice':
       return doStoryChoice(state, action.choiceId)
     default: {
@@ -620,6 +622,43 @@ function doTalk(state: GameState, npcId: string): R {
   }
   const line = dialogueForNpc(s, npcId)
   return { ok: true, state: s, events: [{ type: 'TALKED', npcId, lineVi: line.vi, lineEn: line.en }] }
+}
+
+function doResolveRouteEvent(state: GameState): R {
+  const encounter = storyRouteEncounter(state)
+  if (encounter === undefined) return err('STORY_CHOICE_UNAVAILABLE')
+  const delta = encounter.playerDelta
+  const progressDelta = delta.progress ?? 0
+  const qiDelta = delta.qi ?? 0
+  const goldDelta = delta.gold ?? 0
+  return {
+    ok: true,
+    state: {
+      ...state,
+      flags: {
+        ...state.flags,
+        story_route_arrived: false,
+        story_route_ready: true,
+        story_route_proof: encounter.route,
+        [`story_${encounter.route}_encountered`]: true,
+      },
+      player: {
+        ...state.player,
+        progress: Math.max(0, state.player.progress + progressDelta),
+        qi: clamp(state.player.qi + qiDelta, 0, MAX_QI),
+        gold: Math.max(0, state.player.gold + goldDelta),
+      },
+    },
+    events: [{
+      type: 'ROUTE_EVENT_RESOLVED',
+      route: encounter.route,
+      proofVi: encounter.proofVi,
+      proofEn: encounter.proofEn,
+      progressDelta,
+      qiDelta,
+      goldDelta,
+    }],
+  }
 }
 
 function doStoryChoice(state: GameState, choiceId: string): R {

@@ -6,11 +6,65 @@ import type { GameState } from './types'
 const FIRST_SCENE_ID = 'letter_at_dawn'
 
 export type StoryRouteTarget = { locationId: string; nodeId: string }
+export type StoryRouteId = 'mercy' | 'wealth' | 'truth'
+
+export type StoryRouteEncounter = {
+  route: StoryRouteId
+  locationId: string
+  nodeId: string
+  titleVi: string
+  titleEn: string
+  textVi: string
+  textEn: string
+  actionVi: string
+  actionEn: string
+  proofVi: string
+  proofEn: string
+  aftermathVi: string
+  aftermathEn: string
+  playerDelta: { progress?: number; qi?: number; gold?: number }
+}
 
 const ROUTE_TARGETS: Record<string, StoryRouteTarget> = {
   mercy: { locationId: 'village', nodeId: 'village-elder' },
   wealth: { locationId: 'market', nodeId: 'market-stalls' },
   truth: { locationId: 'market', nodeId: 'market-teahouse' },
+}
+
+const ROUTE_ENCOUNTERS: Record<StoryRouteId, StoryRouteEncounter> = {
+  mercy: {
+    route: 'mercy', locationId: 'village', nodeId: 'village-elder',
+    titleVi: 'Hiên nhà Mai Hoa · Nút dây cuối', titleEn: 'Meihua’s Porch · The Last Knot',
+    textVi: 'Mai Hoa không đưa đáp án. Bà đặt trước mặt ngươi cuộn điểm danh bảy nhà, một cái tên bị mưa làm nhòe. “Đọc nó đi,” bà nói. “Không phải để ta tin ngươi — để người bị quên biết còn có người gọi.” Linh căn phế của ngươi nghe thấy tiếng thở ở khoảng mực trắng.',
+    textEn: 'Meihua offers no answer. She lays out the roll call of seven homes, one name blurred by rain. “Read it,” she says. “Not so I believe you — so the forgotten know someone still calls.” Your defective root hears a breath in the white space of the ink.',
+    actionVi: 'Buộc nút dây đỏ vào cái tên bị xóa', actionEn: 'Tie red thread around the erased name',
+    proofVi: 'Cuộn điểm danh bảy nhà', proofEn: 'Roll call of seven homes',
+    aftermathVi: 'Mai Hoa đóng dấu son lên cuộn điểm danh. Đây không phải lời hứa nữa; đây là tên những người có thể đứng ra làm chứng.',
+    aftermathEn: 'Meihua presses vermilion onto the roll. This is no longer a promise; these are names that can testify.',
+    playerDelta: { progress: 6 },
+  },
+  wealth: {
+    route: 'wealth', locationId: 'market', nodeId: 'market-stalls',
+    titleVi: 'Lối sau chợ · Bùa nứt', titleEn: 'Market Back Lane · The Cracked Ward',
+    textVi: 'Bảo chặn đường ngươi bằng một mảnh phù nứt, phía sau là tiếng người mua mặc cả như chẳng có ai sắp bị xóa khỏi đời. “Ta không cần ngươi tin ta,” hắn nói. “Ta cần ngươi ký tên vào món nợ này, để kẻ thuê ta biết chúng không mua được cả hai.”',
+    textEn: 'Bao bars your way with a cracked ward while buyers bargain behind him as if nobody is about to be erased. “I do not need your trust,” he says. “Sign this debt, so my employer learns they cannot buy us both.”',
+    actionVi: 'Ép dấu tay lên khế nợ và giữ nửa mảnh phù', actionEn: 'Press your thumbprint into the debt and keep half the ward',
+    proofVi: 'Nửa phù khế của Bảo', proofEn: 'Bao’s half-contract ward',
+    aftermathVi: 'Bảo bẻ phù làm đôi, giữ một nửa và nhét nửa kia vào tay ngươi. Trên mặt phù có dấu hiệu của kẻ đã trả tiền theo dõi ngươi.',
+    aftermathEn: 'Bao snaps the ward in two, keeping one half and pushing the other into your palm. Its face bears the mark of whoever paid to watch you.',
+    playerDelta: { gold: 8 },
+  },
+  truth: {
+    route: 'truth', locationId: 'market', nodeId: 'market-teahouse',
+    titleVi: 'Trà quán của Ngô · Bát thứ tám', titleEn: 'Ngo’s Teahouse · The Eighth Cup',
+    textVi: 'Ngô đặt thêm một bát trà vào vòng bảy bát cũ. Bát thứ tám không có tên, chỉ có một vệt mực bị cạo đi. “Nghe nó,” ông bảo. “Phế căn của ngươi không giữ được linh khí, nhưng nó nhận ra chỗ một câu chuyện bị ai đó xé khỏi trang.”',
+    textEn: 'Ngo adds an eighth cup to the old ring of seven. It holds no name, only scraped ink. “Listen,” he says. “Your defective root cannot hold qi, but it knows where someone tore a story from the page.”',
+    actionVi: 'Chép lại nét mực bị cạo bằng linh căn phế', actionEn: 'Trace the scraped ink with your defective root',
+    proofVi: 'Bản sao của cái tên thứ tám', proofEn: 'Copy of the eighth name',
+    aftermathVi: 'Đầu ngón tay ngươi tê buốt, nhưng nét mực hiện lại trên giấy. Ngô gấp bản sao thành một mảnh nhỏ vừa đủ để giấu trong tay áo.',
+    aftermathEn: 'Your fingertips go numb, but the ink returns to the page. Ngo folds the copy into a slip small enough for your sleeve.',
+    playerDelta: { qi: -4, progress: 6 },
+  },
 }
 
 function flagNumber(state: GameState, key: string): number {
@@ -28,15 +82,27 @@ export function currentStoryScene(state: GameState): StorySceneDef {
 }
 
 export function storyRouteTarget(state: GameState): StoryRouteTarget | undefined {
-  if (state.flags.story_route_ready === true) return undefined
+  if (state.flags.story_route_ready === true || state.flags.story_route_arrived === true) return undefined
   const route = state.flags.story_route
   return typeof route === 'string' ? ROUTE_TARGETS[route] : undefined
+}
+
+export function storyRouteEncounter(state: GameState): StoryRouteEncounter | undefined {
+  if (state.flags.story_route_arrived !== true || state.flags.story_route_ready === true) return undefined
+  const route = state.flags.story_route
+  return typeof route === 'string' && route in ROUTE_ENCOUNTERS ? ROUTE_ENCOUNTERS[route as StoryRouteId] : undefined
+}
+
+export function storyRouteProof(state: GameState): StoryRouteEncounter | undefined {
+  if (state.flags.story_route_ready !== true) return undefined
+  const route = state.flags.story_route
+  return typeof route === 'string' && route in ROUTE_ENCOUNTERS ? ROUTE_ENCOUNTERS[route as StoryRouteId] : undefined
 }
 
 export function applyStoryRouteArrival(state: GameState, nodeId: string): GameState {
   const target = storyRouteTarget(state)
   if (target === undefined || target.locationId !== state.player.locationId || target.nodeId !== nodeId) return state
-  return { ...state, flags: { ...state.flags, story_route_ready: true } }
+  return { ...state, flags: { ...state.flags, story_route_arrived: true } }
 }
 
 export function findStoryChoice(state: GameState, choiceId: string): StoryChoiceDef | undefined {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyAction, currentStoryScene, newGame } from '../src/engine'
+import { applyAction, currentStoryScene, newGame, storyRouteEncounter, storyRouteProof } from '../src/engine'
 import type { GameState } from '../src/engine'
 
 function choose(state: GameState, choiceId: string): GameState {
@@ -34,7 +34,7 @@ describe('branching story', () => {
     const routes: Array<[string, string, string, number, Array<'north' | 'south' | 'east' | 'west'>]> = [
       ['warn_village', 'village_vow', 'listen_to_thread', 46, ['north', 'west']],
       ['buy_silence', 'market_bargain', 'buy_ward', 60, ['west', 'west', 'west', 'west', 'south']],
-      ['ask_ngo', 'memory_trail', 'trace_erased_name', 44, ['west', 'west', 'east']],
+      ['ask_ngo', 'memory_trail', 'trace_erased_name', 40, ['west', 'west', 'east']],
     ]
     for (const [firstChoice, routeScene, routeChoice, expectedQi, steps] of routes) {
       let state = newGame(`route-${routeScene}`)
@@ -43,7 +43,15 @@ describe('branching story', () => {
       expect(currentStoryScene(state).id).toBe(routeScene)
       expect(applyAction(state, { kind: 'story_choice', choiceId: routeChoice }).events[0]).toMatchObject({ type: 'ERROR', code: 'STORY_CHOICE_UNAVAILABLE' })
       for (const step of steps) state = move(state, step)
+      expect(state.flags.story_route_arrived).toBe(true)
+      expect(state.flags.story_route_ready).not.toBe(true)
+      expect(storyRouteEncounter(state)).toBeDefined()
+      const event = applyAction(state, { kind: 'resolve_route_event' })
+      expect(event.events[0]).toMatchObject({ type: 'ROUTE_EVENT_RESOLVED' })
+      state = event.state
       expect(state.flags.story_route_ready).toBe(true)
+      expect(state.flags.story_route_arrived).not.toBe(true)
+      expect(storyRouteProof(state)).toBeDefined()
       state = choose(state, routeChoice)
       expect(state.player.qi).toBe(expectedQi)
       expect(currentStoryScene(state).id).toBe('cave_witness')

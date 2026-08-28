@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame } from './engine'
+import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, storyRouteEncounter } from './engine'
 import type { Action, GameEvent, Locale } from './engine'
 import { requestNarration } from './ai/narration'
 import { GameScreen } from './ui/GameScreen'
@@ -99,6 +99,10 @@ function App() {
       const target = event.target
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return
       const move = movement[event.key]
+      if (storyRouteEncounter(sessionRef.current.game) !== undefined && (move !== undefined || /^[1-3]$/.test(event.key))) {
+        event.preventDefault()
+        return
+      }
       if (move !== undefined) {
         event.preventDefault()
         act(move)

@@ -162,6 +162,13 @@ const TEMPLATES: Record<string, Handler> = {
       ? `${nameOf('npc', ev.npcId, l)}: “${ev.lineVi ?? getNpc(ev.npcId)?.greetVi ?? '...'}”`
       : `${nameOf('npc', ev.npcId, l)}: “${ev.lineEn ?? getNpc(ev.npcId)?.greetEn ?? '...'}”`
   },
+  ROUTE_EVENT_RESOLVED: (ev, l) => {
+    if (ev.type !== 'ROUTE_EVENT_RESOLVED') return ''
+    const proof = l === 'vi' ? ev.proofVi : ev.proofEn
+    return l === 'vi'
+      ? `Đầu mối không còn là dấu trên bản đồ. Ngươi mang theo ${proof} vào Hang Phong Ấn.`
+      : `The lead is no longer a mark on the map. You carry ${proof} into the Sealed Cave.`
+  },
   STORY_CHOICE: (ev, l) => {
     if (ev.type !== 'STORY_CHOICE') return ''
     const scene = getStoryScene(ev.sceneId)

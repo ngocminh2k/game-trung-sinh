@@ -19,7 +19,7 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { currentStoryScene, dangerWarning, findStoryChoice, storageRemaining, storyRouteTarget } from '../engine'
+import { currentStoryScene, dangerWarning, findStoryChoice, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget } from '../engine'
 import type { Action, GameState, Locale } from '../engine'
 import type { ItemDef } from '../engine/content-types'
 import itemsStillLife from '../assets/art/items-still-life.png'
@@ -188,6 +188,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     || (actionKind === 'use_item' && game.encounter !== null)
   const showHurtFeedback = hurtFeedbackNonce === actionNonce
   const playerPose = playerPoseFor(actionKind, game, showHurtFeedback)
+  const routeEncounter = storyRouteEncounter(game)
   useEffect(() => {
     if (processedActionNonce.current === actionNonce) return
 
@@ -216,7 +217,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         window.requestAnimationFrame(() => journalLauncher.current?.focus())
         return
       }
-      if (event.key.toLowerCase() === 'i' && !journalOpen && !isTyping) {
+      if (event.key.toLowerCase() === 'i' && !journalOpen && routeEncounter === undefined && !isTyping) {
         event.preventDefault()
         setActiveDock('inventory')
         setJournalOpen(true)
@@ -225,7 +226,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 
     window.addEventListener('keydown', handleJournalShortcut)
     return () => window.removeEventListener('keydown', handleJournalShortcut)
-  }, [journalOpen])
+  }, [journalOpen, routeEncounter])
   const objective = deriveObjective(game, locale)
   const [deathDismissed, setDeathDismissed] = useState(false)
   useEffect(() => {
@@ -263,6 +264,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         ? word(locale, 'Ngô chờ ở trà quán; bảy bát trà giữ những mảnh ký ức thất lạc.', 'Ngo waits in the teahouse; seven cups hold the missing memories.')
         : null
   const routeTarget = storyRouteTarget(game)
+  const routeProof = storyRouteProof(game)
   const routeStatus = routeLead === null
     ? null
     : routeTarget === undefined
@@ -367,7 +369,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
         <div className="topbar-actions">
           <span className="day-chip">{word(locale, 'Ngày', 'Day')} {game.day}</span>
-          {!journalOpen && <button
+          {!journalOpen && routeEncounter === undefined && <button
             aria-controls="journal-screen"
             aria-label={word(locale, 'Mở Hành trang và giang hồ', 'Open Journey journal')}
             className="journal-launcher"
@@ -390,7 +392,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
       </header>
 
-      <div className="world-content" data-testid="world-content" hidden={journalOpen}>
+      <div className="world-content" data-testid="world-content" hidden={journalOpen || routeEncounter !== undefined}>
       <div className="stage-notices">
         <section className="chapter-banner" aria-label={word(locale, 'Chương truyện hiện tại', 'Current story chapter')}>
           <p>{word(locale, 'Chương hiện tại', 'Current chapter')}</p>
@@ -586,6 +588,17 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             </section>
           )}
 
+          {routeProof !== undefined && <aside className="route-proof" data-testid="route-proof" aria-label={word(locale, 'Vật chứng mang theo', 'Carried proof')}>
+            <p>{word(locale, 'Vật chứng mang theo', 'Carried proof')}</p>
+            <strong>{word(locale, routeProof.proofVi, routeProof.proofEn)}</strong>
+            <span>{scene.id === 'cave_witness'
+              ? word(locale, 'Hà nhận ra dấu mực này trước khi ngươi kịp nói tên mình.', 'Ha recognizes this mark before you can say your name.')
+              : scene.id === 'sect_trial'
+                ? word(locale, 'Nó có thể được đặt lên bàn xét xử — hoặc giấu đi cùng một lời nói dối.', 'You can lay it on the trial table — or hide it with a lie.')
+                : word(locale, 'Nó ở trong tay áo, sẵn sàng theo ngươi qua cửa hang.', 'It rests in your sleeve, ready to cross the cave threshold with you.')}
+            </span>
+          </aside>}
+
           <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')} id="story-chronicle" ref={chronicleRef} tabIndex={-1}>
             <p className="section-kicker">{word(locale, 'Biên niên ký', 'Chronicle')}</p>
             <ol>
@@ -630,7 +643,26 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       </div>
       </div>
 
-      <section className="journal-screen system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="journal-screen" hidden={!journalOpen} id="journal-screen">
+      {routeEncounter !== undefined && <section className="route-encounter-screen parchment-panel" aria-labelledby="route-encounter-title" data-testid="route-encounter-screen">
+        <InkCorner corner="top-left" />
+        <div className="route-encounter-copy">
+          <p className="eyebrow">{word(locale, 'Sự kiện tuyến truyện · tại chỗ', 'Story route encounter · on site')}</p>
+          <p className="route-encounter-location">{location === undefined ? game.player.locationId : localized(locale, location)}</p>
+          <h2 id="route-encounter-title">{word(locale, routeEncounter.titleVi, routeEncounter.titleEn)}</h2>
+          <p className="route-encounter-text">{word(locale, routeEncounter.textVi, routeEncounter.textEn)}</p>
+          <div className="route-encounter-action">
+            <p>{word(locale, 'Hành động tại chỗ', 'Act here')}</p>
+            <button autoFocus onClick={() => onAction({ kind: 'resolve_route_event' })} type="button">{word(locale, routeEncounter.actionVi, routeEncounter.actionEn)}</button>
+          </div>
+          <aside className="route-encounter-aftermath">
+            <p>{word(locale, 'Vật chứng sẽ mang theo', 'Proof you will carry')}</p>
+            <strong>{word(locale, routeEncounter.proofVi, routeEncounter.proofEn)}</strong>
+            <span>{word(locale, routeEncounter.aftermathVi, routeEncounter.aftermathEn)}</span>
+          </aside>
+        </div>
+      </section>}
+
+      <section className="journal-screen system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="journal-screen" hidden={!journalOpen || routeEncounter !== undefined} id="journal-screen">
         <InkCorner corner="bottom-left" />
         <div className="journal-heading dock-heading">
           <div>
