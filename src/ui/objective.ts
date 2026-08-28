@@ -1,5 +1,5 @@
-import { ENEMIES, getLocation } from '../content'
-import { currentStoryScene, type GameState, type Locale } from '../engine'
+import { ENEMIES, getLocation, getRegionMap } from '../content'
+import { currentStoryScene, storyRouteTarget, type GameState, type Locale } from '../engine'
 import { t } from '../i18n'
 
 function locationName(locationId: string, locale: Locale): string {
@@ -15,6 +15,14 @@ export function deriveObjective(game: GameState, locale: Locale): string | null 
   if (game.terminal) return null
   if (game.encounter !== null) {
     return t(locale, 'ui.objective.battle')
+  }
+  const routeTarget = storyRouteTarget(game)
+  if (routeTarget !== undefined) {
+    const node = getRegionMap(routeTarget.locationId)?.cells.find((cell) => cell.node?.id === routeTarget.nodeId)?.node
+    const targetName = node === undefined ? locationName(routeTarget.locationId, locale) : locale === 'vi' ? node.nameVi : node.nameEn
+    return locale === 'vi'
+      ? `Đến ${targetName} theo dấu son trên bản đồ. Gặp đầu mối này để mở lựa chọn tiếp theo.`
+      : `Reach ${targetName}, marked in vermilion on the map. Meeting this lead opens your next choice.`
   }
   const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
   if (localEnemy !== undefined && game.flags[`defeated_${localEnemy.id}`] !== true) {

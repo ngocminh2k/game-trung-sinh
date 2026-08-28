@@ -37,6 +37,12 @@ describe('deriveObjective', () => {
     expect(deriveObjective(state, 'vi')).toContain('lời chứng của Hà')
   })
 
+  it('makes an unresolved route target louder than the cultivation grind', () => {
+    const base = newGame('route-objective')
+    const game = { ...base, flags: { ...base.flags, story_route: 'mercy', story_scene: 'village_vow' } }
+    expect(deriveObjective(game, 'vi')).toContain('Hiên nhà Cụ Mai Hoa')
+  })
+
   it('uses the current narrative beat as the early-game objective', () => {
     const state = seededState()
 

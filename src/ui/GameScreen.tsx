@@ -554,7 +554,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                   type="button"
                 >
                   <span>{index + 1}</span>
-                  <span className="story-choice-copy"><strong>{locale === 'vi' ? choice.labelVi : choice.labelEn}</strong><small>{lockedByRoute ? word(locale, 'Trước hết hãy đến đúng dấu vết được đóng trên bản đồ.', 'First reach the sealed story lead on the map.') : locale === 'vi' ? choice.consequenceVi : choice.consequenceEn}</small></span>
+                  <span className="story-choice-copy"><strong>{lockedByRoute && <i aria-hidden="true" className="choice-lock">◆</i>}{locale === 'vi' ? choice.labelVi : choice.labelEn}</strong><small>{lockedByRoute ? word(locale, 'Trước hết hãy đến đúng dấu vết được đóng trên bản đồ.', 'First reach the sealed story lead on the map.') : locale === 'vi' ? choice.consequenceVi : choice.consequenceEn}</small></span>
                   <i aria-hidden="true" className="choice-seal">{HAN_SEALS.choice}</i>
                 </button>
                   )
