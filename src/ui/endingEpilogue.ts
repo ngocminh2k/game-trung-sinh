@@ -1,4 +1,5 @@
 import type { GameState, Locale } from '../engine'
+import { storyRouteProof } from '../engine/story'
 
 function word(locale: Locale, vi: string, en: string): string {
   return locale === 'vi' ? vi : en
@@ -37,5 +38,11 @@ export function endingEpilogue(game: GameState, locale: Locale): string[] {
       : game.flags.story_ngo_companion === true
         ? word(locale, 'Ngô viết lại câu chuyện lần này, chừa hẳn một trang cho những chỗ chưa ai dám gọi là kết thúc.', 'Ngo writes the story again, leaving a whole page for the parts no one yet dares call an ending.')
         : word(locale, 'Không ai đi cùng ngươi tới cuối đường, nhưng những dấu chân ngươi để lại vẫn buộc người khác phải chọn xem họ sẽ bước tiếp ra sao.', 'No one walks with you to the end, but the footprints you leave still force others to choose how they will go on.')
-  return [word(locale, outcome.vi, outcome.en), meihuaAndHa, khoaAndVo, companionEcho]
+  const carried = storyRouteProof(game)
+  const proofEcho = carried === undefined
+    ? word(locale, 'Không một vật chứng nào theo ngươi tới cuối đường; những lời kể chỉ còn là gió qua kẽ cửa.', 'No evidence travelled with you to the end; the testimonies are only wind through the door-gap.')
+    : game.flags.story_proof_present === true
+      ? word(locale, `Vật chứng — ${carried.proofVi} — vẫn nằm trên bàn xét xử, mở ra cho người khác đọc.`, `The evidence — ${carried.proofEn} — still lies on the trial table, open for anyone to read.`)
+      : word(locale, `Vật chứng — ${carried.proofVi} — vẫn giấu trong tay áo, một con đường không ai khác được mở.`, `The evidence — ${carried.proofEn} — stays folded in your sleeve, a path no one else can open.`)
+  return [word(locale, outcome.vi, outcome.en), meihuaAndHa, khoaAndVo, companionEcho, proofEcho]
 }

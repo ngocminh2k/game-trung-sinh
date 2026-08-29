@@ -31,7 +31,7 @@ describe('RPG art registry', () => {
     expect(talentPack?.requiredAssetCount).toBe(TALENTS.length + TECHNIQUES.length)
     expect(talentPack?.loadedAssets).toBe(19)
     expect(talentPack?.status).toBe('ready')
-    expect(itemPack?.requiredAssetCount).toBe(ITEMS.length)
+    expect(itemPack?.requiredAssetCount).toBe(ITEMS.filter((item) => item.illustrated !== false).length)
     expect(itemPack?.loadedAssets).toBe(35)
     expect(itemPack?.status).toBe('ready')
     expect(assetPackProgress(ASSET_PACK_MANIFEST).loaded).toBe(103)

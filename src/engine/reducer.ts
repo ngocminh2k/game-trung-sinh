@@ -636,6 +636,7 @@ function doResolveRouteEvent(state: GameState, approach: 'present' | 'withhold')
     ok: true,
     state: {
       ...state,
+      inventory: bump(state.inventory, `evidence_route_${encounter.route}`, 1),
       flags: {
         ...state.flags,
         story_route_arrived: false,

@@ -15,6 +15,9 @@ export interface ItemDef {
   requiredStage?: number
   buyPrice: number | null
   sellPrice: number | null
+  /** Evidence records are abstract documents, not illustrated goods; they are
+   * excluded from the shipped illustration manifest and fall back to still-life art. */
+  illustrated?: boolean
 }
 
 /** A market exchange turns exploration or combat loot into a concrete

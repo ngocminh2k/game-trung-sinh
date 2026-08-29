@@ -8,8 +8,8 @@ describe('ending epilogue', () => {
     const game = { ...base, endingId: 'forgiven_enemy', flags: { ...base.flags, story_meihua_trusted: true, story_ha_free: true, story_khoa_trusted: true, story_meihua_companion: true } }
     const vi = endingEpilogue(game, 'vi')
     const en = endingEpilogue(game, 'en')
-    expect(vi).toHaveLength(4)
-    expect(en).toHaveLength(4)
+    expect(vi).toHaveLength(5)
+    expect(en).toHaveLength(5)
     expect(vi.join(' ')).toContain('Hà')
     expect(vi.join(' ')).toContain('Khoa')
     expect(en.join(' ')).toContain('Khoa')

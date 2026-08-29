@@ -38,7 +38,7 @@ export interface AssetPackProgress {
  * been registered in the build; it does not claim a runtime lazy-loader or
  * per-file browser fetch verification.
  */
-const ITEM_ART_REQUIRED = ITEMS.length
+const ITEM_ART_REQUIRED = ITEMS.filter((item) => item.illustrated !== false).length
 const TALENT_TECH_ART_REQUIRED = TALENTS.length + TECHNIQUES.length
 
 const itemArtLoaded = itemArtCount()
