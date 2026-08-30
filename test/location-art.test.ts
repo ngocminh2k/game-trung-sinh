@@ -8,7 +8,7 @@ import {
 
 describe('Scenario I location art registry', () => {
   it('registers one illustrated backdrop for every playable Scenario I location', () => {
-    expect(SCENARIO_ONE_LOCATION_IDS).toHaveLength(8)
+    expect(SCENARIO_ONE_LOCATION_IDS).toHaveLength(16)
     expect(LOCATIONS.map((location) => location.id)).toEqual([...SCENARIO_ONE_LOCATION_IDS])
 
     for (const location of LOCATIONS) {

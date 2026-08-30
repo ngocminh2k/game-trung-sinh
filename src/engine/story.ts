@@ -1,6 +1,6 @@
 import { getNpc, getStoryScene } from '../content'
 import { MAX_HP, MAX_QI } from './constants'
-import type { StoryChoiceDef, StorySceneDef } from './content-types'
+import type { NpcLine, StoryChoiceDef, StorySceneDef } from './content-types'
 import type { GameState } from './types'
 
 const FIRST_SCENE_ID = 'letter_at_dawn'
@@ -275,5 +275,31 @@ export function dialogueForNpc(state: GameState, npcId: string): { vi: string; e
     n_master_vo: { vi: '“Ta xóa ký ức vì sợ họ chết vì nó. Nếu ngươi mở gương, hãy chắc rằng ngươi không chỉ muốn được tha thứ.”', en: '“I erased memory because I feared it would kill them. If you open the mirror, be sure you do not only want forgiveness.”' },
   }
   const npc = getNpc(npcId)
-  return special[npcId] ?? { vi: npc?.greetVi ?? npcId, en: npc?.greetEn ?? npcId }
+  const matched = matchNpcLine(state, npcId, scene)
+  if (matched !== undefined) return matched
+  if (special[npcId] !== undefined) return special[npcId]!
+  if (npc === undefined) return { vi: npcId, en: npcId }
+  // Only an otherwise unmatched repeated conversation varies the old greeting.
+  return state.flags.lastTalkRepeated === true && flagNumber(state, 'talkCount') % 2 === 0
+    ? { vi: `Người ấy hạ giọng: ${npc.greetVi}`, en: `${npc.nameEn} lowers their voice: ${npc.greetEn}` }
+    : { vi: npc.greetVi, en: npc.greetEn }
 }
+
+function matchNpcLine(state: GameState, npcId: string, scene: string): { vi: string; en: string } | undefined {
+  const npc = getNpc(npcId)
+  if (npc?.lines === undefined) return undefined
+  const aff = flagNumber(state, `aff_${npcId}`)
+  return npc.lines.find((line) => matchesLine(state, line.when, { aff, scene }))
+}
+
+function matchesLine(state: GameState, when: NpcLine['when'], ctx: { aff: number; scene: string }): boolean {
+  if (when.affMin !== undefined && ctx.aff < when.affMin) return false
+  if (when.affMax !== undefined && ctx.aff > when.affMax) return false
+  if (when.dayMin !== undefined && state.day < when.dayMin) return false
+  if (when.questDone !== undefined && state.quests[when.questDone]?.status !== 'completed') return false
+  if (when.questActive !== undefined && state.quests[when.questActive]?.status !== 'active') return false
+  if (when.flag !== undefined && state.flags[when.flag] !== true) return false
+  if (when.scene !== undefined && when.scene !== ctx.scene) return false
+  return true
+}
+

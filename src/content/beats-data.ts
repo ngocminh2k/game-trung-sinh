@@ -285,7 +285,7 @@ export const BEATS: Array<BeatDef & { predicate: BeatPredicateId }> = [
     suggested: [
       { kind: 'train' },
       { kind: 'rest' },
-      { kind: 'complete_quest', questId: 'q_sealed_cave' },
+      { kind: 'complete_quest', questId: 'q_main_sealed_cave' },
     ],
   },
   {

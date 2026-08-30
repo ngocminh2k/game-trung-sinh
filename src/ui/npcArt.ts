@@ -35,7 +35,7 @@ import xiaobao from '../assets/art/npcs/xiaobao.png'
  * NPC art can be generated independently and registered here without touching
  * game rules, saves, or dialogue content.
  */
-const INDIVIDUAL_NPC_PORTRAITS: Record<string, string> = {
+export const INDIVIDUAL_NPC_PORTRAITS: Record<string, string> = {
   n_elder_meihua: elderMeihua,
   n_guard_truong: guardTruong,
   n_kid_xiaobao: xiaobao,

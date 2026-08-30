@@ -42,8 +42,9 @@ import { checkLottery, drawEventFor, rollLottery } from './lottery'
 import { checkMoveFrom } from './map'
 import { currentBeat } from './beats'
 import { applyProgress, trainProgressGain } from './stats'
-import { canAcceptQuest, canCompleteQuest } from './quests'
+import { canAcceptQuest, canCompleteQuest, tickQuestSteps } from './quests'
 import { applyStoryEffects, applyStoryRouteArrival, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding, storyRouteEncounter } from './story'
+import { applyRomanceChoice, findRomanceChoice, hasOtherCommitment } from './romance'
 import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
@@ -176,6 +177,8 @@ function forgottenNameFor(state: GameState): string {
 function finalize(state: GameState, events: GameEvent[]): TransitionResult {
   let s = state
   const out = [...events]
+  // W7 (Quest Engine): tick multi-step quest progress after every action.
+  s = tickQuestSteps(s)
   const achieved = newlyQualifiedAchievements(s)
   if (achieved.length > 0) {
     s = { ...s, achievements: [...s.achievements, ...achieved] }
@@ -232,6 +235,7 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doTalk(state, action.npcId)
     case 'accept_quest':
       return doAcceptQuest(state, action.questId)
+    case 'turn_in_quest':
     case 'complete_quest':
       return doCompleteQuest(state, action.questId)
     case 'choose_talent':
@@ -252,6 +256,8 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doResolveRouteEvent(state, action.approach)
     case 'story_choice':
       return doStoryChoice(state, action.choiceId)
+    case 'advance_romance':
+      return doAdvanceRomance(state, action.trackId, action.choiceId)
     default: {
       const impossible: never = action
       void impossible
@@ -291,7 +297,8 @@ function doMove(state: GameState, direction: Direction): R {
       nameEn: cell.node.nameEn,
       kind: cell.node.kind,
     })
-    s = applyStoryRouteArrival(s, cell.node.id)
+    const arrived = applyStoryRouteArrival(s, cell.node.id)
+    s = { ...arrived, flags: { ...arrived.flags, [`reached_${cell.node.id}`]: true } }
   }
   const dangerLocationId = targetLocId ?? (cell.node?.kind === 'danger' ? state.player.locationId : undefined)
   if (dangerLocationId !== undefined) {
@@ -804,16 +811,27 @@ function doTalk(state: GameState, npcId: string): R {
   if (npc === undefined) return err('NPC_UNKNOWN')
   if (state.player.locationId !== npc.locationId) return err('NPC_NOT_HERE')
   const affKey = `aff_${npcId}`
+  const talkKey = `talk_${npcId}`
+  const before = flagNum(state.flags, affKey)
   const s: GameState = {
     ...state,
     flags: {
       ...state.flags,
       talkCount: flagNum(state.flags, 'talkCount') + 1,
-      [affKey]: flagNum(state.flags, affKey) + 1,
+      lastTalkNpc: npcId,
+      lastTalkRepeated: state.flags.lastTalkNpc === npcId,
+      [affKey]: before + 1,
+      [talkKey]: flagNum(state.flags, talkKey) + 1,
     },
   }
+  const events: GameEvent[] = []
+  // Affinity milestones surface as their own event so the UI can mark the
+  // moment a relationship deepens, not just the words spoken.
+  for (const level of [3, 6, 9]) {
+    if (before < level && before + 1 >= level) events.push({ type: 'AFFINITY', npcId, level })
+  }
   const line = dialogueForNpc(s, npcId)
-  return { ok: true, state: s, events: [{ type: 'TALKED', npcId, lineVi: line.vi, lineEn: line.en }] }
+  return { ok: true, state: s, events: [...events, { type: 'TALKED', npcId, lineVi: line.vi, lineEn: line.en }] }
 }
 
 function doResolveRouteEvent(state: GameState, approach: 'present' | 'withhold'): R {
@@ -876,13 +894,41 @@ function doStoryChoice(state: GameState, choiceId: string): R {
   }
 }
 
+function doAdvanceRomance(state: GameState, npcId: string, choiceId: string): R {
+  const found = findRomanceChoice(state, npcId, choiceId)
+  if (found === undefined) return err('STORY_CHOICE_UNAVAILABLE')
+  if (found.choice.effect.flag?.endsWith('_commitment') === true && hasOtherCommitment(state, npcId)) {
+    return err('STORY_CHOICE_UNAVAILABLE')
+  }
+  return {
+    ok: true,
+    state: applyRomanceChoice(state, npcId, found.node, found.choice),
+    events: [{
+      type: 'ROMANCE_NODE',
+      npcId,
+      nodeId: found.node.id,
+      choiceId,
+      titleVi: found.node.titleVi,
+      titleEn: found.node.titleEn,
+    }],
+  }
+}
+
 function doAcceptQuest(state: GameState, questId: string): R {
   if (getQuest(questId) === undefined) return err('QUEST_UNKNOWN')
   const check = canAcceptQuest(state, questId)
   if (!check.ok) return err(check.code)
+  const def = getQuest(questId)!
+  // World quest: record the start day so we can expire after deadlineDays.
+  const flags = { ...state.flags }
+  if (def.deadlineDays !== undefined && def.deadlineDays > 0) {
+    flags[`quest_${questId}_started_day`] = state.day
+    flags[`quest_${questId}_expires_day`] = state.day + def.deadlineDays
+  }
   const s: GameState = {
     ...state,
-    quests: { ...state.quests, [questId]: { status: 'active' } },
+    flags,
+    quests: { ...state.quests, [questId]: { status: 'active', step: 0 } },
   }
   return { ok: true, state: s, events: [{ type: 'QUEST_ACCEPTED', questId }] }
 }
@@ -892,16 +938,32 @@ function doCompleteQuest(state: GameState, questId: string): R {
   if (def === undefined) return err('QUEST_UNKNOWN')
   const check = canCompleteQuest(state, questId)
   if (!check.ok) return err(check.code)
+  // For multi-step quests, consume the items required by the FINAL step
+  // (the turn-in step) before rewarding.
   let inventory = { ...state.inventory }
+  const stepIdx = state.quests[questId]?.step ?? 0
+  const step = def.steps[stepIdx]
+  if (step?.completeItems !== undefined) {
+    for (const [itemId, qty] of Object.entries(step.completeItems)) {
+      inventory = bump(inventory, itemId, -qty)
+    }
+  }
+  // Legacy compatibility: drain the top-level requiredItems (flat quests).
   for (const [itemId, qty] of Object.entries(def.requiredItems)) {
     inventory = bump(inventory, itemId, -qty)
   }
   for (const [itemId, qty] of Object.entries(def.rewardItems)) {
     inventory = bump(inventory, itemId, qty)
   }
+  const flags = { ...state.flags, [`quest_${questId}_done`]: true }
+  if (def.storySceneNextId !== undefined) flags.story_scene = def.storySceneNextId
+  // World completion is an inspectable regional outcome; callers can map this
+  // flag to danger/content without mutating the location definition.
+  if (def.deadlineDays !== undefined) flags[`world_${questId}_cleared`] = true
   const s: GameState = {
     ...state,
-    quests: { ...state.quests, [questId]: { status: 'completed' } },
+    quests: { ...state.quests, [questId]: { status: 'completed', step: stepIdx } },
+    flags,
     player: { ...state.player, gold: state.player.gold + def.rewardGold },
     inventory,
   }

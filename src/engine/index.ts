@@ -1,6 +1,8 @@
 export { newlyQualifiedAchievements } from './achievements'
 export { currentBeat } from './beats'
 export { currentStoryScene, findStoryChoice, storyRouteEncounter, storyRouteProof, storyRouteTarget } from './story'
+export { currentStepIndex, isQuestUnlocked, isTurnInReady, questStatus } from './quests'
+export { currentRomanceNode, romanceProgress, romanceTrackUnlocked } from './romance'
 export {
   BASIC_STRIKE_QI_COST,
   CORRECTION_LIMIT,
@@ -47,6 +49,7 @@ export {
 } from './storage'
 export { useGameStore } from './store'
 export { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from '../content/rpg'
+export { canAcceptQuest, canCompleteQuest } from './quests'
 
 export function validateGameState(state: unknown): GameState {
   return parseGameState(state)

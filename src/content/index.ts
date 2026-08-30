@@ -49,6 +49,7 @@ export {
 } from './locations'
 export { getItem, ITEMS, SHOP_STOCK } from './items'
 export { getRecipe, RECIPES } from './refinement'
+export { ROMANCE_TRACKS, romanceTrackFor } from './romance'
 export { getNpc, NPCS, npcsAt } from './npcs'
 export { getQuest, QUESTS } from './quests'
 export {
@@ -87,7 +88,7 @@ export function validateAllContent(): ContentValidationReport {
   check(z.array(EnemyDefSchema).min(1), ENEMIES, 'ENEMIES')
   check(z.array(LocationDefSchema).min(1), LOCATIONS, 'LOCATIONS')
   check(z.array(CellDefSchema).length(MAP_WIDTH * MAP_HEIGHT), CELLS, 'CELLS')
-  check(NpcDefSchema.array().length(30), NPCS, 'NPCS')
+  check(NpcDefSchema.array().length(40), NPCS, 'NPCS')
   check(z.array(ChapterDefSchema).length(6), CHAPTERS, 'CHAPTERS')
   check(z.array(EndingDefSchema).length(11), ENDINGS, 'ENDINGS')
   check(z.array(QuestDefSchema).min(1), QUESTS, 'QUESTS')
@@ -114,15 +115,26 @@ export function validateAllContent(): ContentValidationReport {
   checkUniqueIds('BEATS', BEATS)
 
   const npcIds = new Set(NPCS.map((n) => n.id))
+  const itemIds = new Set(ITEMS.map((item) => item.id))
   for (const q of QUESTS) {
     if (!npcIds.has(q.giverNpcId)) errors.push(`QUESTS: giver ${q.giverNpcId} missing`)
+    if (q.steps.length === 0) errors.push(`QUESTS: ${q.id} has no steps`)
+    for (const step of q.steps) {
+      if (step.completeItems !== undefined) {
+        for (const itemId of Object.keys(step.completeItems)) {
+          if (!itemIds.has(itemId)) errors.push(`QUESTS: ${q.id} step ${step.id} references missing item ${itemId}`)
+        }
+      }
+    }
+    if (q.nextQuestId !== undefined && !QUESTS.some((qq) => qq.id === q.nextQuestId)) {
+      errors.push(`QUESTS: ${q.id} nextQuest ${q.nextQuestId} not found`)
+    }
   }
   for (const n of NPCS) {
     if (!LOCATIONS.some((l) => l.id === n.locationId)) {
       errors.push(`NPCS: ${n.id} at unknown location ${n.locationId}`)
     }
   }
-  const itemIds = new Set(ITEMS.map((item) => item.id))
   const locationIds = new Set(LOCATIONS.map((location) => location.id))
   for (const recipe of RECIPES) {
     if (!locationIds.has(recipe.locationId)) errors.push(`RECIPES: ${recipe.id} has unknown location`)
