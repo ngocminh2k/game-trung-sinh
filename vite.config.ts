@@ -4,6 +4,61 @@ import { defineConfig } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import react from '@vitejs/plugin-react'
 
+function isSuggestPayload(body: unknown): body is { mode: 'suggest', locale: string, choices: Array<{ id: string }> } {
+  if (typeof body !== 'object' || body === null) return false
+  const candidate = body as { mode?: unknown, locale?: unknown, choices?: unknown }
+  return candidate.mode === 'suggest'
+    && (candidate.locale === 'en' || candidate.locale === 'vi')
+    && Array.isArray(candidate.choices)
+    && candidate.choices.every((choice) => typeof choice === 'object' && choice !== null && typeof (choice as { id?: unknown }).id === 'string')
+}
+
+export function parseSuggestContent(raw: string, choices: Array<{ id: string }>): { choiceId: string, reply: string } | null {
+  try {
+    const jsonStart = raw.indexOf('{')
+    const jsonEnd = raw.lastIndexOf('}')
+    if (jsonStart < 0 || jsonEnd <= jsonStart) return null
+    const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd + 1)) as { choiceId?: unknown, reply?: unknown }
+    if (typeof parsed.choiceId !== 'string' || !choices.some((choice) => choice.id === parsed.choiceId)) return null
+    const reply = typeof parsed.reply === 'string' ? parsed.reply.replace(/\s+/g, ' ').trim().slice(0, 300) : ''
+    return { choiceId: parsed.choiceId, reply }
+  } catch {
+    return null
+  }
+}
+
+// SAFE-02: the proxy only relays which authored choice id the model picked;
+// it never decides game state, and the client drops invalid picks.
+async function suggestUpstream(
+  url: string,
+  apiKey: string,
+  model: string,
+  body: { locale: string, choices: Array<{ id: string }> },
+): Promise<{ choiceId: string, reply: string }> {
+  const upstream = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      temperature: 0.75,
+      max_tokens: 120,
+      messages: [
+        {
+          role: 'system',
+          content: `You role-play a xianxia story guide. The player speaks; pick the single most fitting choice and answer in character. Respond with ONLY JSON {"choiceId":"<one of the provided choice ids>","reply":"<one in-character sentence in ${body.locale}>"} and nothing else. You may not invent choices, actions, or game state.`,
+        },
+        { role: 'user', content: JSON.stringify(body) },
+      ],
+    }),
+  })
+  if (!upstream.ok) throw new Error(`upstream status ${upstream.status}`)
+  const data = await upstream.json() as { choices?: Array<{ message?: { content?: unknown } }> }
+  const content = data.choices?.[0]?.message?.content
+  const suggestion = typeof content === 'string' ? parseSuggestContent(content, body.choices) : null
+  if (suggestion === null) throw new Error('unparseable or invalid suggestion')
+  return suggestion
+}
+
 function narrationProxy(): Plugin {
   return {
     name: 'deterministic-narration-proxy',
@@ -29,8 +84,30 @@ function narrationProxy(): Plugin {
 
         const chunks: Buffer[] = []
         for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+        let body: unknown
         try {
-          const canon = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+          body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+        } catch {
+          res.statusCode = 400
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ text: null, error: 'Invalid request body' }))
+          return
+        }
+        try {
+          if (isSuggestPayload(body)) {
+            try {
+              const suggestion = await suggestUpstream(`${baseUrl}/chat/completions`, apiKey, model, body)
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify(suggestion))
+            } catch {
+              res.statusCode = 502
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ choiceId: null }))
+            }
+            return
+          }
+          const canon = body
           const upstream = await fetch(`${baseUrl}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },

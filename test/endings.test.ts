@@ -47,7 +47,7 @@ describe('branching story', () => {
       expect(state.flags.story_route_ready).not.toBe(true)
       expect(storyRouteEncounter(state)).toBeDefined()
       const event = applyAction(state, { kind: 'resolve_route_event', approach })
-      expect(event.events[0]).toMatchObject({ type: 'ROUTE_EVENT_RESOLVED' })
+      expect(event.events.some((entry) => entry.type === 'ROUTE_EVENT_RESOLVED')).toBe(true)
       state = event.state
       expect(state.flags.story_route_ready).toBe(true)
       expect(state.flags.story_route_arrived).not.toBe(true)

@@ -74,3 +74,10 @@ server-side proxy rather than serving a raw static bundle.
 ## Design context
 
 See `.impeccable.md`.
+
+## Delivery acceptance
+
+`docs/GDD.md` is the product source of truth. `docs/MASTER_ACCEPTANCE.md` is
+the mandatory release checklist and current remediation queue; a feature is not
+complete until it has the player-path, state, visible, downstream, and automated
+evidence required there.

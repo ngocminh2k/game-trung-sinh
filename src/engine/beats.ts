@@ -29,6 +29,7 @@ const PREDICATES: Record<BeatPredicateId, BeatPredicate> = {
   storageUsed: (s) => Object.values(s.storage).some((qty) => qty > 0),
   equippedAdvanced: (s) =>
     s.equipment.weapon !== null && s.equipment.weapon !== 'wooden_staff',
+  knowsCrookedCirculation: (s) => (s.techniques['crooked_circulation'] ?? 0) > 0,
   talismanQuestActive: (s) => questStatus(s, 'q_talisman_order') === 'active',
   stageThreePlus: (s) => s.player.stage >= 3,
   stageFive: (s) => s.player.stage >= MAX_STAGE,

@@ -232,3 +232,17 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
 
 .route-encounter-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.route-encounter-action button{display:grid;gap:5px;min-height:98px;font-weight:400}.route-encounter-action button strong{font-size:15px}.route-encounter-action button span{color:#f5dcb5;font-size:12px;font-weight:400;line-height:1.35}.route-encounter-action button+button{border-color:#496b57;color:#28513c;background:rgba(251,245,222,.86);box-shadow:3px 3px 0 rgba(57,76,54,.13)}.route-encounter-action button+button span{color:#526356}.route-encounter-action button+button:hover{background:#e9e1c7}.route-proof em{color:#8b5e30;font-family:'DM Mono',monospace;font-size:9px;font-style:normal;line-height:1.35}
 @media (max-width:700px){.route-encounter-actions{grid-template-columns:1fr}}
+
+/* Phase 2 (design review 2026-08): the twelfth-night countdown chip. */
+.deadline-chip{border-color:rgba(157,62,46,.55);color:#9d3e2e;font-weight:600;animation:pulse-deadline 2.4s ease-in-out infinite}
+@keyframes pulse-deadline{0%,100%{opacity:1}50%{opacity:.62}}
+
+/* Phase 6 (design review 2026-08): game feel — stat deltas, day stamp,
+   chronicle arrival. Ink palette only; motion yields to reduced-motion. */
+.meter>div{position:relative}.meter-delta{position:absolute;left:50%;top:-2px;transform:translate(-50%,0);font-family:'DM Mono',monospace;font-size:12px;font-style:normal;font-weight:700}.meter.delta-down .meter-delta{color:#e89a86}.meter.delta-up .meter-delta{color:#9de0b8}.meter.delta-up .meter-track i,.meter.delta-down .meter-track i{animation:meter-ink-pulse .9s ease-out 1}.meter.delta-down .meter-track i{background:#d67b65}.meter.delta-up .meter-track.jade i{background:#82c5a0}
+@keyframes meter-ink-pulse{0%{filter:brightness(1)}30%{filter:brightness(1.6)}100%{filter:brightness(1)}}
+.day-stamp{border:1.5px solid #9d3e2e;border-radius:999px;padding:5px 9px;color:#9d3e2e;font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap;transform:rotate(-6deg);animation:stamp-arrive 1.4s ease-out both}
+@keyframes stamp-arrive{0%{opacity:0;transform:rotate(-6deg) scale(1.5)}18%{opacity:1;transform:rotate(-6deg) scale(1)}75%{opacity:1}100%{opacity:0}}
+.chronicle li.is-new{animation:chronicle-arrive 1.5s ease-out both}
+@keyframes chronicle-arrive{0%{opacity:0;background:rgba(62,142,109,.14)}100%{opacity:1;background:transparent}}
+@media (prefers-reduced-motion:reduce){.day-stamp{animation:none!important;opacity:1!important;transform:rotate(-6deg)}.meter-delta{animation:none!important}.meter.delta-up .meter-track i,.meter.delta-down .meter-track i,.chronicle li.is-new{animation:none!important}}

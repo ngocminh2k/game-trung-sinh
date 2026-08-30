@@ -29,7 +29,7 @@ describe('narrator', () => {
       { type: 'DAY_PASSED', day: 2 },
       { type: 'RESTED', hpHeal: 30 },
       { type: 'TRAINED', gain: 4, stage: 1 },
-      { type: 'GATHERED', itemId: 'spirit_herb', qty: 2 },
+      { type: 'GATHERED', itemId: 'spirit_herb', qty: 2, qiDrain: 0 },
       { type: 'ITEM_USED', itemId: 'pill_hp', hpDelta: 25, qiDelta: 0 },
       { type: 'BOUGHT', itemId: 'pill_hp', qty: 1, goldPaid: 35 },
       { type: 'SOLD', itemId: 'spirit_herb', qty: 1, goldGain: 12 },

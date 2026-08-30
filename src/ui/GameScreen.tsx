@@ -19,20 +19,21 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { currentStoryScene, dangerWarning, findStoryChoice, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget } from '../engine'
+import { currentStoryScene, dangerWarning, findStoryChoice, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget, BASIC_STRIKE_QI_COST, RETREAT_HP_COST, techniqueQiCost } from '../engine'
 import type { Action, GameState, Locale } from '../engine'
 import type { ItemDef } from '../engine/content-types'
 import itemsStillLife from '../assets/art/items-still-life.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
 import { locationBackdropFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
-import { deriveObjective } from './objective'
+import { deriveObjective, nightDeadlineRemaining } from './objective'
 import { DeathScreen } from './DeathScreen'
 import { endingEpilogue } from './endingEpilogue'
 import { itemArtFor, talentArtFor, techniqueArtFor } from './rpgArt'
 import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
 import { playerArtFor, type PlayerActionKey } from './playerArt'
+import { requestSuggestion } from '../ai/narration'
 import { t } from '../i18n'
 
 export interface GameScreenProps {
@@ -178,11 +179,26 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const [activeDock, setActiveDock] = useState<DockPanel>(() => contextualDockFor(game.player.locationId))
   const [selectedInventoryItemId, setSelectedInventoryItemId] = useState<string | null>(null)
   const [hurtFeedbackNonce, setHurtFeedbackNonce] = useState<number | null>(null)
+  // Phase 5 (design review 2026-08): the AI may suggest an authored choice for
+  // free text; its one in-character line is shown here. The reducer stays the law.
+  const [aiSuggestLine, setAiSuggestLine] = useState<string | null>(null)
+  const [aiSuggesting, setAiSuggesting] = useState(false)
   const journalLauncher = useRef<HTMLButtonElement>(null)
   const chronicleRef = useRef<HTMLDivElement>(null)
   const previousHp = useRef(game.player.hp)
   const processedActionNonce = useRef<number | null>(null)
   const previousLocationId = useRef(game.player.locationId)
+  // Phase 6 (design review 2026-08): immediate feedback for stat and day
+  // changes — a signed HP/Qi delta chip and a "Day X" stamp, both transient.
+  const [statDeltas, setStatDeltas] = useState<{ nonce: number; hp: number; qi: number }>({ nonce: 0, hp: 0, qi: 0 })
+  const [dayStamp, setDayStamp] = useState<number | null>(null)
+  const [chronicleNewAt, setChronicleNewAt] = useState(-1)
+  const previousQi = useRef(game.player.qi)
+  const previousDay = useRef(game.day)
+  const chronicleEndRef = useRef<HTMLLIElement | null>(null)
+  const chronicleSeenCount = useRef(chronicle.length)
+  const feedbackTimers = useRef<number[]>([])
+  useEffect(() => () => { feedbackTimers.current.forEach((timer) => window.clearTimeout(timer)) }, [])
   const retaliationAction = actionKind === 'combat_attack'
     || actionKind === 'combat_defend'
     || (actionKind === 'use_item' && game.encounter !== null)
@@ -193,19 +209,43 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     if (processedActionNonce.current === actionNonce) return
 
     const tookDamage = game.player.hp < previousHp.current
+    const statDelta = tookDamage || game.player.qi !== previousQi.current
+      ? { nonce: actionNonce, hp: game.player.hp - previousHp.current, qi: game.player.qi - previousQi.current }
+      : null
     previousHp.current = game.player.hp
+    previousQi.current = game.player.qi
     processedActionNonce.current = actionNonce
     setHurtFeedbackNonce(null)
+    if (statDelta !== null) {
+      setStatDeltas(statDelta)
+      feedbackTimers.current.push(window.setTimeout(() => setStatDeltas((current) => (current.nonce === actionNonce ? { nonce: 0, hp: 0, qi: 0 } : current)), 900))
+    }
+    if (game.day !== previousDay.current) {
+      previousDay.current = game.day
+      setDayStamp(game.day)
+      feedbackTimers.current.push(window.setTimeout(() => setDayStamp(null), 1400))
+    }
     if (!tookDamage || !game.player.alive) return
 
     const timer = window.setTimeout(() => setHurtFeedbackNonce(actionNonce), retaliationAction ? 420 : 220)
     return () => window.clearTimeout(timer)
-  }, [actionNonce, game.player.alive, game.player.hp, retaliationAction])
+  }, [actionNonce, game.day, game.player.alive, game.player.hp, game.player.qi, retaliationAction])
   useEffect(() => {
     if (previousLocationId.current === game.player.locationId) return
     previousLocationId.current = game.player.locationId
     setActiveDock(contextualDockFor(game.player.locationId))
   }, [game.player.locationId])
+  useEffect(() => {
+    if (chronicleEndRef.current === null) return
+    // Only scroll when the chronicle grew — never on mount or shrinking.
+    const seen = chronicleSeenCount.current
+    chronicleSeenCount.current = chronicle.length
+    if (chronicle.length <= seen) return
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    chronicleEndRef.current.scrollIntoView?.({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
+    setChronicleNewAt(chronicle.length)
+    feedbackTimers.current.push(window.setTimeout(() => setChronicleNewAt(-1), 1600))
+  }, [chronicle.length])
   useEffect(() => {
     const handleJournalShortcut = (event: globalThis.KeyboardEvent) => {
       const target = event.target
@@ -287,6 +327,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
   const knownTechniques = TECHNIQUES.filter((technique) => (game.techniques[technique.id] ?? 0) > 0)
   const encounterLocked = game.encounter !== null
+  const deadlineRemaining = nightDeadlineRemaining(game)
   const sceneBackdrop = locationBackdropFor(game.player.locationId) ?? worldMapArt
   const sceneBackdropAlt = location === undefined
     ? word(locale, 'Bản đồ khu vực chưa được đặt tên', 'World map for an uncharted area')
@@ -353,8 +394,28 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     event.preventDefault()
     const raw = command.trim()
     if (raw.length === 0 || game.terminal) return
-    onAction({ kind: 'free_text', raw })
+    // Phase 5: during a story choice, free text asks the AI to suggest ONE of
+    // the authored choices. The engine only ever receives a story_choice with
+    // an authored id; without AI (or on any failure) the deterministic parser
+    // handles the utterance exactly as before.
+    const hasAvailableChoices = currentStoryScene(game).choices.some(
+      (choice) => findStoryChoice(game, choice.id) !== undefined,
+    )
     setCommand('')
+    if (hasAvailableChoices && !encounterLocked) {
+      setAiSuggesting(true)
+      void requestSuggestion(game, raw, locale).then((result) => {
+        setAiSuggesting(false)
+        if (result.status === 'empty' || result.status === 'error') {
+          onAction({ kind: 'free_text', raw })
+          return
+        }
+        setAiSuggestLine(result.suggestion.reply.length > 0 ? result.suggestion.reply : null)
+        onAction({ kind: 'story_choice', choiceId: result.suggestion.choiceId })
+      })
+      return
+    }
+    onAction({ kind: 'free_text', raw })
   }
 
   return (
@@ -369,6 +430,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
         <div className="topbar-actions">
           <span className="day-chip">{word(locale, 'Ngày', 'Day')} {game.day}</span>
+          {dayStamp !== null && <span className="day-stamp" data-testid="day-stamp" role="status">{word(locale, 'Ngày', 'Day')} {dayStamp}</span>}
+          {deadlineRemaining !== null && (
+            <span className="day-chip deadline-chip" data-testid="night-deadline-chip">
+              {word(locale, 'Đêm thứ mười hai', 'Twelfth night')}: {String(deadlineRemaining)} {word(locale, 'ngày', 'days')}
+            </span>
+          )}
           {!journalOpen && routeEncounter === undefined && <button
             aria-controls="journal-screen"
             aria-label={word(locale, 'Mở Hành trang và giang hồ', 'Open Journey journal')}
@@ -435,8 +502,14 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               <span>{word(locale, 'Sinh lực địch', 'Enemy health')}: {game.encounter.hp}/{game.encounter.maxHp}</span>
             </div>
             <div className="encounter-actions">
-              {knownTechniques.map((technique) => <button key={technique.id} onClick={() => onAction({ kind: 'combat_attack', techniqueId: technique.id })} type="button">{word(locale, 'Xuất', 'Use')} {localized(locale, technique)}</button>)}
+              <button onClick={() => onAction({ kind: 'combat_attack' })} type="button">
+                {word(locale, 'Đánh thường', 'Basic strike')} ({String(BASIC_STRIKE_QI_COST)} {word(locale, 'khí', 'qi')})
+              </button>
+              {knownTechniques.map((technique) => <button key={technique.id} onClick={() => onAction({ kind: 'combat_attack', techniqueId: technique.id })} type="button">{word(locale, 'Xuất', 'Use')} {localized(locale, technique)} ({String(techniqueQiCost(technique.power, game.techniques[technique.id] ?? 0))} {word(locale, 'khí', 'qi')})</button>)}
               <button onClick={() => onAction({ kind: 'combat_defend' })} type="button">{word(locale, 'Thủ thế', 'Defend')}</button>
+              <button onClick={() => onAction({ kind: 'combat_retreat' })} type="button">
+                {word(locale, 'Rút lui', 'Retreat')} (−{String(RETREAT_HP_COST)} {word(locale, 'khí huyết', 'HP')})
+              </button>
             </div>
           </section>
         )}
@@ -576,8 +649,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 placeholder={word(locale, 'Ví dụ: nói chuyện với cụ Mai Hoa', 'Example: talk to Elder Meihua')}
                 value={command}
               />
-              <button disabled={game.terminal || command.trim().length === 0} type="submit">{word(locale, 'Thử vận', 'Act')}</button>
+              <button disabled={game.terminal || aiSuggesting || command.trim().length === 0} type="submit">{aiSuggesting ? word(locale, 'Đang lắng nghe…', 'Listening…') : word(locale, 'Thử vận', 'Act')}</button>
             </div>
+            {aiSuggestLine !== null && <p className="ai-suggest-line" role="status">{aiSuggestLine}</p>}
             <small>{word(locale, 'Các lựa chọn phía trên là bước ngoặt của truyện. Ngoài ra, hãy nói điều ngươi muốn làm; thế giới sẽ giải thích khi điều đó chưa thể thực hiện.', 'The choices above are story turning points. Outside them, state what you want to do; the world will explain when it cannot happen yet.')}</small>
           </form>
 
@@ -603,7 +677,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')} id="story-chronicle" ref={chronicleRef} tabIndex={-1}>
             <p className="section-kicker">{word(locale, 'Biên niên ký', 'Chronicle')}</p>
             <ol>
-              {chronicle.slice(-8).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
+              {chronicle.slice(-8).map((line, index) => <li className={index === chronicle.length - 1 && chronicle.length === chronicleNewAt ? 'is-new' : undefined} key={`${line}-${index}`} ref={index === chronicle.length - 1 ? chronicleEndRef : undefined}>{line}</li>)}
             </ol>
           </div>
         </section>
@@ -619,8 +693,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 src={playerArtFor(playerPose)}
               />
             </figure>
-            <Meter label="HP" value={game.player.hp} max={100} tone="red" />
-            <Meter label="Qi" value={game.player.qi} max={60} tone="jade" />
+            <Meter label="HP" value={game.player.hp} max={100} tone="red" delta={statDeltas.nonce === 0 ? 0 : statDeltas.hp} deltaTestid="hp-delta" />
+            <Meter label="Qi" value={game.player.qi} max={60} tone="jade" delta={statDeltas.nonce === 0 ? 0 : statDeltas.qi} deltaTestid="qi-delta" />
             <Meter className="meter-progress" label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={120} tone="gold" />
             <div className="stat-strip">
               <span>◎ {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
@@ -895,11 +969,26 @@ interface MeterProps {
   value: number
   max: number
   tone: 'red' | 'jade' | 'gold'
+  delta?: number
+  deltaTestid?: string
 }
 
-function Meter({ className = '', label, value, max, tone }: MeterProps) {
+function Meter({ className = '', label, value, max, tone, delta = 0, deltaTestid }: MeterProps) {
   const percent = Math.max(0, Math.min(100, (value / max) * 100))
-  return <div className={`meter ${className}`}><div><span>{label}</span><strong>{value}/{max}</strong></div><span className={`meter-track ${tone}`}><i style={{ width: `${percent}%` }} /></span></div>
+  return (
+    <div className={`meter ${className} ${delta !== 0 ? (delta > 0 ? 'delta-up' : 'delta-down') : ''}`}>
+      <div>
+        <span>{label}</span>
+        {delta !== 0 && deltaTestid !== undefined && (
+          <em className="meter-delta" data-testid={deltaTestid} data-direction={delta > 0 ? 'up' : 'down'}>
+            {delta > 0 ? `+${String(delta)}` : String(delta)}
+          </em>
+        )}
+        <strong>{value}/{max}</strong>
+      </div>
+      <span className={`meter-track ${tone}`}><i style={{ width: `${percent}%` }} /></span>
+    </div>
+  )
 }
 
 interface RealmLadderProps {

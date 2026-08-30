@@ -62,6 +62,17 @@ export interface TechniqueDef {
   power: number
   trainingBonus: number
   sourceItemId?: string
+  // Phase 3 (design review 2026-08): every technique has two faces. The
+  // benefit is the existing power/trainingBonus; the cost is a contextual
+  // penalty applied by the reducer, so no single build is strictly optimal.
+  /** Qi drained after each gather while this footwork is known (aggressive styles). */
+  gatherQiDrain?: number
+  /** Gold subtracted from every sale while this scholarly method is known. */
+  sellPenalty?: number
+  benefitVi?: string
+  benefitEn?: string
+  costVi?: string
+  costEn?: string
 }
 
 export interface EquipmentDef {

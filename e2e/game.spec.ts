@@ -61,7 +61,8 @@ test('story choices and unsupported free text both keep the player in an authore
   await page.locator('.command-form button').click()
   await expect(chronicle).toHaveCount(before + 1)
   await page.locator('.story-choices .choice-button').first().click()
-  await expect(page.locator('.story-choices .choice-button')).toHaveCount(3)
+  // market_rumor now carries the three Phase 4 route leads on top of the base choices.
+  await expect(page.locator('.story-choices .choice-button')).toHaveCount(6)
 })
 
 test('Journal is a full mode with an inventory inspector and an explicit return', async ({ page }) => {

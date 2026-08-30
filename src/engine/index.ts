@@ -2,18 +2,24 @@ export { newlyQualifiedAchievements } from './achievements'
 export { currentBeat } from './beats'
 export { currentStoryScene, findStoryChoice, storyRouteEncounter, storyRouteProof, storyRouteTarget } from './story'
 export {
+  BASIC_STRIKE_QI_COST,
   CORRECTION_LIMIT,
+  DEADLINE_DAYS,
   DEFAULT_SEED,
   HIGH_DANGER_LEVEL,
   LOTTERY_COST,
   MAX_HP,
   MAX_QI,
   MAX_STAGE,
+  RETREAT_HP_COST,
+  RETREAT_PROGRESS_COST,
   STAGE_THRESHOLDS,
   START_GOLD,
   STORAGE_CAPACITY,
   WEALTH_ENDING_GOLD,
   newGame,
+  techniqueGuard,
+  techniqueQiCost,
 } from './constants'
 export { parseFreeText, normalizeText } from './corrections'
 import type { GameState } from './types'

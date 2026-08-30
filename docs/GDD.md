@@ -382,6 +382,11 @@ require rewriting Scenario I reducer rules or invalidating saves.
 
 ## 9. Definition of done for any worker ticket
 
+`docs/MASTER_ACCEPTANCE.md` is the mandatory release checklist. This section
+defines the minimum ticket gate; the Master Acceptance Contract adds the
+player-path, state, visible-feedback, downstream-consequence, and E2E evidence
+required before a feature may be called complete.
+
 A ticket is not done because a file exists. It must have:
 
 1. a GDD section and acceptance rule it satisfies;
@@ -447,3 +452,52 @@ glassmorphism + restrained jade/crimson/gold reads as "xianxia" without 3D art.
   deterministic save only — §5).
 - No LLM-authored state, rewards, or endings (AI boundary, §5).
 - No 3D or heavy animation pipeline; 2D illustrated + pose motion only (§6.5).
+
+---
+
+## B. Implementation notes — design review 2026-08 (Phases 1 & 2 shipped)
+
+Source: `docs/design-review-2026-08.md`. Determinism, save schema, and the
+no-softlock guarantee are preserved (Part D risks 1–3).
+
+### B.1 Encounter decision layer (Phase 1 — combat agency)
+
+Every turn inside an encounter is now a real risk-allocation choice with an
+explicit qi price (`src/engine/constants.ts`):
+
+| Choice | Action | Qi cost | Effect |
+|---|---|---|---|
+| Basic strike | `combat_attack` (no technique) | `BASIC_STRIKE_QI_COST` (4) | Cheap chip damage, no guard |
+| Technique strike | `combat_attack` + techniqueId | `techniqueQiCost(power, level)` = `2 + 2·power·level` | Extra `power·level` damage **and** `techniqueGuard` = `⌊power·level/2⌋` guard against the enemy's reply |
+| Defend | `combat_defend` | 0 | Guard `4 + talents` (always legal → no softlock) |
+| Retreat | `combat_retreat` (new) | 0 | Always works; costs `RETREAT_HP_COST` (10, clamped so it never kills) + `RETREAT_PROGRESS_COST` (3 progress); sets `retreated_<enemy>` |
+
+- Retreat is the pressure valve: qi and consumables can run dry, escape cannot.
+- In-fight turns cost **no** day — an encounter is one day-trip paid at `start_encounter`.
+- Free text: "tấn công" without a technique name = basic strike; "rút lui /
+  run away / bỏ chạy" = retreat.
+- UI: encounter banner shows qi cost per strike and a retreat button; both
+  locales authored inline per existing convention.
+
+### B.2 The twelfth night (Phase 2 — dead-line)
+
+- **Day cost:** every outing action (`move`, `train`, `gather`, `refine`, `buy`,
+  `sell`, `use_item` out of combat, `store`, `withdraw`, `draw_lottery`,
+  `start_encounter`, `story_choice`, `resolve_route_event`) costs 1 `state.day`.
+  `rest` keeps its own +1; `talk`, quests, talent/equip menus, and in-fight
+  turns are free. Failed actions never charge a day.
+- **Clock:** entering Hồi II sets `flags.night_deadline = day + DEADLINE_DAYS`
+  (21, pinned by `test/day-cost.test.ts`). The topbar shows a vermilion
+  countdown chip; the objective line becomes the countdown at ≤ 3 days.
+- **Resolution:** reaching Hồi III (seal / herb debt / first hunt) sets
+  `flags.night_deadline_cleared`; overshoot sets `flags.night_forgotten` —
+  a narrative branch opener, **never** a game over (Part D risk 3).
+- **Balance pin:** optimal core path (herb debt → ward → seal) ≈ 12 days;
+  a 5-day-sloppy run clears with 1 spare day; optimal play can idle at most 9.
+
+### B.3 Save safety
+
+No schema fields were added or removed — all new state lives in the existing
+`flags` record, so pre-change saves validate and load unchanged (SAFE-04).
+`combat_attack.techniqueId` is now optional at the action layer only; saves
+never persist actions.

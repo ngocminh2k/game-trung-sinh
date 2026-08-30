@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "description": "Approved, bounded work queue. A job may run only through scripts/agent-queue.mjs and must hand off before another dependent job starts.",
+  "defaults": {
+    "worker": "agy",
+    "timeoutMinutes": 15
+  },
+  "jobs": [
+    {
+      "id": "phase4-story-proof-review",
+      "status": "queued",
+      "worker": "agy",
+      "scope": "src/content/story.ts, src/content/locations.ts, src/content/beats-data.ts, src/engine/story.ts, test/endings.test.ts, test/story-consequences.test.ts",
+      "objective": "Review the interrupted Phase 4 work; complete at most one consequential-choice invariant and prove it with focused tests.",
+      "acceptance": [
+        "Preserve unrelated dirty changes and do not touch E2E, reducer, UI, AI, or RPG files.",
+        "A Hoi I route choice unlocks or locks a real reachable node or NPC with a deterministic downstream state difference.",
+        "Focused story/content tests pass, or a detailed handoff records the exact failing invariant."
+      ],
+      "verification": [
+        "npx vitest run test/endings.test.ts test/story-consequences.test.ts test/content.test.ts",
+        "npm run typecheck"
+      ]
+    },
+    {
+      "id": "phase3-tradeoff-proof-review",
+      "status": "queued",
+      "worker": "agy",
+      "scope": "src/content/rpg.ts, src/engine/content-types.ts, src/engine/reducer.ts, src/engine/constants.ts, src/engine/stats.ts, src/ui/CodexPanel.tsx, test/rpg-systems.test.ts",
+      "objective": "Review the interrupted Phase 3 changes; complete at most one real two-sided technique trade-off and prove its deterministic, player-visible effect.",
+      "acceptance": [
+        "Do not touch story, E2E, AI, schema, or session files.",
+        "The selected technique has both a benefit and a mechanically enforced cost shown to the player.",
+        "Focused RPG tests pass, or a detailed handoff records the exact failing invariant."
+      ],
+      "verification": [
+        "npx vitest run test/rpg-systems.test.ts",
+        "npm run typecheck"
+      ]
+    },
+    {
+      "id": "e2e-fresh-map-root-cause",
+      "status": "queued",
+      "worker": "agy",
+      "dependsOn": ["phase4-story-proof-review"],
+      "scope": "e2e/fresh-endings.spec.ts, e2e/debug-map.spec.ts, browser helper/config only",
+      "objective": "Diagnose one fresh-run ending route visibility failure and make the minimal helper or route correction without weakening proof requirements.",
+      "acceptance": [
+        "Do not inject flags, bypass physical movement, weaken assertions, or change production game rules.",
+        "Capture the actual map location/position and visible node state for the failing path.",
+        "The selected focused Playwright route passes, or a detailed handoff records the exact root cause."
+      ],
+      "verification": [
+        "npx playwright test e2e/fresh-endings.spec.ts --grep \"Rootless Star|Spring for an Enemy\""
+      ]
+    }
+  ]
+}

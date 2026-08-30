@@ -100,7 +100,12 @@ describe('beats', () => {
   it('has route-exclusive story scenes with three consequential choices each', () => {
     expect(STORY_SCENES).toHaveLength(9)
     for (const scene of STORY_SCENES) {
-      expect(scene.choices).toHaveLength(3)
+      // Phase 4 (design review 2026-08): three route-gated bonus choices at
+      // market_rumor plus one proof-gated action at cave_witness and
+      // sect_trial; every other scene keeps exactly three.
+      expect(scene.choices.length).toBe(
+        scene.id === 'market_rumor' ? 6 : scene.id === 'cave_witness' || scene.id === 'sect_trial' ? 6 : 3,
+      )
       for (const choice of scene.choices) {
         expect(choice.labelVi.length).toBeGreaterThan(0)
         expect(choice.consequenceVi.length).toBeGreaterThan(0)

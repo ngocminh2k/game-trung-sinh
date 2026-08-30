@@ -1,5 +1,10 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "docs/agent-os/KNOWLEDGE.md",
+    "docs/agent-os/WORKFLOW.md",
+    "docs/agent-os/MCP.md"
+  ],
   "mcp": {
     "codebase-memory": {
       "type": "local",

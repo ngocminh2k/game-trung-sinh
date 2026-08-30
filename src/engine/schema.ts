@@ -117,6 +117,12 @@ export const TechniqueDefSchema = z.object({
   power: z.number().int().min(0),
   trainingBonus: z.number().int().min(0),
   sourceItemId: z.string().min(1).optional(),
+  gatherQiDrain: z.number().int().min(0).optional(),
+  sellPenalty: z.number().int().min(0).optional(),
+  benefitVi: z.string().min(1).optional(),
+  benefitEn: z.string().min(1).optional(),
+  costVi: z.string().min(1).optional(),
+  costEn: z.string().min(1).optional(),
 })
 
 export const EquipmentDefSchema = z.object({

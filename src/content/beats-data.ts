@@ -18,6 +18,7 @@ export const BEAT_PREDICATE_IDS = [
   'stageTwoPlus',
   'tradeWinds',
   'equippedAdvanced',
+  'knowsCrookedCirculation',
   'lotteryPlayed',
   'stageThreePlus',
   'stageFourPlus',
@@ -218,6 +219,25 @@ export const BEATS: Array<BeatDef & { predicate: BeatPredicateId }> = [
       { kind: 'train' },
       { kind: 'buy', itemId: 'pill_qi' },
       { kind: 'draw_lottery' },
+    ],
+  },
+  // Phase 3 (design review 2026-08): build-gate beat — Bao reads the technique
+  // you actually carry. Crooked Circulation wanders off mid-bargain, so the
+  // merchant prices the wander: the manual's 2-gold sale cost, spoken aloud.
+  {
+    id: 'b_crooked_deal',
+    chapter: 4,
+    predicate: 'knowsCrookedCirculation',
+    titleVi: 'Bảo soi đường khí của ngươi',
+    titleEn: 'Bao Reads Your Crooked Qi',
+    textVi:
+      'Bảo nghiêng đầu ngắm ngươi như ngắm một món hàng. “Chu Thiên Cong Queo? Đường khí ngươi cứ lửng lơ giữa trời và sổ sách — mỗi lần mặc cả, ngươi lại ngắm mây. Cứ hai lượng một kèo, ta tính vào giá, đừng trách.”',
+    textEn:
+      'Bao tilts his head, appraising you like a piece of merchandise. “Crooked Circulation? Your qi keeps drifting between sky and ledger — every time we haggle, you wander off watching clouds. Two gold a deal, I price it in; do not blame me.”',
+    suggested: [
+      { kind: 'talk', npcId: 'n_merchant_bao' },
+      { kind: 'sell', itemId: 'spirit_herb' },
+      { kind: 'train' },
     ],
   },
   {

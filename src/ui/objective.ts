@@ -2,6 +2,18 @@ import { ENEMIES, getLocation, getRegionMap } from '../content'
 import { currentStoryScene, storyRouteEncounter, storyRouteTarget, type GameState, type Locale } from '../engine'
 import { t } from '../i18n'
 
+// Phase 2 of the 2026-08 design review: the "twelfth night" deadline is a real
+// countdown while it runs. `null` means no deadline has been set, it already
+// expired (night_forgotten), or the story no longer has an active clock.
+export function nightDeadlineRemaining(game: GameState): number | null {
+  if (game.terminal) return null
+  if (game.flags['night_forgotten'] === true) return null
+  if (game.flags['night_deadline_cleared'] !== undefined) return null
+  const deadline = game.flags['night_deadline']
+  if (typeof deadline !== 'number') return null
+  return Math.max(0, deadline - game.day)
+}
+
 function locationName(locationId: string, locale: Locale): string {
   const location = getLocation(locationId)
   return location === undefined ? locationId : locale === 'vi' ? location.nameVi : location.nameEn
@@ -15,6 +27,14 @@ export function deriveObjective(game: GameState, locale: Locale): string | null 
   if (game.terminal) return null
   if (game.encounter !== null) {
     return t(locale, 'ui.objective.battle')
+  }
+  // When the night deadline is close, it becomes the objective: the countdown
+  // IS the next milestone (Flow theory — clear goal with a visible clock).
+  const remaining = nightDeadlineRemaining(game)
+  if (remaining !== null && remaining <= 3) {
+    return locale === 'vi'
+      ? `Còn ${String(remaining)} ngày trước đêm thứ mười hai — làng sẽ quên một người. Đi nhanh, chọn gọn.`
+      : `${String(remaining)} days remain before the twelfth night, when the village forgets a name. Move fast, choose well.`
   }
   const routeEncounter = storyRouteEncounter(game)
   if (routeEncounter !== undefined) {

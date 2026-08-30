@@ -18,7 +18,8 @@ describe('lottery restriction', () => {
     expect(first.events.some((e) => e.type === 'DRAW_RESULT')).toBe(true)
     state = first.state
     expect(state.player.gold).toBeGreaterThanOrEqual(goldBefore - LOTTERY_COST)
-    expect(state.lastLotteryDay).toBe(1)
+    // The draw itself is an outing: it costs the day it is recorded on.
+    expect(state.lastLotteryDay).toBe(state.day)
 
     const snapshot = JSON.stringify(state)
     const second = applyAction(state, { kind: 'draw_lottery' })
@@ -27,12 +28,13 @@ describe('lottery restriction', () => {
     ).toBe(true)
     expect(JSON.stringify(second.state)).toBe(snapshot)
 
+    const dayBeforeRest = state.day
     state = applyAction(state, { kind: 'rest' }).state
-    expect(state.day).toBe(2)
+    expect(state.day).toBe(dayBeforeRest + 1)
 
     const third = applyAction(state, { kind: 'draw_lottery' })
     expect(third.events.some((e) => e.type === 'DRAW_RESULT')).toBe(true)
-    expect(third.state.lastLotteryDay).toBe(2)
+    expect(third.state.lastLotteryDay).toBe(third.state.day)
   })
 
   it('a broke player cannot buy a ticket', () => {

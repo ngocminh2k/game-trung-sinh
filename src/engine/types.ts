@@ -91,8 +91,10 @@ export type Action =
   | { kind: 'learn_technique'; techniqueId: string }
   | { kind: 'equip_item'; itemId: string }
   | { kind: 'start_encounter' }
-  | { kind: 'combat_attack'; techniqueId: string }
+  | { kind: 'combat_attack'; techniqueId?: string }
   | { kind: 'combat_defend' }
+  | { kind: 'combat_retreat' }
+
   | { kind: 'resolve_route_event'; approach: 'present' | 'withhold' }
   | { kind: 'story_choice'; choiceId: string }
   | { kind: 'free_text'; raw: string }
@@ -133,7 +135,7 @@ export type GameEvent =
   | { type: 'DAY_PASSED'; day: number }
   | { type: 'RESTED'; hpHeal: number }
   | { type: 'TRAINED'; gain: number; stage: number }
-  | { type: 'GATHERED'; itemId: string; qty: number }
+  | { type: 'GATHERED'; itemId: string; qty: number; qiDrain: number }
   | { type: 'REFINED'; recipeId: string; itemId: string; qty: number }
   | { type: 'ITEM_USED'; itemId: string; hpDelta: number; qiDelta: number }
   | { type: 'BOUGHT'; itemId: string; qty: number; goldPaid: number }
@@ -150,9 +152,11 @@ export type GameEvent =
   | { type: 'TECHNIQUE_LEARNED'; techniqueId: string; level: number }
   | { type: 'EQUIPPED'; itemId: string; slot: EquipmentSlot }
   | { type: 'ENCOUNTER_STARTED'; enemyId: string }
+  | { type: 'QI_SPENT'; amount: number }
   | { type: 'COMBAT_HIT'; actor: 'player' | 'enemy'; amount: number; enemyId: string }
   | { type: 'COMBAT_GUARDED'; amount: number }
   | { type: 'COMBAT_WON'; enemyId: string; rewardGold: number }
+  | { type: 'COMBAT_RETREATED'; enemyId: string; hpCost: number; progressCost: number }
   | { type: 'WARNING'; level: number; locationId: string; messageVi: string; messageEn: string }
   | { type: 'WARD_USED'; itemId: string }
   | { type: 'DAMAGED'; amount: number; source: string }

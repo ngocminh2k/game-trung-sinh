@@ -1,3 +1,4 @@
+import { getTechnique } from '../content/rpg'
 import type { Locale } from '../engine/types'
 import type { AssetPackDefinition, AssetPackId, AssetPackStatus } from './assetPacks'
 import { assetPackProgress, isAssetPackReady } from './assetPacks'
@@ -64,7 +65,7 @@ export function CodexPanel({
       </header>
 
       <section aria-label={t(locale, 'ui.codex.progress')} className="codex-panel__progress" aria-live="polite">
-          <p>{t(locale, 'ui.codex.registered')}: {progress.loaded}/{progress.total}</p>
+        <p>{t(locale, 'ui.codex.registered')}: {progress.loaded}/{progress.total}</p>
         <progress max={Math.max(progress.total, 1)} value={progress.loaded} />
         <small>{progress.readyPacks}/{progress.totalPacks} {t(locale, 'ui.codex.packsReady')}</small>
       </section>
@@ -87,10 +88,21 @@ export function CodexPanel({
               <span>{kindLabel(locale, entry.kind)}</span>
               <strong>{localized(locale, entry)}</strong>
               <p>{locale === 'vi' ? entry.descriptionVi : entry.descriptionEn}</p>
+              {entry.kind === 'technique' && (() => {
+                const technique = getTechnique(entry.id)
+                const benefit = locale === 'vi' ? technique?.benefitVi : technique?.benefitEn
+                const cost = locale === 'vi' ? technique?.costVi : technique?.costEn
+                const lines = [benefit, cost].filter((line) => line !== undefined)
+                return lines.length > 0 && (
+                  <span className="codex-entry-tradeoff">
+                    {lines.map((line, index) => <small key={index}>{line}</small>)}
+                  </span>
+                )
+              })()}
               <small>{statusLabel(locale, entry.assetStatus)}</small>
             </div>
             {onEntrySelect !== undefined && (
-              <button aria-label={`${t(locale, 'ui.codex.open')} ${localized(locale, entry)}`} onClick={() => onEntrySelect(entry)} type="button">
+              <button aria-label={`${t(locale, 'ui.codex.view')} ${localized(locale, entry)}`} onClick={() => onEntrySelect(entry)} type="button">
                 {t(locale, 'ui.codex.view')}
               </button>
             )}

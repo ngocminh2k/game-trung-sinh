@@ -223,6 +223,16 @@ const TEMPLATES: Record<string, Handler> = {
       ? `Hạ ${nameOf('enemy', ev.enemyId, l)}, nhận ${String(ev.rewardGold)} lượng.`
       : `Defeated ${nameOf('enemy', ev.enemyId, l)}; gained ${String(ev.rewardGold)} gold.`
   },
+  COMBAT_RETREATED: (ev, l) => {
+    if (ev.type !== 'COMBAT_RETREATED') return ''
+    return l === 'vi'
+      ? `Ngươi lánh mình rút khỏi ${nameOf('enemy', ev.enemyId, l)} — mất ${String(ev.hpCost)} khí huyết và bỏ lại ít thành quả.`
+      : `You slip away from the ${nameOf('enemy', ev.enemyId, l)} — ${String(ev.hpCost)} blood-qi spent, some gains left behind.`
+  },
+  QI_SPENT: (ev, l) => {
+    if (ev.type !== 'QI_SPENT') return ''
+    return l === 'vi' ? `Vận ${String(ev.amount)} linh khí.` : `Channel ${String(ev.amount)} qi.`
+  },
   WARNING: (ev, l) => {
     if (ev.type !== 'WARNING') return ''
     return l === 'vi' ? ev.messageVi : ev.messageEn

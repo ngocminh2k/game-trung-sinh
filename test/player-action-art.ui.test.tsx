@@ -148,12 +148,17 @@ describe('player action artwork', () => {
     expect(secondImage?.getAttribute('src')).toMatch(/move\.png$/)
   })
 
-  it('uses the reducer-resolved action for a free-text command pose', () => {
+  it('uses the reducer-resolved action for a free-text command pose', async () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: /tải|loading/i }))
 
-    fireEvent.change(screen.getByLabelText('Viết hành động khác'), { target: { value: 'tu luyện' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Thử vận' }))
+    // Phase 5: free text first asks the AI to suggest an authored choice; with
+    // no AI available it resolves to null and falls back to the deterministic
+    // parser. Await the suggestion promise so the fallback actually dispatches.
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Viết hành động khác'), { target: { value: 'tu luyện' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Thử vận' }))
+    })
 
     expect(screen.getByTestId('player-action-art').dataset.pose).toBe('cultivate')
   })

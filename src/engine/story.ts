@@ -91,6 +91,19 @@ function flagTrue(state: GameState, key: string): boolean {
   return state.flags[key] === true
 }
 
+// Phase 4 (design review 2026-08): the ROUTE-05 proof record is not a trophy —
+// it tips every later story decision in the route's own currency. Mercy banks
+// testimony, wealth banks coin, truth pays qi to keep the erased name. Applied
+// at Hồi III/IV (cave_witness, sect_trial) where the proof sits on the table.
+const ROUTE_PROOF_TIP: Record<string, {
+  effects: Record<string, boolean>
+  playerDelta: Partial<Record<'hp' | 'qi' | 'gold' | 'progress', number>>
+}> = {
+  mercy: { effects: { story_testimony_banked: true }, playerDelta: { progress: 4 } },
+  wealth: { effects: { story_debt_ledger: true }, playerDelta: { gold: 6 } },
+  truth: { effects: { story_memory_kept: true }, playerDelta: { qi: -4, progress: 3 } },
+}
+
 export function currentStoryScene(state: GameState): StorySceneDef {
   const id = typeof state.flags.story_scene === 'string' ? state.flags.story_scene : FIRST_SCENE_ID
   return getStoryScene(id) ?? getStoryScene(FIRST_SCENE_ID)!
@@ -133,13 +146,24 @@ export function findStoryChoice(state: GameState, choiceId: string): StoryChoice
 }
 
 export function applyStoryEffects(state: GameState, choice: StoryChoiceDef): GameState {
+  const scene = state.flags.story_scene
   const flags = { ...state.flags }
   for (const [key, value] of Object.entries(choice.effects ?? {})) {
     flags[key] = typeof value === 'number' ? flagNumber(state, key) + value : value
   }
   if (choice.nextSceneId !== null) flags.story_scene = choice.nextSceneId
-  const delta = choice.playerDelta
-  if (delta === undefined) return { ...state, flags }
+  // Phase 4 (design review 2026-08): at Hồi III/IV the proof record on the
+  // table tips the decision in the route's own currency. Availability never
+  // changes — every choice stays legal — only the consequence is route-shaped.
+  const proof = state.flags.story_route_proof
+  const tip =
+    (scene === 'cave_witness' || scene === 'sect_trial') && typeof proof === 'string'
+      ? ROUTE_PROOF_TIP[proof]
+      : undefined
+  if (tip !== undefined) {
+    for (const [key, value] of Object.entries(tip.effects)) flags[key] = value
+  }
+  const delta = { ...choice.playerDelta, ...tip?.playerDelta }
   return {
     ...state,
     flags,
@@ -184,6 +208,36 @@ export function resolveStoryEnding(state: GameState, choiceId: string): string {
 
 export function dialogueForNpc(state: GameState, npcId: string): { vi: string; en: string } {
   const scene = currentStoryScene(state).id
+  // Phase 4 (design review 2026-08): the twelfth night took someone. If it was
+  // this NPC, they no longer know the player — the loss is spoken, not flagged.
+  if (state.flags['night_forgotten'] === true) {
+    const forgotten = state.flags['night_forgotten_name']
+    const forgottenIds: Record<string, string> = {
+      n_elder_meihua: 'meihua',
+      n_merchant_bao: 'bao',
+      n_storyteller_ngo: 'ngo',
+    }
+    if (typeof forgotten === 'string' && forgottenIds[npcId] === forgotten) {
+      return {
+        vi: '“Ngươi là ai? Ta không nhớ ta từng biết ngươi — mà ta cũng không nhớ vì sao hôm nay ta buồn.”',
+        en: '“Who are you? I do not remember knowing you — nor why I grieve today.”',
+      }
+    }
+  }
+  // Phase 3 (design review 2026-08): build-gate dialogue — NPCs read the
+  // technique you actually carry, not just your stage number.
+  if (npcId === 'n_hermit_coc' && (state.techniques['crooked_circulation'] ?? 0) > 0) {
+    return {
+      vi: '“Ngươi vận công theo sách của ta. Cong queo, sai sách vở — và đúng với ngươi hơn bất kỳ đường khí thẳng nào.”',
+      en: '“You circulate by my book. Crooked, wrong by every rule — and truer to you than any straight meridian.”',
+    }
+  }
+  if (npcId === 'n_master_vo' && (state.techniques['peak_cleaver'] ?? 0) > 0) {
+    return {
+      vi: '“Phá Phong Trảm trong tay ngươi không chém để giết. Nó chém để chứng minh ngươi còn nhớ vì sao mình đứng đây.”',
+      en: '“Your Peak-Cleaving Strike does not swing to kill. It swings to prove you still remember why you stand here.”',
+    }
+  }
   if (npcId === 'n_elder_meihua' && flagTrue(state, 'story_meihua_companion')) {
     return { vi: '“Bó dây đỏ không phải phép thuật, nhưng ta thấy ngươi đã dùng nó như một lời hứa. Đi tiếp đi; ta sẽ giữ cho làng còn nhớ đường về.”', en: '“The red thread is no spell, but I saw you use it as a promise. Go on; I will keep the village remembering the way home.”' }
   }

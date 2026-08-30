@@ -78,7 +78,11 @@ describe('bilingual content parity', () => {
     for (const scene of STORY_SCENES) {
       expect(scene.textVi.length).toBeGreaterThan(0)
       expect(scene.textEn.length).toBeGreaterThan(0)
-      expect(scene.choices).toHaveLength(3)
+      // Phase 4 adds three route-gated bonus choices at market_rumor plus one
+      // proof-gated action at cave_witness and sect_trial.
+      expect(scene.choices.length).toBe(
+        scene.id === 'market_rumor' || scene.id === 'cave_witness' || scene.id === 'sect_trial' ? 6 : 3,
+      )
       for (const choice of scene.choices) {
         expect(choice.labelEn.length).toBeGreaterThan(0)
         expect(choice.consequenceEn.length).toBeGreaterThan(0)

@@ -52,6 +52,7 @@ const TALK_WORDS = ['talk to', 'talk', 'noi chuyen voi', 'noi chuyen', 'gap ']
 const ENCOUNTER_WORDS = ['start encounter', 'engage enemy', 'fight enemy', 'giao chien', 'khai chien', 'vao tran']
 const ATTACK_WORDS = ['attack', 'strike', 'tan cong', 'ra don', 'danh ']
 const DEFEND_WORDS = ['defend', 'guard', 'phong thu', 'thu the', 'do don']
+const RETREAT_WORDS = ['retreat', 'run away', 'flee', 'rut lui', 'bo chay', 'chay khoi', 'roi tran']
 const EQUIP_WORDS = ['equip', 'trang bi', 'mac vao', 'cam vu khi']
 const LEARN_WORDS = ['learn technique', 'learn skill', 'hoc cong phap', 'luyen bi kip', 'lĩnh ngộ']
 const TALENT_WORDS = ['choose talent', 'select talent', 'chon thien phu', 'thuc tinh thien phu']
@@ -142,8 +143,10 @@ export function parseFreeText(raw: string): ParsedIntent | FailedIntent {
   const qty = specifiedQty ?? 1
 
   if (includesAny(text, ENCOUNTER_WORDS)) return { ok: true, action: { kind: 'start_encounter' } }
+  if (includesAny(text, RETREAT_WORDS)) return { ok: true, action: { kind: 'combat_retreat' } }
   if (includesAny(text, ATTACK_WORDS)) {
-    return { ok: true, action: { kind: 'combat_attack', techniqueId: findTechniqueIdIn(text) ?? 'basic_staff_form' } }
+    // Naming no technique is a deliberate choice: the cheap basic strike.
+    return { ok: true, action: { kind: 'combat_attack', techniqueId: findTechniqueIdIn(text) } }
   }
   if (includesAny(text, DEFEND_WORDS)) return { ok: true, action: { kind: 'combat_defend' } }
   if (includesAny(text, EQUIP_WORDS)) {
