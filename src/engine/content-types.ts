@@ -51,6 +51,24 @@ export interface TalentDef {
   trainingBonus: number
 }
 
+export interface SkillNode {
+  id: string
+  branch: 'sword' | 'aura' | 'herbal' | 'shadow' | 'thunder'
+  tier: number
+  nameVi: string
+  nameEn: string
+  descVi: string
+  descEn: string
+  /** Cost to unlock: skillPoints required, optional gold, optional item requirement */
+  cost: { skillPoints: number; gold?: number; item?: string }
+  /** Requirements: stage, level, required techniques, or flag */
+  require: { stage: number; level?: number; techniques?: string[]; flag?: string }
+  /** Effect when unlocked (passive or active) */
+  effect: { kind: 'attack' | 'heal' | 'buff' | 'dodge' | 'aoe' | 'status' | 'utility'; value: number | string; [key: string]: unknown }
+  /** Nodes that conflict with this one (mutually exclusive) */
+  conflictsWith?: string[]
+}
+
 export interface TechniqueDef {
   id: string
   nameVi: string
@@ -75,6 +93,15 @@ export interface TechniqueDef {
   costEn?: string
 }
 
+/** A time-limited combat condition. `turns` decrements at the end of each
+ *  affected actor's turn; when it reaches zero the status is removed.
+ *  `potency` is the per-turn HP/qi magnitude applied at start of turn. */
+export interface StatusEffect {
+  kind: 'poison' | 'paralysis' | 'burn' | 'slow' | 'drain'
+  turns: number
+  potency?: number
+}
+
 export interface EquipmentDef {
   id: string
   itemId: string
@@ -88,6 +115,24 @@ export interface EquipmentDef {
   qiBonus: number
 }
 
+/** Five-phase elemental cycle. The `counters` table is the production cycle:
+ *  Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc, Mộc khắc Thổ, Thổ khắc Thủy. */
+export type Element = 'Mộc' | 'Kim' | 'Hỏa' | 'Thủy' | 'Thổ'
+
+/** Enemy combat posture. Each pattern maps to a deterministic reply in the
+ *  reducer: defensive stances raise guard, poison stacks a status, etc.
+ *  Behavior output is always pure and uses the encounter's rng position. */
+export type BehaviorPattern =
+  | 'aggressive'
+  | 'defensive'
+  | 'ranged'
+  | 'poison'
+  | 'flee'
+  | 'counter'
+  | 'summon'
+  | 'heal_self'
+  | 'drain_qi'
+
 export interface EnemyDef {
   id: string
   locationId: string
@@ -99,6 +144,21 @@ export interface EnemyDef {
   attack: number
   rewardGold: number
   rewardItems: Record<string, number>
+  /** Five-phase elemental affinity. Defaults to 'Mộc' so existing enemies
+   *  (mist_boar, seal_wraith, rift_hound) keep their tone. */
+  element?: Element
+  /** How the enemy replies when its turn comes around. */
+  behaviorPattern?: BehaviorPattern
+  /** Optional defense score the reducer subtracts from the player's strike.
+   *  Most beasts have none — they dodge with their hides, not armor. */
+  defense?: number
+  /** Minimum player stage for the encounter to spawn. Defaults to 0. */
+  requiredStage?: number
+  /** Stage-related experience yield (used by endings, not by combat math). */
+  exp?: number
+  /** Optional status effect applied on the enemy's reply turn. The pattern
+   *  drives the choice (poison → poison, ranged → slow, drain_qi → drain). */
+  statusOnHit?: StatusEffect['kind']
 }
 
 export interface LocationDef {
@@ -143,6 +203,20 @@ export interface RegionMapDef {
   arrivals: Record<string, { x: number; y: number }>
 }
 
+export interface NpcLine {
+  when: {
+    affMin?: number
+    affMax?: number
+    questDone?: string
+    questActive?: string
+    dayMin?: number
+    flag?: string
+    scene?: string
+  }
+  vi: string
+  en: string
+}
+
 export interface NpcDef {
   id: string
   nameVi: string
@@ -153,6 +227,7 @@ export interface NpcDef {
   greetVi: string
   greetEn: string
   aliases: string[]
+  lines?: NpcLine[]
 }
 
 export interface ChapterDef {
@@ -171,6 +246,22 @@ export interface EndingDef {
   epitaphEn: string
 }
 
+export interface QuestStep {
+  id: string
+  descVi: string
+  descEn: string
+  /** Items needed for this step (optional - some steps use flags/npcTalk instead) */
+  completeItems?: Record<string, number>
+  /** Flags that must be set for this step to complete (optional) */
+  completeFlags?: string[]
+  /** NPC talk required for this step (optional) */
+  completeNpcTalk?: string
+  /** Node that must be reached (optional) */
+  completeNode?: string
+  /** Whether this is the final step (turn-in at NPC) */
+  isTurnInStep: boolean
+}
+
 export interface QuestDef {
   id: string
   giverNpcId: string
@@ -178,11 +269,22 @@ export interface QuestDef {
   nameEn: string
   descVi: string
   descEn: string
+  steps: QuestStep[]
+  /** For backwards compatibility - maps to first step's completeItems */
   requiredItems: Record<string, number>
+  /** Flags that must be set before quest can be accepted */
   requiredFlags: string[]
   rewardGold: number
   rewardItems: Record<string, number>
   aliases: string[]
+  /** If true, this quest does NOT appear in the quest list until opened. */
+  secret?: boolean
+  /** World quest: expires after this many days from acceptance. */
+  deadlineDays?: number
+  /** Optional follow-up quest, validated by the content registry. */
+  nextQuestId?: string
+  /** A main-quest turn-in moves the story to this authored scene. */
+  storySceneNextId?: string
 }
 
 export interface AchievementDef {
@@ -228,4 +330,44 @@ export interface StorySceneDef {
   textVi: string
   textEn: string
   choices: StoryChoiceDef[]
+}
+
+export interface RomanceEffect {
+  aff?: number
+  flag?: string
+  hp?: number
+  qi?: number
+  gold?: number
+}
+
+export interface RomanceTrigger {
+  dayMin?: number
+  affMin?: number
+  locationId?: string
+  flags?: Record<string, number | boolean | string>
+}
+
+export interface RomanceChoiceDef {
+  id: string
+  labelVi: string
+  labelEn: string
+  effect: RomanceEffect
+  next?: string
+}
+
+export interface RomanceNode {
+  id: string
+  trigger: RomanceTrigger
+  requires?: string[]
+  titleVi: string
+  titleEn: string
+  textVi: string
+  textEn: string
+  choices: RomanceChoiceDef[]
+  effects: RomanceEffect
+}
+
+export interface RomanceTrack {
+  npcId: string
+  nodes: RomanceNode[]
 }

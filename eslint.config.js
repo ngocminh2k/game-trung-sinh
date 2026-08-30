@@ -16,20 +16,28 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.{ts,tsx}'],
+    // Determinism guardrails: engine and content must never touch wall-clock or
+    // Math.random — all entropy lives in the injected GameState.
+    files: ['src/engine/**/*.{ts,tsx}', 'src/content/**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2022,
       globals: { ...globals.browser },
     },
     rules: {
-      // Determinism guardrails: engine code must never touch wall-clock or
-      // Math.random — all entropy lives in the injected GameState.
       'no-restricted-properties': [
         'error',
         { object: 'Math', property: 'random', message: 'use state.rng via src/engine/rng.ts' },
         { object: 'Date', property: 'now', message: 'use state.day from GameState' },
         { object: 'document', property: 'querySelector', message: 'engine must stay DOM-free' },
       ],
+    },
+  },
+  {
+    // UI and test files are outside the deterministic engine boundary.
+    files: ['src/ui/**/*.{ts,tsx}', 'src/ai/**/*.{ts,tsx}', 'test/**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: { ...globals.browser },
     },
   },
 )

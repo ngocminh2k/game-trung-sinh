@@ -67,6 +67,7 @@ export function newGame(seed: string): GameState {
       posY: 3,
       locationId: LOCATION_VILLAGE,
       alive: true,
+      status: [],
     },
     spiritRoot: {
       kind: 'defective',

@@ -151,8 +151,104 @@
 }
 
 /* ===========================================================================
-   DEATH / GAME OVER SCREEN
+   SAVE SLOT SCREEN
    =========================================================================== */
+.save-slots-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 32px 24px;
+  font-family: Spectral, 'Noto Serif', Georgia, serif;
+  background:
+    radial-gradient(circle at 50% 30%, #f5eeda 0%, #e9dfc4 46%, #cdbf9f 100%);
+}
+.save-slots-panel {
+  width: min(640px, 100%);
+  display: grid;
+  gap: 6px;
+  padding: 34px 36px;
+  border: 1px solid rgba(52, 76, 60, .28);
+  background: rgba(255, 253, 241, .72);
+  box-shadow: 0 18px 40px rgba(62, 54, 39, .12);
+}
+.save-slots-kicker {
+  margin: 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #6d7a6c;
+}
+.save-slots-panel h1 {
+  margin: 2px 0 0;
+  font-size: clamp(24px, 4vmin, 34px);
+  color: #1d3328;
+}
+.save-slots-subtitle {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: #5d6358;
+}
+.save-slots-list {
+  display: grid;
+  gap: 10px;
+}
+.save-slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+.save-slot-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #b9b59c;
+  padding: 12px 14px;
+  background: rgba(255, 253, 241, .55);
+  text-align: left;
+  transition: border-color .13s ease, background .13s ease, transform .13s ease;
+}
+.save-slot-main:hover:not(:disabled) { border-color: #497956; background: #f8f4e4; transform: translateX(3px); }
+.save-slot-number {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  color: #315c43;
+}
+.save-slot-meta { display: grid; gap: 2px; font-size: 12px; color: #5d6358; }
+.save-slot-empty { font-size: 13px; color: #8a8574; font-style: italic; }
+.save-slot-main > strong {
+  justify-self: end;
+  padding: 5px 10px;
+  border: 1px solid #244c38;
+  border-radius: 999px;
+  color: #fdf6e7;
+  background: #28553e;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.save-slot-main:focus-visible { outline: 3px solid #bb7c28; outline-offset: 2px; }
+.save-slot-delete {
+  border: 1px solid rgba(157, 62, 46, .5);
+  padding: 6px 10px;
+  color: #9d3e2e;
+  background: transparent;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+}
+.save-slot-delete:hover { color: #fdf6e7; background: #9d3e2e; }
+.save-slot-delete[data-confirming='true'] { border-color: #9d3e2e; color: #fdf6e7; background: #9d3e2e; }
+@media (prefers-reduced-motion: reduce) {
+  .save-slot-main { transition: none; }
+}
+
+
 .death-screen {
   gap: 0;
   color: #e9e2d2;

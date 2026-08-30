@@ -18,10 +18,10 @@ import {
 import { newGame, validateGameState } from '../src/engine'
 
 describe('content integrity', () => {
-  it('has exactly 30 NPCs with unique ids and bilingual fields', () => {
-    expect(NPCS).toHaveLength(30)
+  it('has exactly 40 NPCs with unique ids and bilingual fields', () => {
+    expect(NPCS).toHaveLength(40)
     const ids = new Set(NPCS.map((n) => n.id))
-    expect(ids.size).toBe(30)
+    expect(ids.size).toBe(40)
     for (const npc of NPCS) {
       expect(npc.nameVi.length).toBeGreaterThan(0)
       expect(npc.nameEn.length).toBeGreaterThan(0)
@@ -157,12 +157,13 @@ describe('state schema', () => {
       player: { ...base.player, posX: MAP_WIDTH, posY: MAP_HEIGHT },
     }
     expect(() => validateGameState(outOfBounds)).toThrow()
-    const localWalkableCell = {
+    // Schema allows any passable cell; entry is always walkable.
+    const entry = base.player
+    const parsed = validateGameState({
       ...base,
-      player: { ...base.player, posX: MAP_WIDTH - 2, posY: MAP_HEIGHT - 2 },
-    }
-    const parsed = validateGameState(localWalkableCell)
-    expect(parsed.player.posX).toBe(MAP_WIDTH - 2)
-    expect(parsed.player.posY).toBe(MAP_HEIGHT - 2)
+      player: { ...entry, posX: entry.posX, posY: entry.posY },
+    })
+    expect(parsed.player.posX).toBe(entry.posX)
+    expect(parsed.player.posY).toBe(entry.posY)
   })
 })

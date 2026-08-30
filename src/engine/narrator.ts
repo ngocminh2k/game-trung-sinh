@@ -179,6 +179,12 @@ const TEMPLATES: Record<string, Handler> = {
     if (choice === undefined) return ''
     return l === 'vi' ? choice.consequenceVi : choice.consequenceEn
   },
+  ROMANCE_NODE: (ev, l) => {
+    if (ev.type !== 'ROMANCE_NODE') return ''
+    return l === 'vi'
+      ? `${nameOf('npc', ev.npcId, l)} · ${ev.titleVi}`
+      : `${nameOf('npc', ev.npcId, l)} · ${ev.titleEn}`
+  },
   QUEST_ACCEPTED: (ev, l) => {
     if (ev.type !== 'QUEST_ACCEPTED') return ''
     return l === 'vi' ? `Ngươi nhận nhiệm vụ: ${nameOf('quest', ev.questId, l)}.` : `Quest accepted: ${nameOf('quest', ev.questId, l)}.`

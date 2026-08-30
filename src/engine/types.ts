@@ -18,6 +18,9 @@ export interface PlayerState {
   posY: number
   locationId: string
   alive: boolean
+  /** Combat conditions (poison, paralysis…). Optional so older saves stay
+   *  valid; the reducer treats a missing array as empty. */
+  status?: import('./content-types').StatusEffect[]
 }
 
 export interface SpiritRootInfo {
@@ -31,6 +34,8 @@ export type QuestStatus = 'available' | 'active' | 'completed'
 
 export interface QuestRuntime {
   status: QuestStatus
+  /** Index into QuestDef.steps of the current step. Defaults to 0 for old saves. */
+  step?: number
 }
 
 export type EquipmentSlot = 'weapon' | 'robe' | 'accessory'
@@ -46,6 +51,9 @@ export interface EncounterState {
   hp: number
   maxHp: number
   guard: number
+  /** Status effects on the enemy (poison, burn…). Optional so older saves
+   *  stay valid; the reducer treats a missing array as empty. */
+  statusEffects?: import('./content-types').StatusEffect[]
 }
 
 export interface GameState {
@@ -86,6 +94,8 @@ export type Action =
   | { kind: 'draw_lottery' }
   | { kind: 'talk'; npcId: string }
   | { kind: 'accept_quest'; questId: string }
+  | { kind: 'turn_in_quest'; questId: string }
+  /** Legacy alias retained for existing commands and saves. */
   | { kind: 'complete_quest'; questId: string }
   | { kind: 'choose_talent'; talentId: string }
   | { kind: 'learn_technique'; techniqueId: string }
@@ -97,6 +107,7 @@ export type Action =
 
   | { kind: 'resolve_route_event'; approach: 'present' | 'withhold' }
   | { kind: 'story_choice'; choiceId: string }
+  | { kind: 'advance_romance'; trackId: string; choiceId: string }
   | { kind: 'free_text'; raw: string }
   | { kind: 'restart'; seed: string }
 
@@ -144,8 +155,10 @@ export type GameEvent =
   | { type: 'WITHDRAWN'; itemId: string; qty: number }
   | { type: 'DRAW_RESULT'; tier: 'grand' | 'major' | 'minor' | 'herb' | 'none'; goldDelta: number; itemId?: string }
   | { type: 'TALKED'; npcId: string; lineVi?: string; lineEn?: string }
+  | { type: 'AFFINITY'; npcId: string; level: number }
   | { type: 'ROUTE_EVENT_RESOLVED'; route: 'mercy' | 'wealth' | 'truth'; approach: 'present' | 'withhold'; proofVi: string; proofEn: string; progressDelta: number; qiDelta: number; goldDelta: number }
   | { type: 'STORY_CHOICE'; sceneId: string; choiceId: string; nextSceneId: string | null }
+  | { type: 'ROMANCE_NODE'; npcId: string; nodeId: string; choiceId: string; titleVi: string; titleEn: string }
   | { type: 'QUEST_ACCEPTED'; questId: string }
   | { type: 'QUEST_COMPLETED'; questId: string; rewardGold: number }
   | { type: 'TALENT_CHOSEN'; talentId: string }

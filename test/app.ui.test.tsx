@@ -7,8 +7,11 @@ describe('browser game journey', () => {
   beforeEach(() => window.localStorage.clear())
   afterEach(() => cleanup())
 
-  // The app opens on the ink-wash loading screen; dismiss it to reach the game.
-  const beginGame = () => fireEvent.click(screen.getByRole('button', { name: /tải|loading/i }))
+  // Boot: the slot screen appears first; select slot 1, then dismiss the loading screen.
+  const beginGame = () => {
+    fireEvent.click(screen.getByTestId('save-slot-1'))
+    fireEvent.click(screen.getByRole('button', { name: /nhấn|press/i }))
+  }
 
   it('responds to keyboard travel, supports bilingual UI, and persists the run', async () => {
     const user = userEvent.setup()
@@ -26,7 +29,8 @@ describe('browser game journey', () => {
     await user.click(screen.getByRole('button', { name: 'EN' }))
     expect(screen.getByRole('heading', { name: 'Local area map' })).toBeTruthy()
 
-    await waitFor(() => expect(window.localStorage.getItem('phe-can-ky:save:v1')).toContain('market'))
+    // State is persisted in the slot system.
+    await waitFor(() => expect(window.localStorage.getItem('phe-can-ky:slots')).toContain('market'))
   })
 
   it('submits a free-form action through the deterministic reducer', async () => {

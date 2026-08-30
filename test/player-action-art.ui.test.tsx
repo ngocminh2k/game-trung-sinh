@@ -150,7 +150,8 @@ describe('player action artwork', () => {
 
   it('uses the reducer-resolved action for a free-text command pose', async () => {
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: /tải|loading/i }))
+    fireEvent.click(screen.getByTestId('save-slot-1'))
+    fireEvent.click(screen.getByRole('button', { name: /nhấn|press/i }))
 
     // Phase 5: free text first asks the AI to suggest an authored choice; with
     // no AI available it resolves to null and falls back to the deterministic
