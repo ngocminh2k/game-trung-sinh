@@ -113,4 +113,7 @@ export function deleteSaveSlot(storage: SessionStorage, slotId: SlotId): void {
 
 export function shouldAutoSave(previous: GameState, next: GameState): boolean {
   return next.day > previous.day
+    || next.player.locationId !== previous.player.locationId
+    || next.player.posX !== previous.player.posX
+    || next.player.posY !== previous.player.posY
 }

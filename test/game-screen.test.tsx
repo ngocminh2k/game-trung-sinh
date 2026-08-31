@@ -17,11 +17,12 @@ describe('GameScreen', () => {
 
     expect(markup).toContain('Bản đồ khu vực')
     expect(markup).toContain('regional-map')
-    expect(markup).toContain('Lựa chọn của ngươi')
-    expect(markup).toContain('Viết hành động khác')
+    expect(markup).not.toContain('Lựa chọn của ngươi')
+    expect(markup).not.toContain('Viết hành động khác')
+    expect(markup).not.toContain('data-testid="narration-panel"')
     expect(markup).toContain('Phế Căn Ký')
     expect(markup).toContain('Bản đồ khu vực có lối ra và điểm sự kiện')
-    expect(markup).toContain('Mạch truyện')
+    expect(markup).not.toContain('Mạch truyện')
     expect(markup).toContain('Độ tương hợp')
     expect(markup).not.toContain('deterministic')
     expect(markup).toContain('Tư thế nhân vật: idle')
@@ -34,6 +35,24 @@ describe('GameScreen', () => {
     expect(markup).not.toContain('Mộc Trượng Thức')
     expect(markup).not.toContain('Minh họa Mộc Trượng Cũ')
     expect(markup).not.toContain('Minh họa Linh Căn Lì Lợm')
+  })
+
+  it('shows the narration panel only while an interaction is active', () => {
+    const markup = renderToStaticMarkup(
+      <GameScreen
+        game={newGame('screen-interaction-test')}
+        locale="vi"
+        chronicle={['Cụ Mai Hoa khép cuốn sổ cũ.']}
+        onAction={() => undefined}
+        onLocaleChange={() => undefined}
+        storyOpen
+      />,
+    )
+
+    expect(markup).toContain('data-testid="narration-panel"')
+    expect(markup).toContain('Lựa chọn của ngươi')
+    expect(markup).toContain('Viết hành động khác')
+    expect(markup).toContain('Tiếp tục')
   })
 
 })

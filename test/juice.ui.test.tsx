@@ -85,12 +85,12 @@ describe('game feel feedback (design review Phase 6)', () => {
     vi.useFakeTimers()
     const base = newGame('juice-chronicle')
     const first = render(
-      <GameScreen actionNonce={0} chronicle={['Dòng mở đầu.']} game={base} locale="vi" onAction={() => undefined} onLocaleChange={() => undefined} />,
+      <GameScreen actionNonce={0} chronicle={['Dòng mở đầu.']} game={base} locale="vi" onAction={() => undefined} onLocaleChange={() => undefined} storyOpen />,
     )
     expect(first.container.querySelector('.chronicle li.is-new')).toBeNull()
 
     first.rerender(
-      <GameScreen actionNonce={1} chronicle={['Dòng mở đầu.', 'Hành động mới được ghi lại.']} game={base} locale="vi" onAction={() => undefined} onLocaleChange={() => undefined} />,
+      <GameScreen actionNonce={1} chronicle={['Dòng mở đầu.', 'Hành động mới được ghi lại.']} game={base} locale="vi" onAction={() => undefined} onLocaleChange={() => undefined} storyOpen />,
     )
     const lines = first.container.querySelectorAll('.chronicle li')
     expect(lines).toHaveLength(2)

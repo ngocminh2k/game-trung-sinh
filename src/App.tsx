@@ -134,6 +134,7 @@ function App() {
   const [session, setSession] = useState<GameSession | null>(null)
   const [activeSlot, setActiveSlotState] = useState<SlotId | null>(() => storage === undefined ? null : getActiveSlot(storage))
   const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
+  const [storyOpen, setStoryOpen] = useState(false)
   const [phase, setPhase] = useState<'slots' | 'loading' | 'playing'>('slots')
   const sessionRef = useRef<GameSession | null>(null)
 
@@ -169,6 +170,8 @@ function App() {
     sessionRef.current = next
     if (activeSlot !== null && shouldAutoSave(previous.game, result.state)) saveSlot(browserStorage(), activeSlot, next)
     setSession(next)
+    const opensStory = result.events.some((event) => event.type === 'TALKED' || (event.type === 'NODE_REACHED' && event.kind === 'event'))
+    setStoryOpen((open) => !result.state.terminal && (open || opensStory))
     const visualAction = visualActionFor(action, result.events)
     setMotion((current) => ({ kind: visualAction, nonce: current.nonce + 1 }))
 
@@ -185,7 +188,12 @@ function App() {
     const movement: Record<string, Action> = { ArrowUp: { kind: 'move', direction: 'north' }, w: { kind: 'move', direction: 'north' }, ArrowDown: { kind: 'move', direction: 'south' }, s: { kind: 'move', direction: 'south' }, ArrowLeft: { kind: 'move', direction: 'west' }, a: { kind: 'move', direction: 'west' }, ArrowRight: { kind: 'move', direction: 'east' }, d: { kind: 'move', direction: 'east' } }
     const handler = (event: KeyboardEvent) => {
       const target = event.target
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || sessionRef.current === null) return
+      if (sessionRef.current === null) return
+      if (storyOpen) {
+        if (event.key === 'Escape') { event.preventDefault(); setStoryOpen(false) }
+        return
+      }
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return
       const move = movement[event.key]
       if (storyRouteEncounter(sessionRef.current.game) !== undefined && (move !== undefined || /^[1-3]$/.test(event.key))) { event.preventDefault(); return }
       if (move !== undefined) { event.preventDefault(); act(move); return }
@@ -197,7 +205,7 @@ function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [act])
+  }, [act, storyOpen])
 
   const changeLocale = useCallback((locale: Locale) => {
     if (sessionRef.current === null) return
@@ -217,7 +225,7 @@ function App() {
   if (phase === 'slots') return <SaveSlotsScreen slots={slots} locale={bootLocale} onSelect={selectSlot} onDelete={removeSlot} />
   if (session === null) return null
   if (phase === 'loading') return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
-  return <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} />
+  return <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} />
 }
 
 export default App

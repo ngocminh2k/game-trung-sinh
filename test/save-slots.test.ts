@@ -59,10 +59,11 @@ describe('save slots', () => {
     expect(getActiveSlot(storage)).toBe(4)
   })
 
-  it('requests an autosave only when an engine transition advances the day', () => {
-    const game = newGame('autosave-day')
-    const moved = applyAction(game, { kind: 'move', direction: 'west' }).state
+  it('requests an autosave when travel changes the player position', () => {
+    const game = newGame('autosave-travel')
+    const moved = applyAction(game, { kind: 'move', direction: 'south' }).state
 
+    expect(moved.day).toBe(game.day)
     expect(shouldAutoSave(game, moved)).toBe(true)
     expect(shouldAutoSave(moved, moved)).toBe(false)
   })

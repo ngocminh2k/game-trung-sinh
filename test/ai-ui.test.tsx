@@ -20,6 +20,7 @@ function renderScreen(onAction: (action: Action) => void) {
       locale="vi"
       onAction={onAction}
       onLocaleChange={() => undefined}
+      storyOpen
     />,
   )
 }

@@ -34,6 +34,18 @@ describe('Scenario I regional maps', () => {
     }
   })
 
+  it('moves across ordinary terrain without spending a day', () => {
+    const fresh = newGame('regional-free-step')
+    const moved = applyAction(fresh, { kind: 'move', direction: 'south' })
+
+    expect(moved.state.player.locationId).toBe('village')
+    expect(moved.state.player.posX).toBe(3)
+    expect(moved.state.player.posY).toBe(4)
+    expect(moved.state.day).toBe(fresh.day)
+    expect(moved.events.some((event) => event.type === 'MOVED')).toBe(true)
+    expect(moved.events.some((event) => event.type === 'DAY_PASSED' || event.type === 'NODE_REACHED')).toBe(false)
+  })
+
   it('emits a reached-node event and blocks impassable local terrain', () => {
     const fresh = newGame('regional-node')
     const approach = applyAction(fresh, { kind: 'move', direction: 'west' })

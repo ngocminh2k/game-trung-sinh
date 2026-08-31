@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import { newGame, type GameState, type Locale } from '../src/engine'
 
-const SESSION_KEY = 'phe-can-ky:save:v1'
+const SLOTS_KEY = 'phe-can-ky:slots'
+const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
 
 type GameSession = { game: GameState; locale: Locale; chronicle: string[] }
 
@@ -24,23 +25,59 @@ async function beginPlaying(page: Page): Promise<void> {
 
 async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): Promise<void> {
   const session: GameSession = { game, locale, chronicle: ['Acceptance save is ready.'] }
-  await page.addInitScript(({ key, value }) => {
-    if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, value)
-  }, { key: SESSION_KEY, value: JSON.stringify(session) })
+  const slot = { slotId: 1, savedAt: 1, session }
+  await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
+    if (window.localStorage.getItem(slotsKey) !== null) return
+    window.localStorage.setItem(slotsKey, value)
+    window.localStorage.setItem(activeSlotKey, '1')
+  }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
+  await page.getByTestId('save-slot-1').click()
   await beginPlaying(page)
 }
 
-test('starts through the loading screen, switches language, travels, and persists', async ({ page }) => {
+async function openDialogue(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Open Journey journal' }).click()
+  await page.getByRole('tab', { name: /People here/ }).click()
+  await page.getByRole('button', { name: 'Talk' }).first().click()
+  await expect(page.getByTestId('narration-panel')).toBeVisible()
+}
+
+test('starts as exploration, travels without losing a day, and persists', async ({ page }) => {
   await openGame(page, freshGame(), 'vi')
+  await expect(page.getByTestId('narration-panel')).toHaveCount(0)
+  await expect(page.locator('.day-chip')).toContainText('Ngày 1')
   await page.getByRole('button', { name: 'EN', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Local area map' })).toBeVisible()
   await page.keyboard.press('ArrowLeft')
   await page.keyboard.press('ArrowLeft')
   await expect(page.getByTestId('location-label')).toHaveText('Cloudgather Market')
+  await expect(page.locator('.day-chip')).toContainText('Day 1')
   await page.reload()
+  await page.getByTestId('save-slot-1').click()
   await beginPlaying(page)
   await expect(page.getByTestId('location-label')).toHaveText('Cloudgather Market')
+})
+
+test('opens dialogue for NPC talk and blocks movement until dismissal', async ({ page }) => {
+  await openGame(page)
+  const startCell = await page.getByTestId('map-current-cell').textContent()
+  await openDialogue(page)
+  const close = page.getByRole('button', { name: /Continue/ })
+  await expect(close).toBeFocused()
+  await expect(page.locator('.topbar')).toHaveAttribute('inert', '')
+  await expect(page.locator('.stage-notices')).toHaveAttribute('inert', '')
+  await page.locator('#free-command').fill('wait')
+  await page.locator('.command-form button').focus()
+  await page.keyboard.press('Tab')
+  await expect(close).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByTestId('map-current-cell')).toHaveText(startCell ?? '')
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('narration-panel')).toHaveCount(0)
+  await expect(page.locator('.hud-panel')).not.toHaveAttribute('inert', '')
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByTestId('map-current-cell')).not.toHaveText(startCell ?? '')
 })
 
 test('regional map nodes and local exits are visible and usable', async ({ page }) => {
@@ -53,16 +90,13 @@ test('regional map nodes and local exits are visible and usable', async ({ page 
   await expect(page.getByTestId('event-node-market-village-exit')).toBeVisible()
 })
 
-test('story choices and unsupported free text both keep the player in an authored state', async ({ page }) => {
+test('dialogue contains authored choices and accepts a free-form action', async ({ page }) => {
   await openGame(page)
-  const chronicle = page.locator('.chronicle li')
-  const before = await chronicle.count()
+  await openDialogue(page)
   await page.locator('#free-command').fill('become moon emperor immediately')
   await page.locator('.command-form button').click()
-  await expect(chronicle).toHaveCount(before + 1)
-  await page.locator('.story-choices .choice-button').first().click()
-  // market_rumor now carries the three Phase 4 route leads on top of the base choices.
-  await expect(page.locator('.story-choices .choice-button')).toHaveCount(6)
+  await expect(page.getByTestId('narration-panel')).toBeVisible()
+  await expect(page.locator('.chronicle li').last()).toContainText('thought slips free')
 })
 
 test('Journal is a full mode with an inventory inspector and an explicit return', async ({ page }) => {
@@ -86,7 +120,7 @@ test('combat presents deliberate technique and defence controls', async ({ page 
   await expect(encounter).toContainText('Enemy health')
 })
 
-test('route evidence is a two-way decision that gates cave and trial choices', async ({ page }) => {
+test('route evidence is carried into the next dialogue', async ({ page }) => {
   await openGame(page, atLocation('village', 2, 2, (game) => ({
     ...game,
     flags: { ...game.flags, story_scene: 'village_vow', story_route: 'mercy', story_route_arrived: true },
@@ -95,15 +129,15 @@ test('route evidence is a two-way decision that gates cave and trial choices', a
   await expect(routeEncounter).toBeVisible()
   await expect(routeEncounter.getByRole('button')).toHaveCount(2)
   await routeEncounter.getByRole('button').first().click()
-  await expect(page.getByTestId('route-proof')).toContainText('Public')
 
+  await openDialogue(page)
+  await expect(page.getByTestId('route-proof')).toContainText('Public')
   const choices = page.locator('.story-choices .choice-button')
-  await choices.nth(0).click()
-  await expect(choices.nth(1)).toBeDisabled()
+  await expect(choices).toHaveCount(3)
   await expect(choices.nth(2)).toBeEnabled()
   await choices.nth(2).click()
-  await expect(choices.nth(0)).toBeEnabled()
-  await expect(choices.nth(2)).toBeDisabled()
+  await expect(page.getByTestId('narration-panel')).toBeVisible()
+  await expect(page.getByTestId('route-proof')).toBeVisible()
 })
 
 const endings: Array<{ name: string; ending: string; flags: GameState['flags']; choice: number }> = [
@@ -117,8 +151,9 @@ const endings: Array<{ name: string; ending: string; flags: GameState['flags']; 
 for (const endingCase of endings) {
   test(`story ending: ${endingCase.name}`, async ({ page }) => {
     await openGame(page, freshGame((game) => ({ ...game, flags: { ...game.flags, ...endingCase.flags } })))
+    await openDialogue(page)
     await page.locator('.story-choices .choice-button').nth(endingCase.choice).click()
     await expect(page.locator('.ending-banner')).toContainText(endingCase.ending)
-    await expect(page.locator('#free-command')).toBeDisabled()
+    await expect(page.getByTestId('narration-panel')).toHaveCount(0)
   })
 }

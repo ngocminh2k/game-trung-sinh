@@ -153,9 +153,12 @@ describe('player action artwork', () => {
     fireEvent.click(screen.getByTestId('save-slot-1'))
     fireEvent.click(screen.getByRole('button', { name: /nhấn|press/i }))
 
-    // Phase 5: free text first asks the AI to suggest an authored choice; with
-    // no AI available it resolves to null and falls back to the deterministic
-    // parser. Await the suggestion promise so the fallback actually dispatches.
+    fireEvent.click(screen.getByRole('button', { name: 'Mở Hành trang và giang hồ' }))
+    fireEvent.click(screen.getByRole('tab', { name: /Người ở đây/ }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Nói chuyện' })[0]!)
+
+    // Free text belongs to an open dialogue. With no AI available it falls
+    // back to the deterministic parser.
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Viết hành động khác'), { target: { value: 'tu luyện' } })
       fireEvent.click(screen.getByRole('button', { name: 'Thử vận' }))

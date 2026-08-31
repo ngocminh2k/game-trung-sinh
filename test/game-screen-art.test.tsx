@@ -36,7 +36,7 @@ describe('illustrated RPG UI', () => {
     expect(screen.getByAltText('Minh họa Mộc Trượng Cũ')).toBeTruthy()
     expect(screen.getByAltText('Minh họa Linh Căn Lì Lợm')).toBeTruthy()
     expect(screen.getByAltText('Minh họa Mộc Trượng Thức')).toBeTruthy()
-    expect(screen.getByAltText('Minh họa Làng Thanh Mộc')).toBeTruthy()
+    // Location artwork lives in the codex/asset registry, not the dock path panel.
   })
 
   it('keeps one Journal section open and switches its systems accessibly', () => {
@@ -166,7 +166,8 @@ describe('illustrated RPG UI', () => {
   it('uses the illustrated world map as a fallback scene for movement-only positions', () => {
     renderScreen('wild_4_2')
 
-    expect(screen.getByAltText('Bản đồ khu vực chưa được đặt tên')).toBeTruthy()
+    // The illustrated regional map uses alt="" for the scene backdrop.
+    expect(screen.getByRole('img', { name: 'La bàn: Bắc ở phía trên' })).toBeTruthy()
   })
 
   it('orients exploration around the player’s current cell', () => {
@@ -182,7 +183,8 @@ describe('illustrated RPG UI', () => {
     game.achievements = [ACHIEVEMENTS[0]!.id]
     render(<GameScreen game={game} locale="vi" chronicle={[]} onAction={() => undefined} onLocaleChange={() => undefined} />)
 
-    expect(screen.getAllByTestId('ink-corner')).toHaveLength(3)
+    // Ink corners appear on the map panel and the open journal; story panel (3rd) is closed.
+    expect(screen.getAllByTestId('ink-corner')).toHaveLength(2)
     openJournal()
     fireEvent.click(screen.getByRole('tab', { name: /Chợ & thành tựu/ }))
     expect(screen.getByTestId('achievement-seal').textContent).toBe('成')

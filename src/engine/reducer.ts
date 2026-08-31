@@ -270,7 +270,6 @@ function doMove(state: GameState, direction: Direction): R {
   const check = checkMoveFrom(state.player.locationId, state.player.posX, state.player.posY, direction)
   if (!check.ok || check.cell === undefined) return err('MOVE_BLOCKED')
   const events: GameEvent[] = []
-  state = spendDay(state, events)
   const cell = check.cell
   const targetLocId = check.destinationId
   const arrival = targetLocId === undefined ? undefined : entryPositionFor(targetLocId, state.player.locationId)

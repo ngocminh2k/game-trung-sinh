@@ -15,14 +15,14 @@ function gatherUntilDeadline(seed: string): GameState {
 }
 
 describe('day cost (design review 2026-08, Phase 2)', () => {
-  it('every outing action costs a day — travel, training, gathering, shopping', () => {
+  it('ordinary travel is free while deliberate training costs a day', () => {
     let state = newGame('day-cost')
     const day = state.day
     state = applyAction(state, { kind: 'move', direction: 'west' }).state
-    expect(state.day).toBe(day + 1)
+    expect(state.day).toBe(day)
     const trainable = { ...state, player: { ...state.player, qi: 60 } }
     const trained = applyAction(trainable, { kind: 'train' }).state
-    expect(trained.day).toBe(day + 2)
+    expect(trained.day).toBe(day + 1)
   })
 
   it('the core loop verbs — gathering and selling — each burn a day', () => {
@@ -147,7 +147,7 @@ describe('the twelfth night (design review 2026-08, Phase 2)', () => {
     expect(nightDeadlineRemaining(state)).toBeNull()
   })
 
-  it('pins DEADLINE_DAYS: the optimal core path clears the twelfth night with 5 spare days for a sloppy run', () => {
+  it('pins DEADLINE_DAYS: the core path clears the twelfth night', () => {
     let state = gatherUntilDeadline('deadline-balance')
     const startDay = state.day
     state = navTo(state, 'market')
@@ -165,9 +165,7 @@ describe('the twelfth night (design review 2026-08, Phase 2)', () => {
     // Reaching the seal resolves the clock — the village still remembers.
     expect(state.flags['night_deadline_cleared']).toBe(true)
     const coreDays = state.day - startDay
-    // Slack: wandering 5 days off the optimal path must still make it — barely.
-    expect(coreDays + 5).toBeLessThanOrEqual(DEADLINE_DAYS - 1)
-    // Tension: optimal play may not idle — the window is at most core + 9 days.
-    expect(coreDays).toBeGreaterThanOrEqual(DEADLINE_DAYS - 9)
+    // Walking is day-neutral; only deliberate actions consume the deadline.
+    expect(coreDays).toBeLessThanOrEqual(DEADLINE_DAYS - 1)
   })
 })

@@ -45,6 +45,8 @@ export interface GameScreenProps {
   onAction: (action: Action) => void
   onLocaleChange: (locale: Locale) => void
   onRestart?: () => void
+  storyOpen?: boolean
+  onStoryClose?: () => void
 }
 
 function word(locale: Locale, vi: string, en: string): string {
@@ -172,7 +174,7 @@ function moveDockFocus(event: KeyboardEvent<HTMLButtonElement>, current: DockPan
   document.getElementById(`dock-tab-${next}`)?.focus()
 }
 
-export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange, onRestart = () => {} }: GameScreenProps) {
+export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange, onRestart = () => {}, storyOpen = false, onStoryClose = () => {} }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
   const [journalOpen, setJournalOpen] = useState(false)
@@ -197,6 +199,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const previousDay = useRef(game.day)
   const chronicleEndRef = useRef<HTMLLIElement | null>(null)
   const chronicleSeenCount = useRef(chronicle.length)
+  const backgroundRefs = useRef<HTMLElement[]>([])
   const feedbackTimers = useRef<number[]>([])
   useEffect(() => () => { feedbackTimers.current.forEach((timer) => window.clearTimeout(timer)) }, [])
   const retaliationAction = actionKind === 'combat_attack'
@@ -230,6 +233,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     const timer = window.setTimeout(() => setHurtFeedbackNonce(actionNonce), retaliationAction ? 420 : 220)
     return () => window.clearTimeout(timer)
   }, [actionNonce, game.day, game.player.alive, game.player.hp, game.player.qi, retaliationAction])
+  useEffect(() => {
+    backgroundRefs.current.forEach((element) => element.toggleAttribute('inert', storyOpen))
+  }, [storyOpen])
+  const backgroundRegion = (element: HTMLElement | null) => {
+    if (element !== null && !backgroundRefs.current.includes(element)) backgroundRefs.current.push(element)
+  }
   useEffect(() => {
     if (previousLocationId.current === game.player.locationId) return
     previousLocationId.current = game.player.locationId
@@ -390,6 +399,21 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     })),
   ] : []
 
+  const trapStoryFocus = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'Tab') return
+    const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'))
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (first === undefined || last === undefined) return
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   const submitCommand = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const raw = command.trim()
@@ -419,8 +443,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   }
 
   return (
-    <main className={`game-shell action-${actionKind ?? 'idle'} ${journalOpen ? 'journal-open' : ''}`} data-testid="game-screen">
-      <header className="topbar">
+    <main className={`game-shell action-${actionKind ?? 'idle'} ${journalOpen ? 'journal-open' : ''} ${storyOpen ? 'story-open' : ''}`} data-testid="game-screen">
+      <header className="topbar" ref={backgroundRegion}>
         <div className="brand">
           <span className="brand-seal" aria-hidden="true">{HAN_SEALS.mystery}</span>
           <div>
@@ -460,7 +484,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       </header>
 
       <div className="world-content" data-testid="world-content" hidden={journalOpen || routeEncounter !== undefined}>
-      <div className="stage-notices">
+      <div className="stage-notices" ref={backgroundRegion}>
         <section className="chapter-banner" aria-label={word(locale, 'Chương truyện hiện tại', 'Current story chapter')}>
           <p>{word(locale, 'Chương hiện tại', 'Current chapter')}</p>
           <h2>{localized(locale, chapter)}</h2>
@@ -590,9 +614,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </aside>
         </section>
 
-        <section className="story-panel parchment-panel" aria-labelledby="story-title">
+        {storyOpen && <section aria-labelledby="story-title" aria-modal="true" className="story-panel parchment-panel" data-testid="narration-panel" onKeyDown={trapStoryFocus} role="dialog">
           <InkCorner corner="top-right" />
           <div className="panel-heading">
+            <button autoFocus className="story-close" onClick={onStoryClose} type="button">{word(locale, 'Tiếp tục', 'Continue')} <kbd>Esc</kbd></button>
             <div>
               <p className="eyebrow">{word(locale, 'Mạch truyện', 'Deterministic story')}</p>
               <h2 id="story-title">{locale === 'vi' ? scene.titleVi : scene.titleEn}</h2>
@@ -680,9 +705,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               {chronicle.slice(-8).map((line, index) => <li className={index === chronicle.length - 1 && chronicle.length === chronicleNewAt ? 'is-new' : undefined} key={`${line}-${index}`} ref={index === chronicle.length - 1 ? chronicleEndRef : undefined}>{line}</li>)}
             </ol>
           </div>
-        </section>
+      </section>}
 
-        <aside className="hud-panel">
+        <aside className="hud-panel" ref={backgroundRegion}>
           <section className="stats-card ink-card" aria-labelledby="stats-title">
             <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2><span>{word(locale, 'cảnh', 'stage')} {game.player.stage}</span></div>
             <RealmLadder locale={locale} stage={game.player.stage} />
@@ -718,7 +743,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       </div>
       </div>
 
-      {routeEncounter !== undefined && <section className="route-encounter-screen parchment-panel" aria-labelledby="route-encounter-title" data-testid="route-encounter-screen">
+      {routeEncounter !== undefined && <section className="route-encounter-screen parchment-panel" ref={backgroundRegion} aria-labelledby="route-encounter-title" data-testid="route-encounter-screen">
         <InkCorner corner="top-left" />
         <div className="route-encounter-copy">
           <p className="eyebrow">{word(locale, 'Sự kiện tuyến truyện · tại chỗ', 'Story route encounter · on site')}</p>
@@ -742,7 +767,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
       </section>}
 
-      <section className="journal-screen system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="journal-screen" hidden={!journalOpen || routeEncounter !== undefined} id="journal-screen">
+      <section className="journal-screen system-dock parchment-panel" ref={backgroundRegion} aria-labelledby="system-dock-title" data-testid="journal-screen" hidden={!journalOpen || routeEncounter !== undefined} id="journal-screen">
         <InkCorner corner="bottom-left" />
         <div className="journal-heading dock-heading">
           <div>
@@ -792,7 +817,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 {localNpcs.map((npc) => (
                   <article className={`npc-portrait-card ${actionKind === 'talk' ? 'is-speaking' : ''}`} data-npc-id={npc.id} key={npc.id}>
                     <img alt={`${word(locale, 'Chân dung', 'Portrait of')} ${localized(locale, npc)}`} src={npcPortraitFor(npc.id)} />
-                    <div><strong>{localized(locale, npc)}</strong><span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span><button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'talk', npcId: npc.id })} type="button">{word(locale, 'Nói chuyện', 'Talk')}</button></div>
+                    <div><strong>{localized(locale, npc)}</strong><span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span><button disabled={game.terminal || encounterLocked} onClick={() => { setJournalOpen(false); onAction({ kind: 'talk', npcId: npc.id }) }} type="button">{word(locale, 'Nói chuyện', 'Talk')}</button></div>
                   </article>
                 ))}
               </div>
