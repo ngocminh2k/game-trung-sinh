@@ -4,6 +4,7 @@ coverage/
 .codebase-memory/
 test-results/
 playwright-report/
+artifacts/
 *.local
 .env
 .env.*

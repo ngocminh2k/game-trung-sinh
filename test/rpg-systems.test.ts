@@ -1,10 +1,15 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { CodexPanel } from '../src/ui/CodexPanel'
+import { ASSET_PACK_MANIFEST } from '../src/ui/assetPacks'
 import {
   ENEMIES,
   EQUIPMENT,
   TALENTS,
   TECHNIQUES,
   applyAction,
+  currentBeat,
   newGame,
   parseFreeText,
   validateGameState,
@@ -36,7 +41,6 @@ const PRE_RPG_V1_SAVE = {
   achievements: [],
   lastLotteryDay: null,
   corrections: 0,
-  convergenceCount: 0,
   terminal: false,
   endingId: null,
 }
@@ -119,6 +123,28 @@ describe('deterministic RPG systems', () => {
     expect(TECHNIQUES.every((technique) => technique.maxLevel === 1)).toBe(true)
   })
 
+  it('fires the build-gate beat only once Crooked Circulation is learned', () => {
+    // Before: a full market run still shows no technique beat.
+    const untouched = at(newGame('build-gate-prior'), 'market')
+    expect(currentBeat(untouched).id).not.toBe('b_crooked_deal')
+    expect(currentBeat(untouched).textEn).not.toContain('Crooked Circulation')
+
+    // Learn the flagship trade-off technique from its source manual.
+    let state = newGame('build-gate')
+    state = { ...state, player: { ...state.player, stage: 1 }, inventory: { ...state.inventory, old_manual: 1 } }
+    state = applyAction(state, { kind: 'learn_technique', techniqueId: 'crooked_circulation' }).state
+    expect(state.techniques.crooked_circulation).toBe(1)
+
+    // The beat is deterministic and bilingual, and deepens story progression.
+    const beat = currentBeat(state)
+    expect(beat.id).toBe('b_crooked_deal')
+    expect(beat.predicate).toBe('knowsCrookedCirculation')
+    expect(beat.textVi).toContain('Chu Thiên Cong Queo')
+    expect(beat.textEn).toContain('Crooked Circulation')
+    expect(beat.chapter).toBe(4)
+    expect(beat.suggested.some((action) => action.kind === 'talk' && action.npcId === 'n_merchant_bao')).toBe(true)
+  })
+
   it('supports an earned multi-tier build while keeping market progression gated by realm', () => {
     let state = at(newGame('tiered-build'), 'market')
     const lockedPurchase = applyAction(state, { kind: 'buy', itemId: 'ironwood_saber' })
@@ -148,6 +174,73 @@ describe('deterministic RPG systems', () => {
     expect(state.talents).toContain('mist_listener')
     const secondTierOne = applyAction(state, { kind: 'choose_talent', talentId: 'iron_bones' })
     expect(secondTierOne.events).toEqual([{ type: 'ERROR', code: 'ITEM_UNAVAILABLE' }])
+  })
+
+  it('applies crooked circulation’s training benefit and sale cost, then exposes both to the player', () => {
+    const base = newGame('technique-trade-off')
+    const crooked = {
+      ...base,
+      techniques: { ...base.techniques, crooked_circulation: 1 },
+    }
+    expect(applyAction(base, { kind: 'train' }).events).toContainEqual({ type: 'TRAINED', gain: 2, stage: 0 })
+    expect(applyAction(crooked, { kind: 'train' }).events).toContainEqual({ type: 'TRAINED', gain: 3, stage: 0 })
+
+    const sale = applyAction(
+      at({ ...crooked, inventory: { ...crooked.inventory, spirit_herb: 1 } }, 'market'),
+      { kind: 'sell', itemId: 'spirit_herb' },
+    )
+    expect(sale.events).toContainEqual({ type: 'SOLD', itemId: 'spirit_herb', qty: 1, goldGain: 10 })
+
+    const technique = TECHNIQUES.find(({ id }) => id === 'crooked_circulation')
+    if (technique === undefined) throw new Error('Crooked Circulation must remain defined.')
+    const markup = renderToStaticMarkup(createElement(CodexPanel, {
+      entries: [{
+        id: technique.id,
+        kind: 'technique',
+        nameVi: technique.nameVi,
+        nameEn: technique.nameEn,
+        descriptionVi: technique.descVi,
+        descriptionEn: technique.descEn,
+        assetPackId: 'talents-and-effects',
+        assetStatus: 'ready',
+      }],
+      locale: 'en',
+      packs: ASSET_PACK_MANIFEST,
+    }))
+    expect(markup).toContain('Cultivation moves one beat faster.')
+    expect(markup).toContain('every sale earns 2 gold less.')
+
+    const oneSided = renderToStaticMarkup(createElement(CodexPanel, {
+      entries: [{
+        id: 'basic_staff_form',
+        kind: 'technique',
+        nameVi: 'Mộc Trượng Thức',
+        nameEn: 'Wooden Staff Form',
+        descriptionVi: 'Ba thế đơn giản.',
+        descriptionEn: 'Three plain forms.',
+        assetPackId: 'talents-and-effects',
+        assetStatus: 'ready',
+      }],
+      locale: 'en',
+      packs: ASSET_PACK_MANIFEST,
+    }))
+    expect(oneSided).toContain('Reliable, and it asks for nothing.')
+  })
+
+  it('pairs every technique cost string with its enforced numeric value and its other locale', () => {
+    for (const technique of TECHNIQUES) {
+      const numeric = technique.sellPenalty ?? technique.gatherQiDrain
+      if (technique.costVi === undefined || technique.costEn === undefined) {
+        expect(numeric, `${technique.id} cost copy without an enforced value`).toBeUndefined()
+        expect(technique.costVi, technique.id).toBeUndefined()
+        expect(technique.costEn, technique.id).toBeUndefined()
+        continue
+      }
+      expect(numeric, `${technique.id} enforced value without cost copy`).toBeDefined()
+      expect(technique.costVi).toContain(String(numeric))
+      expect(technique.costEn).toContain(String(numeric))
+      if (technique.benefitVi !== undefined) expect(technique.benefitEn, technique.id).toBeDefined()
+    }
   })
 
   it('runs a deterministic combat loop with consumable turn cost, rewards, and victory cleanup', () => {
@@ -189,7 +282,7 @@ describe('deterministic RPG systems', () => {
     expect(a.inventory.pill_hp ?? 0).toBe(0)
   })
 
-  it('locks an encounter to attack, defend, or a consumable turn', () => {
+  it('locks an encounter to combat turns and one consumable per turn', () => {
     let state = at(newGame('rpg-locked-loop'), 'misty_forest')
     state = applyAction(state, { kind: 'start_encounter' }).state
     const snapshot = JSON.stringify(state)
@@ -219,14 +312,15 @@ describe('deterministic RPG systems', () => {
     expect(store.state.inventory.tattered_robe).toBe(1)
   })
 
-  it('routes combat corrections to executable combat actions and keeps death terminal', () => {
+  it('free-text nonsense in combat never acts for the player, and losing combat stays terminal', () => {
     let state = at(newGame('combat-convergence'), 'misty_forest')
     state = applyAction(state, { kind: 'start_encounter' }).state
+    const beforeHp = state.encounter?.hp
     state = applyAction(state, { kind: 'free_text', raw: 'nonsense' }).state
     state = applyAction(state, { kind: 'free_text', raw: 'nonsense' }).state
-    const converged = applyAction(state, { kind: 'free_text', raw: 'nonsense' })
-    expect(converged.events.some((event) => event.type === 'FORCED_CONVERGENCE' && event.action.kind === 'combat_attack')).toBe(true)
-    expect(converged.state.encounter?.hp).toBeLessThan(32)
+    const ignored = applyAction(state, { kind: 'free_text', raw: 'nonsense' })
+    expect(ignored.events.some((event) => event.type === 'CORRECTION_REJECTED')).toBe(true)
+    expect(ignored.state.encounter?.hp).toBe(beforeHp)
 
     let doomed = at(newGame('combat-death'), 'cursed_rift')
     doomed = { ...doomed, player: { ...doomed.player, hp: 1 } }
@@ -241,7 +335,8 @@ describe('deterministic RPG systems', () => {
     expect(parseFreeText('engage enemy')).toEqual({ ok: true, action: { kind: 'start_encounter' } })
     expect(parseFreeText('tấn công')).toEqual({
       ok: true,
-      action: { kind: 'combat_attack', techniqueId: 'basic_staff_form' },
+      // No technique named — the cheap basic strike (Phase 1, design review 2026-08).
+      action: { kind: 'combat_attack', techniqueId: undefined },
     })
     expect(parseFreeText('phòng thủ')).toEqual({ ok: true, action: { kind: 'combat_defend' } })
     expect(parseFreeText('equip jade charm')).toEqual({

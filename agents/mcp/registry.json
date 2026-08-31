@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "description": "Portable, secret-free source of truth for MCP servers required by every coding agent.",
+  "servers": {
+    "codebase-memory": {
+      "transport": "stdio",
+      "commandEnv": "CODEBASE_MEMORY_MCP_COMMAND",
+      "commandFallback": "codebase-memory-mcp",
+      "args": [],
+      "env": {
+        "CBM_INDEX_SUPERVISOR": "0"
+      },
+      "requiredCapabilities": [
+        "index_repository",
+        "get_architecture",
+        "search_graph",
+        "trace_path",
+        "get_code_snippet",
+        "query_graph",
+        "search_code"
+      ]
+    }
+  }
+}

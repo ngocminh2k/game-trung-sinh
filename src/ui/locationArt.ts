@@ -20,6 +20,14 @@ export const SCENARIO_ONE_LOCATION_IDS = [
   'sealed_cave',
   'cursed_rift',
   'cloud_peak',
+  'thousand_herbs_valley',
+  'blackwind_dunes',
+  'frozen_peak',
+  'wandering_market',
+  'moon_lake',
+  'bone_ash_ruins',
+  'spirit_beast_ridge',
+  'azure_pavilion',
 ] as const
 
 export type ScenarioOneLocationId = (typeof SCENARIO_ONE_LOCATION_IDS)[number]
@@ -33,6 +41,14 @@ const LOCATION_BACKDROPS: Record<ScenarioOneLocationId, string> = {
   sealed_cave: sealedCave,
   cursed_rift: cursedRift,
   cloud_peak: cloudPeak,
+  thousand_herbs_valley: herbField,
+  blackwind_dunes: cursedRift,
+  frozen_peak: cloudPeak,
+  wandering_market: market,
+  moon_lake: herbField,
+  bone_ash_ruins: sealedCave,
+  spirit_beast_ridge: mistyForest,
+  azure_pavilion: sect,
 }
 
 export function hasLocationBackdrop(locationId: string): locationId is ScenarioOneLocationId {

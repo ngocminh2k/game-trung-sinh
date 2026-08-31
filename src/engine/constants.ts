@@ -67,6 +67,7 @@ export function newGame(seed: string): GameState {
       posY: 3,
       locationId: LOCATION_VILLAGE,
       alive: true,
+      status: [],
     },
     spiritRoot: {
       kind: 'defective',
@@ -85,11 +86,40 @@ export function newGame(seed: string): GameState {
     encounter: null,
     lastLotteryDay: null,
     corrections: 0,
-    convergenceCount: 0,
     terminal: false,
     endingId: null,
   }
 }
+
+// Retreating is always legal inside an encounter (no-softlock guarantee) but
+// never free: it burns HP and sacrifices gathered progress. The HP cost is
+// clamped so a retreat can never kill — escape opens the map again, a death
+// screen would close it.
+export const RETREAT_HP_COST = 10
+export const RETREAT_PROGRESS_COST = 3
+
+// Phase 1 of the 2026-08 design review: combat decisions carry explicit qi
+// prices. A basic strike is the cheap default; a technique strike costs more
+// the stronger the technique is, and shields the player for the enemy's reply
+// (guard scales with technique power × level).
+export const BASIC_STRIKE_QI_COST = 4
+
+export function techniqueQiCost(power: number, level: number): number {
+  return 2 + 2 * power * level
+}
+
+export function techniqueGuard(power: number, level: number): number {
+  return Math.floor((power * level) / 2)
+}
+
+// Phase 2: "the twelfth night". Entering Hồi II sets flags.night_deadline to
+// day + DEADLINE_DAYS; the clock lifts when the story reaches Hồi III
+// (flags.night_deadline_cleared) and marks flags.night_forgotten if the player
+// overshot — a content consequence, never a game over. N is pinned by
+// test/day-cost.test.ts: the optimal core path (herb debt → ward → seal) takes
+// ~12 days, so N = 21 leaves exactly 5 spare days for a sloppy run and never
+// more than 9 idle days for optimal play.
+export const DEADLINE_DAYS = 21
 
 export function hashSeed(seed: string): number {
   let h = 1779033703 ^ seed.length

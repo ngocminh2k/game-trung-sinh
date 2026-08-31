@@ -11,14 +11,15 @@ export function dict(locale: Locale): Dict {
   return DICTS[locale]
 }
 
-export function t(locale: Locale, key: DictKey): string {
+export function t(locale: Locale, key: DictKey, params: Record<string, string | number> = {}): string {
   const parts = key.split('.')
   let node: unknown = dict(locale)
   for (const part of parts) {
     if (typeof node !== 'object' || node === null) return key
     node = (node as Record<string, unknown>)[part]
   }
-  return typeof node === 'string' ? node : key
+  if (typeof node !== 'string') return key
+  return node.replace(/\{\{(\w+)\}\}/g, (match, name: string) => String(params[name] ?? match))
 }
 
 export function flattenDict(value: unknown, prefix = ''): string[] {

@@ -1,3 +1,7 @@
+import { itemArtCount, talentTechArtCount } from './rpgArt'
+import { ITEMS } from '../content/items'
+import { TALENTS, TECHNIQUES } from '../content/rpg'
+
 export type AssetPackId =
   | 'greenwood-village'
   | 'cloud-market'
@@ -34,6 +38,16 @@ export interface AssetPackProgress {
  * been registered in the build; it does not claim a runtime lazy-loader or
  * per-file browser fetch verification.
  */
+const ITEM_ART_REQUIRED = ITEMS.filter((item) => item.illustrated !== false).length
+const TALENT_TECH_ART_REQUIRED = TALENTS.length + TECHNIQUES.length
+
+const itemArtLoaded = itemArtCount()
+const talentTechArtLoaded = talentTechArtCount()
+
+function packStatus(loaded: number, required: number): AssetPackStatus {
+  return loaded >= required ? 'ready' : 'loading'
+}
+
 export const ASSET_PACK_MANIFEST: readonly AssetPackDefinition[] = [
   { id: 'greenwood-village', nameVi: 'Làng Thanh Mộc', nameEn: 'Greenwood Village', requiredAssetCount: 7, status: 'ready', loadedAssets: 7 },
   { id: 'cloud-market', nameVi: 'Chợ Vân Tập', nameEn: 'Cloud Market', requiredAssetCount: 9, status: 'ready', loadedAssets: 9 },
@@ -43,8 +57,22 @@ export const ASSET_PACK_MANIFEST: readonly AssetPackDefinition[] = [
   { id: 'sealed-cave', nameVi: 'Hang Phong Ấn', nameEn: 'Sealed Cave', requiredAssetCount: 3, status: 'ready', loadedAssets: 3 },
   { id: 'cursed-rift', nameVi: 'Khe Hở Nguyền Rủa', nameEn: 'Cursed Rift', requiredAssetCount: 3, status: 'ready', loadedAssets: 3 },
   { id: 'cloud-peak', nameVi: 'Đỉnh Mây', nameEn: 'Cloud Peak', requiredAssetCount: 2, status: 'ready', loadedAssets: 2 },
-  { id: 'talents-and-effects', nameVi: 'Thiên Phú Và Công Pháp', nameEn: 'Talents And Techniques', requiredAssetCount: 19, status: 'ready', loadedAssets: 19 },
-  { id: 'items-and-equipment', nameVi: 'Vật Phẩm Và Trang Bị', nameEn: 'Items And Equipment', requiredAssetCount: 35, status: 'ready', loadedAssets: 35 },
+  {
+    id: 'talents-and-effects',
+    nameVi: 'Thiên Phú Và Công Pháp',
+    nameEn: 'Talents And Techniques',
+    requiredAssetCount: TALENT_TECH_ART_REQUIRED,
+    status: packStatus(talentTechArtLoaded, TALENT_TECH_ART_REQUIRED),
+    loadedAssets: talentTechArtLoaded,
+  },
+  {
+    id: 'items-and-equipment',
+    nameVi: 'Vật Phẩm Và Trang Bị',
+    nameEn: 'Items And Equipment',
+    requiredAssetCount: ITEM_ART_REQUIRED,
+    status: packStatus(itemArtLoaded, ITEM_ART_REQUIRED),
+    loadedAssets: itemArtLoaded,
+  },
   { id: 'player-poses', nameVi: 'Tư Thế Nhân Vật Chính', nameEn: 'Player Action Poses', requiredAssetCount: 11, status: 'ready', loadedAssets: 11 },
 ]
 

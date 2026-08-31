@@ -9,6 +9,7 @@ import {
   getQuest,
   getTalent,
   getTechnique,
+  getStoryScene,
 } from '../content'
 import type { GameEvent, Locale } from './types'
 
@@ -41,6 +42,23 @@ export const FALLBACK_TEXT: Record<Locale, string> = {
   vi: 'Chuyện gì đó đã xảy ra...',
   en: 'Something happened...',
 }
+
+// Unrecognized free-text never acts for the player. The reply varies by how
+// many times they have reached for the void, and each one points at concrete
+// things the world actually answers — so the player always keeps the wheel.
+const REJECTION_POOL_VI = [
+  'Ý niệm của ngươi trôi khỏi thực tại — nơi này chỉ đáp lời việc có thật. Thử: “đi về hướng bắc”, “hái thảo dược”, hay “nói chuyện với cụ Mai Hoa”.',
+  'Linh khí không đọng lại theo ý tưởng ấy. Ngươi có thể: “tu luyện”, “nghỉ ngơi một đêm”, hoặc “đi đến chợ”.',
+  'Cảnh vật chưa thay đổi. Những lời thường có hiệu lực: “tấn công”, “phòng thủ”, “mua viên tụ khí”, “bán thảo dược”.',
+  'Ta không thể hiện hình ý đó. Muốn thử: “dùng viên hồi nguyên”, “xoay vòng quay vận mệnh”, hay “nhận nhiệm vụ”?',
+]
+
+const REJECTION_POOL_EN = [
+  'Your thought slips free of reality — this place answers only what is real. Try: "go north", "gather herbs", or "talk to Elder Mei Hua".',
+  'The qi will not settle around that idea. You could: "cultivate", "rest for the night", or "head to the market".',
+  'The scene does not shift. Words that usually work: "attack", "defend", "buy a qi pill", "sell herbs".',
+  'I cannot give shape to that intent. Perhaps: "use a healing pill", "turn the wheel of fate", or "take up a quest"?',
+]
 
 const TEMPLATES: Record<string, Handler> = {
   GAME_STARTED: (_ev, l) => (l === 'vi' ? 'Một kiếp mới bắt đầu.' : 'A new life begins.'),
@@ -141,8 +159,31 @@ const TEMPLATES: Record<string, Handler> = {
   TALKED: (ev, l) => {
     if (ev.type !== 'TALKED') return ''
     return l === 'vi'
-      ? `${nameOf('npc', ev.npcId, l)} gật đầu chào ngươi.`
-      : `${nameOf('npc', ev.npcId, l)} nods in greeting.`
+      ? `${nameOf('npc', ev.npcId, l)}: “${ev.lineVi ?? getNpc(ev.npcId)?.greetVi ?? '...'}”`
+      : `${nameOf('npc', ev.npcId, l)}: “${ev.lineEn ?? getNpc(ev.npcId)?.greetEn ?? '...'}”`
+  },
+  ROUTE_EVENT_RESOLVED: (ev, l) => {
+    if (ev.type !== 'ROUTE_EVENT_RESOLVED') return ''
+    const proof = l === 'vi' ? ev.proofVi : ev.proofEn
+    const method = ev.approach === 'present'
+      ? (l === 'vi' ? 'đã công khai' : 'is now public')
+      : (l === 'vi' ? 'đã được giấu kín' : 'is now concealed')
+    return l === 'vi'
+      ? `Đầu mối không còn là dấu trên bản đồ. ${proof} ${method}; ngươi mang nó vào Hang Phong Ấn.`
+      : `The lead is no longer a mark on the map. ${proof} ${method}; you carry it into the Sealed Cave.`
+  },
+  STORY_CHOICE: (ev, l) => {
+    if (ev.type !== 'STORY_CHOICE') return ''
+    const scene = getStoryScene(ev.sceneId)
+    const choice = scene?.choices.find((entry) => entry.id === ev.choiceId)
+    if (choice === undefined) return ''
+    return l === 'vi' ? choice.consequenceVi : choice.consequenceEn
+  },
+  ROMANCE_NODE: (ev, l) => {
+    if (ev.type !== 'ROMANCE_NODE') return ''
+    return l === 'vi'
+      ? `${nameOf('npc', ev.npcId, l)} · ${ev.titleVi}`
+      : `${nameOf('npc', ev.npcId, l)} · ${ev.titleEn}`
   },
   QUEST_ACCEPTED: (ev, l) => {
     if (ev.type !== 'QUEST_ACCEPTED') return ''
@@ -188,6 +229,16 @@ const TEMPLATES: Record<string, Handler> = {
       ? `Hạ ${nameOf('enemy', ev.enemyId, l)}, nhận ${String(ev.rewardGold)} lượng.`
       : `Defeated ${nameOf('enemy', ev.enemyId, l)}; gained ${String(ev.rewardGold)} gold.`
   },
+  COMBAT_RETREATED: (ev, l) => {
+    if (ev.type !== 'COMBAT_RETREATED') return ''
+    return l === 'vi'
+      ? `Ngươi lánh mình rút khỏi ${nameOf('enemy', ev.enemyId, l)} — mất ${String(ev.hpCost)} khí huyết và bỏ lại ít thành quả.`
+      : `You slip away from the ${nameOf('enemy', ev.enemyId, l)} — ${String(ev.hpCost)} blood-qi spent, some gains left behind.`
+  },
+  QI_SPENT: (ev, l) => {
+    if (ev.type !== 'QI_SPENT') return ''
+    return l === 'vi' ? `Vận ${String(ev.amount)} linh khí.` : `Channel ${String(ev.amount)} qi.`
+  },
   WARNING: (ev, l) => {
     if (ev.type !== 'WARNING') return ''
     return l === 'vi' ? ev.messageVi : ev.messageEn
@@ -225,19 +276,34 @@ const TEMPLATES: Record<string, Handler> = {
   },
   CORRECTION_REJECTED: (ev, l) => {
     if (ev.type !== 'CORRECTION_REJECTED') return ''
-    return l === 'vi'
-      ? 'Ý niệm của ngươi trôi khỏi thực tại trong chốc lát.'
-      : `You mutter something unintelligible (time ${String(ev.count)}).`
+    const pool = l === 'vi' ? REJECTION_POOL_VI : REJECTION_POOL_EN
+    const idx = ((ev.count - 1) % pool.length + pool.length) % pool.length
+    return pool[idx] ?? ''
   },
-  FORCED_CONVERGENCE: (_ev, l) =>
-    l === 'vi'
-      ? 'Cảnh vật quanh ngươi dần rõ nét trở lại; một lối đi hợp lý hiện ra trước mắt.'
-      : 'A gentle force turns your mind back to what must be done.',
   ERROR: (ev, l) => {
     if (ev.type !== 'ERROR') return ''
-    return l === 'vi'
-      ? 'Ý định ấy chưa thể thành lúc này.'
-      : `That intent fails (code ${String(ev.code)}).`
+    const explanations: Record<string, [string, string]> = {
+      TERMINAL: ['Kiếp này đã khép lại; hãy bắt đầu một kiếp mới để lựa chọn khác.', 'This life has closed; begin another to choose differently.'],
+      MOVE_BLOCKED: ['Lối đó bị địa hình chặn. Hãy nhìn đường sáng hoặc tìm lối vòng trên bản đồ.', 'That way is blocked by terrain. Follow a lit route or find a way around on the map.'],
+      NOT_AT_LOCATION: ['Việc này chỉ có thể làm tại đúng địa điểm. Bản đồ sẽ cho biết nơi cần đến.', 'This can only happen at the right place. The map tells you where to go.'],
+      INSUFFICIENT_GOLD: ['Ngươi chưa đủ tiền cho việc này. Bán đồ, hoàn thành việc, hoặc kiếm phần thưởng trước.', 'You do not have enough gold. Sell goods, finish work, or earn a reward first.'],
+      INSUFFICIENT_QI: ['Khí lực chưa đủ để tu luyện. Nghỉ một đêm sẽ hồi đầy linh khí.', 'Your qi is too low to train. Resting for a night restores it.'],
+      NO_ITEM: ['Trong túi ngươi không có vật đó.', 'That item is not in your bag.'],
+      ITEM_NOT_USABLE: ['Vật này không thể dùng theo cách ấy.', 'That item cannot be used that way.'],
+      ITEM_UNAVAILABLE: ['Trong giao chiến, ngươi chỉ có thể xuất chiêu, thủ thế hoặc dùng vật phẩm.', 'In combat you may only attack, defend, or use an item.'],
+      INVALID_QTY: ['Số lượng đó không hợp lệ.', 'That quantity is not valid.'],
+      STORAGE_FULL: ['Kho đã đầy; hãy lấy bớt đồ ra trước.', 'The warehouse is full; take something out first.'],
+      STORAGE_EMPTY: ['Kho không có đủ vật phẩm đó.', 'The warehouse does not hold enough of that item.'],
+      LOTTERY_ALREADY_DRAWN: ['Bà Liên chỉ cho quay một lần mỗi ngày. Nghỉ ngơi rồi trở lại ngày mai.', 'Lien allows one draw per day. Rest and return tomorrow.'],
+      LOTTERY_NEED_GOLD: ['Ngươi cần tiền mua vé số.', 'You need gold for a ticket.'],
+      QUEST_UNKNOWN: ['Nhiệm vụ này chưa tồn tại trong hành trình của ngươi.', 'That quest is not part of your journey yet.'],
+      QUEST_WRONG_STATE: ['Nhiệm vụ chưa ở đúng trạng thái: hãy gặp người giao việc, nhận việc, hoặc mang đủ vật cần trả.', 'That quest is not ready: meet its giver, accept it, or bring the required items.'],
+      NPC_UNKNOWN: ['Ngươi chưa biết người này là ai.', 'You do not know that person.'],
+      NPC_NOT_HERE: ['Người đó không ở đây. Hãy kiểm tra mục Người quen để biết nơi gặp.', 'That person is not here. Check Acquaintances for where to meet them.'],
+      STORY_CHOICE_UNAVAILABLE: ['Bước ngoặt đó đã qua hoặc không thuộc cảnh hiện tại. Hãy chọn một trong ba lựa chọn đang hiện.', 'That turning point has passed or does not belong to this scene. Choose one of the three visible options.'],
+    }
+    const message = explanations[ev.code]
+    return message === undefined ? (l === 'vi' ? 'Ý định ấy chưa thể thành lúc này.' : 'That intent cannot happen right now.') : message[l === 'vi' ? 0 : 1]
   },
 }
 

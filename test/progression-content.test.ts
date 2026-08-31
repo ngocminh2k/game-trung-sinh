@@ -17,7 +17,7 @@ const NEW_EQUIPMENT_IDS = [
 ] as const
 
 describe('Scenario I progression content', () => {
-  it('gives every new item a stable bilingual definition and a shipped individual illustration', () => {
+  it('gives every new item a stable bilingual definition and shipped art', () => {
     for (const id of NEW_ITEM_IDS) {
       const item = ITEMS.find((entry) => entry.id === id)
       expect(item, id).toBeDefined()

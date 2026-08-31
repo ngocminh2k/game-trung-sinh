@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "codebase-memory": {
+      "command": "${CODEBASE_MEMORY_MCP_COMMAND:-codebase-memory-mcp}",
+      "args": [],
+      "env": {
+        "CBM_INDEX_SUPERVISOR": "0"
+      }
+    }
+  }
+}

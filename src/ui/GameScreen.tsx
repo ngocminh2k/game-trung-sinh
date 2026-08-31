@@ -19,17 +19,22 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { currentBeat, dangerWarning, storageRemaining } from '../engine'
-import type { Action, ConcreteAction, GameState, Locale } from '../engine'
+import { currentStoryScene, dangerWarning, findStoryChoice, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget, BASIC_STRIKE_QI_COST, RETREAT_HP_COST, techniqueQiCost } from '../engine'
+import type { Action, GameState, Locale } from '../engine'
 import type { ItemDef } from '../engine/content-types'
 import itemsStillLife from '../assets/art/items-still-life.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
 import { locationBackdropFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
+import { deriveObjective, nightDeadlineRemaining } from './objective'
+import { DeathScreen } from './DeathScreen'
+import { endingEpilogue } from './endingEpilogue'
 import { itemArtFor, talentArtFor, techniqueArtFor } from './rpgArt'
 import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
 import { playerArtFor, type PlayerActionKey } from './playerArt'
+import { requestSuggestion } from '../ai/narration'
+import { t } from '../i18n'
 
 export interface GameScreenProps {
   actionKind?: Action['kind'] | null
@@ -39,73 +44,25 @@ export interface GameScreenProps {
   chronicle: string[]
   onAction: (action: Action) => void
   onLocaleChange: (locale: Locale) => void
+  onRestart?: () => void
 }
 
 function word(locale: Locale, vi: string, en: string): string {
   return locale === 'vi' ? vi : en
 }
 
+const HAN_SEALS = { mystery: '玄', objective: '目', choice: '選', achievement: '成' } as const
+
+function InkCorner({ corner }: { corner: 'top-left' | 'top-right' | 'bottom-left' }): JSX.Element {
+  return <svg aria-hidden="true" className={`ink-corner ink-corner--${corner}`} data-testid="ink-corner" viewBox="0 0 72 52">
+    <path d="M3 45C16 40 13 24 29 24c13 0 12-15 37-18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2.4" />
+    <path d="M7 49c14-2 15-12 24-16 8-3 20-2 35-22" fill="none" opacity=".55" stroke="currentColor" strokeLinecap="round" strokeWidth="1.25" />
+    <path d="M49 8c8 1 14 0 20-5" fill="none" opacity=".36" stroke="currentColor" strokeLinecap="round" strokeWidth="1" />
+  </svg>
+}
+
 function localized(locale: Locale, item: { nameVi: string; nameEn: string }): string {
   return locale === 'vi' ? item.nameVi : item.nameEn
-}
-
-function actionLabel(action: ConcreteAction, locale: Locale): string {
-  switch (action.kind) {
-    case 'move':
-      return word(locale, `Đi ${directionLabel(action.direction, locale)}`, `Walk ${directionLabel(action.direction, locale)}`)
-    case 'rest':
-      return word(locale, 'Nghỉ dưỡng thương', 'Rest and recover')
-    case 'train':
-      return word(locale, 'Tu luyện', 'Cultivate')
-    case 'gather':
-      return word(locale, 'Hái linh thảo', 'Gather spirit herbs')
-    case 'refine': {
-      const recipe = RECIPES.find((entry) => entry.id === action.recipeId)
-      return word(locale, `Đổi linh tài: ${recipe === undefined ? action.recipeId : localized(locale, recipe)}`, `Exchange materials: ${recipe === undefined ? action.recipeId : localized(locale, recipe)}`)
-    }
-    case 'buy':
-      return word(locale, `Mua ${itemName(action.itemId, locale)}`, `Buy ${itemName(action.itemId, locale)}`)
-    case 'sell':
-      return word(locale, `Bán ${itemName(action.itemId, locale)}`, `Sell ${itemName(action.itemId, locale)}`)
-    case 'use_item':
-      return word(locale, `Dùng ${itemName(action.itemId, locale)}`, `Use ${itemName(action.itemId, locale)}`)
-    case 'store':
-      return word(locale, `Gửi ${itemName(action.itemId, locale)}`, `Store ${itemName(action.itemId, locale)}`)
-    case 'withdraw':
-      return word(locale, `Lấy ${itemName(action.itemId, locale)}`, `Withdraw ${itemName(action.itemId, locale)}`)
-    case 'draw_lottery':
-      return word(locale, 'Quay vận mệnh', 'Draw fortune')
-    case 'talk': {
-      const npc = NPCS.find((entry) => entry.id === action.npcId)
-      return word(locale, `Nói chuyện với ${npc === undefined ? action.npcId : localized(locale, npc)}`, `Speak to ${npc === undefined ? action.npcId : localized(locale, npc)}`)
-    }
-    case 'accept_quest':
-      return word(locale, 'Nhận nhiệm vụ', 'Accept quest')
-    case 'complete_quest':
-      return word(locale, 'Hoàn thành nhiệm vụ', 'Complete quest')
-    case 'choose_talent':
-      return word(locale, 'Chọn thiên phú', 'Choose talent')
-    case 'learn_technique':
-      return word(locale, 'Học công pháp', 'Learn technique')
-    case 'equip_item':
-      return word(locale, `Trang bị ${itemName(action.itemId, locale)}`, `Equip ${itemName(action.itemId, locale)}`)
-    case 'start_encounter':
-      return word(locale, 'Đối mặt hiểm họa', 'Face the danger')
-    case 'combat_attack':
-      return word(locale, 'Xuất chiêu', 'Attack')
-    case 'combat_defend':
-      return word(locale, 'Thủ thế', 'Defend')
-  }
-}
-
-function directionLabel(direction: 'north' | 'south' | 'east' | 'west', locale: Locale): string {
-  const labels = {
-    north: word(locale, 'bắc', 'north'),
-    south: word(locale, 'nam', 'south'),
-    east: word(locale, 'đông', 'east'),
-    west: word(locale, 'tây', 'west'),
-  }
-  return labels[direction]
 }
 
 function stageRequirement(locale: Locale, stage: number): string {
@@ -124,6 +81,20 @@ function obscuredName(locale: Locale, kind: 'talent' | 'technique' | 'equipment'
 function itemName(itemId: string, locale: Locale): string {
   const item = getItem(itemId)
   return item === undefined ? itemId : localized(locale, item)
+}
+
+function terrainLabel(locale: Locale, terrain: string | undefined): string {
+  const labels: Record<string, [string, string]> = {
+    plain: ['Đất bằng', 'Open ground'],
+    road: ['Đường mòn', 'Trail'],
+    water: ['Mặt nước', 'Water'],
+    mountain: ['Vách núi', 'Mountain'],
+    forest: ['Rừng cây', 'Forest'],
+    cave: ['Hang đá', 'Cave'],
+    rift: ['Khe nứt', 'Rift'],
+  }
+  const label = labels[terrain ?? 'plain'] ?? ['Đất bằng', 'Open ground']
+  return locale === 'vi' ? label[0] : label[1]
 }
 
 function npcPackId(locationId: string): AssetPackId {
@@ -169,32 +140,6 @@ const REALM_STAGES: ReadonlyArray<{ vi: string; en: string; seal: string }> = [
   { vi: 'Phi Thăng', en: 'Ascension', seal: '仙' },
 ]
 
-const ACTION_SEALS: Partial<Record<Action['kind'], string>> = {
-  move: '行',
-  rest: '息',
-  train: '練',
-  gather: '採',
-  buy: '買',
-  sell: '售',
-  use_item: '用',
-  store: '倉',
-  withdraw: '取',
-  draw_lottery: '籤',
-  talk: '話',
-  accept_quest: '任',
-  complete_quest: '納',
-  choose_talent: '賦',
-  learn_technique: '法',
-  equip_item: '装',
-  start_encounter: '戰',
-  combat_attack: '擊',
-  combat_defend: '守',
-}
-
-function actionSeal(action: ConcreteAction): string {
-  return ACTION_SEALS[action.kind] ?? '行'
-}
-
 // Price tiers double as a rarity read for the collection-minded player:
 // common wares stay quiet, rare finds earn a vermilion edge.
 function itemTier(item: ItemDef | undefined): 'common' | 'uncommon' | 'rare' {
@@ -227,38 +172,111 @@ function moveDockFocus(event: KeyboardEvent<HTMLButtonElement>, current: DockPan
   document.getElementById(`dock-tab-${next}`)?.focus()
 }
 
-export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange }: GameScreenProps) {
+export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange, onRestart = () => {} }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
+  const [journalOpen, setJournalOpen] = useState(false)
   const [activeDock, setActiveDock] = useState<DockPanel>(() => contextualDockFor(game.player.locationId))
+  const [selectedInventoryItemId, setSelectedInventoryItemId] = useState<string | null>(null)
   const [hurtFeedbackNonce, setHurtFeedbackNonce] = useState<number | null>(null)
+  // Phase 5 (design review 2026-08): the AI may suggest an authored choice for
+  // free text; its one in-character line is shown here. The reducer stays the law.
+  const [aiSuggestLine, setAiSuggestLine] = useState<string | null>(null)
+  const [aiSuggesting, setAiSuggesting] = useState(false)
+  const journalLauncher = useRef<HTMLButtonElement>(null)
+  const chronicleRef = useRef<HTMLDivElement>(null)
   const previousHp = useRef(game.player.hp)
   const processedActionNonce = useRef<number | null>(null)
   const previousLocationId = useRef(game.player.locationId)
+  // C5: track the scene id for the last AI suggestion so stale results are ignored
+  const lastSuggestionSceneIdRef = useRef<string | null>(null)
+  const lastSeenActionNonceRef = useRef<number | null>(null)
+  // Phase 6 (design review 2026-08): immediate feedback for stat and day
+  // changes — a signed HP/Qi delta chip and a "Day X" stamp, both transient.
+  const [statDeltas, setStatDeltas] = useState<{ nonce: number; hp: number; qi: number }>({ nonce: 0, hp: 0, qi: 0 })
+  const [dayStamp, setDayStamp] = useState<number | null>(null)
+  const [chronicleNewAt, setChronicleNewAt] = useState(-1)
+  const previousQi = useRef(game.player.qi)
+  const previousDay = useRef(game.day)
+  const chronicleEndRef = useRef<HTMLLIElement | null>(null)
+  const chronicleSeenCount = useRef(chronicle.length)
+  const feedbackTimers = useRef<number[]>([])
+  useEffect(() => () => { feedbackTimers.current.forEach((timer) => window.clearTimeout(timer)) }, [])
   const retaliationAction = actionKind === 'combat_attack'
     || actionKind === 'combat_defend'
     || (actionKind === 'use_item' && game.encounter !== null)
   const showHurtFeedback = hurtFeedbackNonce === actionNonce
   const playerPose = playerPoseFor(actionKind, game, showHurtFeedback)
+  const routeEncounter = storyRouteEncounter(game)
   useEffect(() => {
     if (processedActionNonce.current === actionNonce) return
 
     const tookDamage = game.player.hp < previousHp.current
+    const statDelta = tookDamage || game.player.qi !== previousQi.current
+      ? { nonce: actionNonce, hp: game.player.hp - previousHp.current, qi: game.player.qi - previousQi.current }
+      : null
     previousHp.current = game.player.hp
+    previousQi.current = game.player.qi
     processedActionNonce.current = actionNonce
     setHurtFeedbackNonce(null)
+    if (statDelta !== null) {
+      setStatDeltas(statDelta)
+      feedbackTimers.current.push(window.setTimeout(() => setStatDeltas((current) => (current.nonce === actionNonce ? { nonce: 0, hp: 0, qi: 0 } : current)), 900))
+    }
+    if (game.day !== previousDay.current) {
+      previousDay.current = game.day
+      setDayStamp(game.day)
+      feedbackTimers.current.push(window.setTimeout(() => setDayStamp(null), 1400))
+    }
     if (!tookDamage || !game.player.alive) return
 
     const timer = window.setTimeout(() => setHurtFeedbackNonce(actionNonce), retaliationAction ? 420 : 220)
     return () => window.clearTimeout(timer)
-  }, [actionNonce, game.player.alive, game.player.hp, retaliationAction])
+  }, [actionNonce, game.day, game.player.alive, game.player.hp, game.player.qi, retaliationAction])
   useEffect(() => {
     if (previousLocationId.current === game.player.locationId) return
     previousLocationId.current = game.player.locationId
     setActiveDock(contextualDockFor(game.player.locationId))
   }, [game.player.locationId])
-  const beat = useMemo(() => currentBeat(game), [game])
-  const chapter = CHAPTERS.find((entry) => entry.index === beat.chapter) ?? {
+  useEffect(() => {
+    if (chronicleEndRef.current === null) return
+    // Only scroll when the chronicle grew — never on mount or shrinking.
+    const seen = chronicleSeenCount.current
+    chronicleSeenCount.current = chronicle.length
+    if (chronicle.length <= seen) return
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    chronicleEndRef.current.scrollIntoView?.({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
+    setChronicleNewAt(chronicle.length)
+    feedbackTimers.current.push(window.setTimeout(() => setChronicleNewAt(-1), 1600))
+  }, [chronicle.length])
+  useEffect(() => {
+    const handleJournalShortcut = (event: globalThis.KeyboardEvent) => {
+      const target = event.target
+      const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement
+
+      if (event.key === 'Escape' && journalOpen) {
+        event.preventDefault()
+        setJournalOpen(false)
+        window.requestAnimationFrame(() => journalLauncher.current?.focus())
+        return
+      }
+      if (event.key.toLowerCase() === 'i' && !journalOpen && routeEncounter === undefined && !isTyping) {
+        event.preventDefault()
+        setActiveDock('inventory')
+        setJournalOpen(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleJournalShortcut)
+    return () => window.removeEventListener('keydown', handleJournalShortcut)
+  }, [journalOpen, routeEncounter])
+  const objective = deriveObjective(game, locale)
+  const [deathDismissed, setDeathDismissed] = useState(false)
+  useEffect(() => {
+    if (!game.terminal) setDeathDismissed(false)
+  }, [game.terminal])
+  const scene = useMemo(() => currentStoryScene(game), [game])
+  const chapter = CHAPTERS.find((entry) => entry.index === scene.chapter) ?? {
     index: 1,
     nameVi: 'Chương một',
     nameEn: 'Chapter One',
@@ -267,15 +285,52 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   }
   const location = getLocation(game.player.locationId)
   const regionMap = getRegionMap(game.player.locationId)
+  const currentCell = regionMap?.cells.find((cell) => cell.x === game.player.posX && cell.y === game.player.posY)
+  const currentCellLabel = currentCell?.node === undefined
+    ? terrainLabel(locale, currentCell?.terrain)
+    : word(locale, currentCell.node.nameVi, currentCell.node.nameEn)
+  const nextMapNode = [...(regionMap?.cells ?? [])]
+    .filter((cell) => cell.node !== undefined && (cell.x !== game.player.posX || cell.y !== game.player.posY))
+    .sort((left, right) => {
+      const leftDistance = Math.abs(left.x - game.player.posX) + Math.abs(left.y - game.player.posY)
+      const rightDistance = Math.abs(right.x - game.player.posX) + Math.abs(right.y - game.player.posY)
+      return leftDistance - rightDistance
+    })[0]
+  const nextMapNodeDistance = nextMapNode === undefined
+    ? null
+    : Math.abs(nextMapNode.x - game.player.posX) + Math.abs(nextMapNode.y - game.player.posY)
+  const routeLead = game.flags.story_route === 'mercy'
+    ? word(locale, 'Mai Hoa đang giữ bó dây đỏ: hãy tìm những cái tên chưa được gọi về.', 'Meihua holds the red thread: find the names not called home.')
+    : game.flags.story_route === 'wealth'
+      ? word(locale, 'Bảo đang chờ ở lối sau chợ với chiếc bùa nứt và một lối tắt.', 'Bao waits in the market back lane with a chipped ward and a shortcut.')
+      : game.flags.story_route === 'truth'
+        ? word(locale, 'Ngô chờ ở trà quán; bảy bát trà giữ những mảnh ký ức thất lạc.', 'Ngo waits in the teahouse; seven cups hold the missing memories.')
+        : null
+  const routeTarget = storyRouteTarget(game)
+  const routeProof = storyRouteProof(game)
+  const routeStatus = routeLead === null
+    ? null
+    : routeTarget === undefined
+      ? word(locale, 'Đầu mối đã được gặp. Giờ hãy quyết định cách đi tiếp.', 'You reached the lead. Now decide how to proceed.')
+      : routeLead
   const warning = dangerWarning(game.player.locationId)
   const localNpcs = NPCS.filter((npc) => npc.locationId === game.player.locationId)
   const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
+  const endingLines = ending === undefined ? [] : endingEpilogue(game, locale)
+  const isDeath = game.terminal && game.endingId === 'tragic_death'
   const entries = Object.entries(game.inventory).filter(([, qty]) => qty > 0)
   const stored = Object.entries(game.storage).filter(([, qty]) => qty > 0)
+  const selectedInventoryId = selectedInventoryItemId !== null && entries.some(([id]) => id === selectedInventoryItemId)
+    ? selectedInventoryItemId
+    : entries[0]?.[0]
+  const selectedInventoryItem = selectedInventoryId === undefined ? undefined : getItem(selectedInventoryId)
+  const selectedInventoryArt = selectedInventoryId === undefined ? undefined : itemArtFor(selectedInventoryId)
+  const selectedInventoryEquipment = selectedInventoryId === undefined ? undefined : EQUIPMENT.find((equipment) => equipment.itemId === selectedInventoryId)
   const encounterEnemy = game.encounter === null ? undefined : ENEMIES.find((enemy) => enemy.id === game.encounter?.enemyId)
   const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
   const knownTechniques = TECHNIQUES.filter((technique) => (game.techniques[technique.id] ?? 0) > 0)
   const encounterLocked = game.encounter !== null
+  const deadlineRemaining = nightDeadlineRemaining(game)
   const sceneBackdrop = locationBackdropFor(game.player.locationId) ?? worldMapArt
   const sceneBackdropAlt = location === undefined
     ? word(locale, 'Bản đồ khu vực chưa được đặt tên', 'World map for an uncharted area')
@@ -342,15 +397,61 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     event.preventDefault()
     const raw = command.trim()
     if (raw.length === 0 || game.terminal) return
-    onAction({ kind: 'free_text', raw })
+    // Phase 5: during a story choice, free text asks the AI to suggest ONE of
+    // the authored choices. The engine only ever receives a story_choice with
+    // an authored id; without AI (or on any failure) the deterministic parser
+    // handles the utterance exactly as before.
+
+    // Per-review-C5 (design review 2026-08): capture the submitted scene id
+    // in a ref so a late AI response cannot apply an old choice after the
+    // player has acted on a newer one.
+    const hasAvailableChoices = currentStoryScene(game).choices.some(
+      (choice) => findStoryChoice(game, choice.id) !== undefined,
+    )
     setCommand('')
+    if (hasAvailableChoices && !encounterLocked) {
+      setAiSuggesting(true)
+      const submittedSceneId = currentStoryScene(game).id
+      lastSuggestionSceneIdRef.current = submittedSceneId
+      void requestSuggestion(game, raw, locale, AbortSignal.timeout(10_000)).then((result) => {
+        // If the player has since acted (or the scene has moved), drop this
+        // stale suggestion on the floor — the newer action wins.
+        if (lastSuggestionSceneIdRef.current !== submittedSceneId) {
+          setAiSuggesting(false)
+          return
+        }
+        setAiSuggesting(false)
+        if (result.status === 'empty' || result.status === 'error') {
+          onAction({ kind: 'free_text', raw })
+          return
+        }
+        if (result.status === 'suggested') {
+          setAiSuggestLine(result.suggestion.reply.length > 0 ? result.suggestion.reply : null)
+          onAction({ kind: 'story_choice', choiceId: result.suggestion.choiceId })
+        }
+      })
+      return
+    }
+    onAction({ kind: 'free_text', raw })
   }
 
+  // C5: any user action invalidates the in-flight AI suggestion. Hooks
+  // already gate the input behind `aiSuggesting`, but other UI controls
+  // (movement, story-choice click, locale change) can fire while a
+  // suggestion is pending — when they do, we null out the scene ref so the
+  // pending response is discarded.
+  useEffect(() => {
+    if (actionNonce !== lastSeenActionNonceRef.current) {
+      lastSeenActionNonceRef.current = actionNonce
+      lastSuggestionSceneIdRef.current = null
+    }
+  }, [actionNonce])
+
   return (
-    <main className={`game-shell action-${actionKind ?? 'idle'}`} data-testid="game-screen">
+    <main className={`game-shell action-${actionKind ?? 'idle'} ${journalOpen ? 'journal-open' : ''}`} data-testid="game-screen">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-seal" aria-hidden="true">玄</span>
+          <span className="brand-seal" aria-hidden="true">{HAN_SEALS.mystery}</span>
           <div>
             <p className="eyebrow">{word(locale, 'Kịch bản I · một mạng duy nhất', 'Scenario I · one life only')}</p>
             <h1>Phế Căn Ký <span>/ Tale of the Broken Root</span></h1>
@@ -358,6 +459,28 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
         <div className="topbar-actions">
           <span className="day-chip">{word(locale, 'Ngày', 'Day')} {game.day}</span>
+          {dayStamp !== null && <span className="day-stamp" data-testid="day-stamp" role="status">{word(locale, 'Ngày', 'Day')} {dayStamp}</span>}
+          {deadlineRemaining !== null && (
+            <span className="day-chip deadline-chip" data-testid="night-deadline-chip">
+              {word(locale, 'Đêm thứ mười hai', 'Twelfth night')}: {String(deadlineRemaining)} {word(locale, 'ngày', 'days')}
+            </span>
+          )}
+          {!journalOpen && routeEncounter === undefined && <button
+            aria-controls="journal-screen"
+            aria-label={word(locale, 'Mở Hành trang và giang hồ', 'Open Journey journal')}
+            className="journal-launcher"
+            id="journal-launcher"
+            onClick={() => {
+              setActiveDock('inventory')
+              setJournalOpen(true)
+            }}
+            ref={journalLauncher}
+            type="button"
+          >
+            <span>{word(locale, 'Hành trang', 'Journal')}</span>
+            <em>{entries.reduce((sum, [, qty]) => sum + qty, 0)}</em>
+            <kbd>I</kbd>
+          </button>}
           <div className="language-toggle" role="group" aria-label="Language">
             <button className={locale === 'vi' ? 'active' : ''} onClick={() => onLocaleChange('vi')} type="button">VI</button>
             <button className={locale === 'en' ? 'active' : ''} onClick={() => onLocaleChange('en')} type="button">EN</button>
@@ -365,11 +488,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
       </header>
 
+      <div className="world-content" data-testid="world-content" hidden={journalOpen || routeEncounter !== undefined}>
       <div className="stage-notices">
         <section className="chapter-banner" aria-label={word(locale, 'Chương truyện hiện tại', 'Current story chapter')}>
           <p>{word(locale, 'Chương hiện tại', 'Current chapter')}</p>
           <h2>{localized(locale, chapter)}</h2>
-          <span>{locale === 'vi' ? chapter.taglineVi : chapter.taglineEn}<ChapterProgress current={beat.chapter} locale={locale} total={CHAPTERS.length} /></span>
+          <span>{locale === 'vi' ? chapter.taglineVi : chapter.taglineEn}<ChapterProgress current={scene.chapter} locale={locale} total={CHAPTERS.length} /></span>
         </section>
 
         {warning !== null && (
@@ -379,11 +503,23 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </section>
         )}
 
-        {game.terminal && ending !== undefined && (
+        {isDeath && !deathDismissed && ending !== undefined && (
+          <DeathScreen
+            locale={locale}
+            ending={ending}
+            onRestart={onRestart}
+            onDismiss={() => setDeathDismissed(true)}
+          />
+        )}
+
+        {game.terminal && ending !== undefined && !(isDeath && !deathDismissed) && (
           <section className="ending-banner" role="status">
             <p>{word(locale, 'Kết cục đã định', 'Your ending')}</p>
             <h2>{localized(locale, ending)}</h2>
             <span>{locale === 'vi' ? ending.epitaphVi : ending.epitaphEn}</span>
+            <div className="ending-epilogue">
+              {endingLines.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}
+            </div>
           </section>
         )}
 
@@ -395,8 +531,14 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               <span>{word(locale, 'Sinh lực địch', 'Enemy health')}: {game.encounter.hp}/{game.encounter.maxHp}</span>
             </div>
             <div className="encounter-actions">
-              {knownTechniques.map((technique) => <button key={technique.id} onClick={() => onAction({ kind: 'combat_attack', techniqueId: technique.id })} type="button">{word(locale, 'Xuất', 'Use')} {localized(locale, technique)}</button>)}
+              <button onClick={() => onAction({ kind: 'combat_attack' })} type="button">
+                {word(locale, 'Đánh thường', 'Basic strike')} ({String(BASIC_STRIKE_QI_COST)} {word(locale, 'khí', 'qi')})
+              </button>
+              {knownTechniques.map((technique) => <button key={technique.id} onClick={() => onAction({ kind: 'combat_attack', techniqueId: technique.id })} type="button">{word(locale, 'Xuất', 'Use')} {localized(locale, technique)} ({String(techniqueQiCost(technique.power, game.techniques[technique.id] ?? 0))} {word(locale, 'khí', 'qi')})</button>)}
               <button onClick={() => onAction({ kind: 'combat_defend' })} type="button">{word(locale, 'Thủ thế', 'Defend')}</button>
+              <button onClick={() => onAction({ kind: 'combat_retreat' })} type="button">
+                {word(locale, 'Rút lui', 'Retreat')} (−{String(RETREAT_HP_COST)} {word(locale, 'khí huyết', 'HP')})
+              </button>
             </div>
           </section>
         )}
@@ -411,6 +553,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 
       <div className="game-grid">
         <section className="map-panel parchment-panel" aria-labelledby="map-title">
+          <InkCorner corner="top-left" />
           <div className="panel-heading">
             <div>
               <p className="eyebrow">{word(locale, 'WASD / phím mũi tên', 'WASD / arrow keys')}</p>
@@ -424,12 +567,22 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             style={{ '--map-columns': MAP_WIDTH, '--map-rows': MAP_HEIGHT } as CSSProperties}
           >
             <img alt="" aria-hidden="true" className="world-map-art" src={sceneBackdrop} />
+            <div className="map-current-overlay" data-testid="map-current-cell">
+              <span>{word(locale, 'Ngươi đang ở đây', 'You are here')}</span>
+              <strong>{currentCellLabel}</strong>
+              <small>{word(locale, `Ô ${game.player.posX + 1} · ${game.player.posY + 1}`, `Cell ${game.player.posX + 1} · ${game.player.posY + 1}`)}</small>
+            </div>
+            <div className="map-compass" role="img" aria-label={word(locale, 'La bàn: Bắc ở phía trên', 'Compass: north is up')}>
+              <span>N</span><i aria-hidden="true" />
+            </div>
             <div className="map-grid-overlay" aria-hidden="true">
               {(regionMap?.cells ?? []).map((cell) => {
                 const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
                 return (
                   <div className={`map-cell terrain-${cell.terrain}`} key={`${cell.x}-${cell.y}`}>
-                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind}`} data-testid={`event-node-${cell.node.id}`} title={locale === 'vi' ? cell.node.nameVi : cell.node.nameEn} />}
+                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind} ${routeTarget?.nodeId === cell.node.id ? 'is-route-target' : ''}`} data-testid={routeTarget?.nodeId === cell.node.id ? 'route-event-node' : `event-node-${cell.node.id}`} title={word(locale, `Chấm ${cell.node.kind}: ${cell.node.nameVi}`, `${cell.node.kind} point: ${cell.node.nameEn}`)} />}
+                    {routeTarget?.nodeId === cell.node?.id && <span aria-hidden="true" className="route-node-seal">{word(locale, 'Dấu vết', 'Lead')}</span>}
+                    {cell.node !== undefined && <span className="map-node-label" aria-hidden="true">{locale === 'vi' ? cell.node.nameVi : cell.node.nameEn}</span>}
                     {isPlayer && <span className={`player-map-marker action-${actionKind ?? 'idle'}`} data-testid="player-map-marker" key={`player-${actionNonce}`} title={word(locale, 'Nhân vật của bạn', 'Your character')} />}
                   </div>
                 )
@@ -438,40 +591,78 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </div>
           <div className="map-legend" aria-label={word(locale, 'Chú giải bản đồ', 'Map legend')}>
             <span><i className="legend-player" />{word(locale, 'Ngươi', 'You')}</span>
-            <span><i className="legend-town" />{word(locale, 'Điểm sự kiện / NPC', 'Event / NPC node')}</span>
-            <span><i className="legend-exit" />{word(locale, 'Lối sang khu vực khác', 'Exit to another area')}</span>
-            <span>{word(locale, 'Đi đến chấm sáng để gặp người, phát hiện sự kiện hoặc qua cổng. Nước và núi chặn lối.', 'Walk to a glowing point to meet people, find events, or use an exit. Water and mountains block the way.')}</span>
+            <span><i className="legend-npc" />{word(locale, 'Người — nói chuyện, nhận việc', 'People — talk, take quests')}</span>
+            <span><i className="legend-event" />{word(locale, 'Sự kiện — tương tác, vận mệnh', 'Event — interact, fortune')}</span>
+            <span><i className="legend-exit" />{word(locale, 'Lối ra — sang vùng khác', 'Exit — travel to another region')}</span>
+            <span><i className="legend-danger" />{word(locale, 'Hiểm họa — giao chiến, mất máu', 'Danger — combat, lose health')}</span>
+            <span>{word(locale, 'Đi đến chấm sáng để gặp người, gặp sự kiện, hoặc qua cổng. Nước và núi chặn lối. Chấm đỏ là hiểm họa — hãy nghỉ (Rest) hồi máu trước khi vào.', 'Walk to a glowing point to meet people, find events, or use an exit. Water and mountains block the way. Red points are danger — rest to heal before you enter.')}</span>
           </div>
+          <aside className="map-context" aria-labelledby="map-context-title">
+            <p className="section-kicker" id="map-context-title">{word(locale, 'Dấu chân trên đường', 'Trail notes')}</p>
+            <strong>{currentCellLabel}</strong>
+            <span>{currentCell?.node === undefined
+              ? word(locale, `Ngươi đang đứng trên ${terrainLabel(locale, currentCell?.terrain).toLowerCase()}.`, `You are standing on ${terrainLabel(locale, currentCell?.terrain).toLowerCase()}.`)
+              : word(locale, 'Một chốn có chuyện để nghe hoặc tự mình đổi thay.', 'A place with someone to hear or something to change yourself.')}
+            </span>
+            {nextMapNode?.node !== undefined && nextMapNodeDistance !== null && (
+              <div>
+                <em>{word(locale, 'Điểm gần nhất', 'Nearest lead')}</em>
+                <b>{word(locale, nextMapNode.node.nameVi, nextMapNode.node.nameEn)} · {nextMapNodeDistance} {word(locale, 'ô', 'cells')}</b>
+              </div>
+            )}
+            {routeStatus !== null && (
+              <div>
+                <em>{word(locale, 'Dấu vết câu chuyện', 'Story lead')}</em>
+                <b>{routeStatus}</b>
+              </div>
+            )}
+          </aside>
         </section>
 
         <section className="story-panel parchment-panel" aria-labelledby="story-title">
+          <InkCorner corner="top-right" />
           <div className="panel-heading">
             <div>
               <p className="eyebrow">{word(locale, 'Mạch truyện', 'Deterministic story')}</p>
-              <h2 id="story-title">{locale === 'vi' ? beat.titleVi : beat.titleEn}</h2>
+              <h2 id="story-title">{locale === 'vi' ? scene.titleVi : scene.titleEn}</h2>
             </div>
             <span className="root-badge">{word(locale, 'Linh căn', 'Spirit root')}: {locale === 'vi' ? game.spiritRoot.elementVi : game.spiritRoot.elementEn}</span>
           </div>
           <figure className="scene-backdrop">
             <img alt={sceneBackdropAlt} src={sceneBackdrop} />
           </figure>
-          <p className="beat-copy">{locale === 'vi' ? beat.textVi : beat.textEn}</p>
+          <p className="beat-copy">{locale === 'vi' ? scene.textVi : scene.textEn}</p>
+          <button
+            aria-controls="story-chronicle"
+            className="chronicle-jump"
+            onClick={() => chronicleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })}
+            type="button"
+          >
+            <span>{word(locale, 'Biên niên ký còn ở phía dưới', 'Chronicle continues below')}</span>
+            <em>{chronicle.length} {word(locale, 'bản ghi', 'entries')} ↓</em>
+          </button>
 
           <div className="choice-area">
             <p className="section-kicker">{word(locale, 'Lựa chọn của ngươi', 'Your choices')}</p>
             <div className="story-choices">
-              {beat.suggested.map((action, index) => (
+              {scene.choices.map((choice, index) => (
+                (() => {
+                  const available = findStoryChoice(game, choice.id) !== undefined
+                  const lockedByRoute = !available && routeTarget !== undefined
+                  return (
                 <button
                   className="choice-button"
-                  disabled={game.terminal || encounterLocked}
-                  key={`${action.kind}-${index}`}
-                  onClick={() => onAction(action)}
+                  disabled={game.terminal || encounterLocked || !available}
+                  key={choice.id}
+                  onClick={() => onAction({ kind: 'story_choice', choiceId: choice.id })}
                   type="button"
                 >
                   <span>{index + 1}</span>
-                  {actionLabel(action, locale)}
-                  <i aria-hidden="true" className="choice-seal">{actionSeal(action)}</i>
+                  <span className="story-choice-copy"><strong>{lockedByRoute && <i aria-hidden="true" className="choice-lock">◆</i>}{locale === 'vi' ? choice.labelVi : choice.labelEn}</strong><small>{lockedByRoute ? word(locale, 'Trước hết hãy đến đúng dấu vết được đóng trên bản đồ.', 'First reach the sealed story lead on the map.') : locale === 'vi' ? choice.consequenceVi : choice.consequenceEn}</small></span>
+                  <i aria-hidden="true" className="choice-seal">{HAN_SEALS.choice}</i>
                 </button>
+                  )
+                })()
               ))}
             </div>
           </div>
@@ -487,15 +678,35 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 placeholder={word(locale, 'Ví dụ: nói chuyện với cụ Mai Hoa', 'Example: talk to Elder Meihua')}
                 value={command}
               />
-              <button disabled={game.terminal || command.trim().length === 0} type="submit">{word(locale, 'Thử vận', 'Act')}</button>
+              <button disabled={game.terminal || aiSuggesting || command.trim().length === 0} type="submit">{aiSuggesting ? word(locale, 'Đang lắng nghe…', 'Listening…') : word(locale, 'Thử vận', 'Act')}</button>
             </div>
-            <small>{word(locale, 'Cứ nói điều ngươi thật sự muốn làm; thế giới sẽ đáp lại theo lẽ của nó.', 'State what you truly mean to do; the world will answer in its own way.')}</small>
+            {aiSuggestLine !== null && <p className="ai-suggest-line" role="status">{aiSuggestLine}</p>}
+            <small>{word(locale, 'Các lựa chọn phía trên là bước ngoặt của truyện. Ngoài ra, hãy nói điều ngươi muốn làm; thế giới sẽ giải thích khi điều đó chưa thể thực hiện.', 'The choices above are story turning points. Outside them, state what you want to do; the world will explain when it cannot happen yet.')}</small>
           </form>
 
-          <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')}>
+          {objective !== null && (
+            <section className="objective-widget" aria-live="polite" aria-label={t(locale, 'ui.objective.title')} data-testid="objective-line">
+              <p className="objective-heading"><span className="objective-seal" aria-hidden="true">{HAN_SEALS.objective}</span>{t(locale, 'ui.objective.title')}</p>
+              <p className="objective-line">{objective}</p>
+            </section>
+          )}
+
+          {routeProof !== undefined && <aside className="route-proof" data-testid="route-proof" aria-label={word(locale, 'Vật chứng mang theo', 'Carried proof')}>
+            <p>{word(locale, 'Vật chứng mang theo', 'Carried proof')}</p>
+            <strong>{word(locale, routeProof.proofVi, routeProof.proofEn)}</strong>
+            <em>{game.flags.story_proof_present === true ? word(locale, 'Đã công khai · mở lời chứng ở Hang và phiên xét xử', 'Public · opens testimony at the cave and trial') : word(locale, 'Đã giấu kín · mở đường bí mật ở Hang và phiên xét xử', 'Concealed · opens the covert path at the cave and trial')}</em>
+            <span>{scene.id === 'cave_witness'
+              ? word(locale, 'Hà nhận ra dấu mực này trước khi ngươi kịp nói tên mình.', 'Ha recognizes this mark before you can say your name.')
+              : scene.id === 'sect_trial'
+                ? word(locale, 'Nó có thể được đặt lên bàn xét xử — hoặc giấu đi cùng một lời nói dối.', 'You can lay it on the trial table — or hide it with a lie.')
+                : word(locale, 'Nó ở trong tay áo, sẵn sàng theo ngươi qua cửa hang.', 'It rests in your sleeve, ready to cross the cave threshold with you.')}
+            </span>
+          </aside>}
+
+          <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')} id="story-chronicle" ref={chronicleRef} tabIndex={-1}>
             <p className="section-kicker">{word(locale, 'Biên niên ký', 'Chronicle')}</p>
             <ol>
-              {chronicle.slice(-8).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
+              {chronicle.slice(-8).map((line, index) => <li className={index === chronicle.length - 1 && chronicle.length === chronicleNewAt ? 'is-new' : undefined} key={`${line}-${index}`} ref={index === chronicle.length - 1 ? chronicleEndRef : undefined}>{line}</li>)}
             </ol>
           </div>
         </section>
@@ -511,9 +722,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 src={playerArtFor(playerPose)}
               />
             </figure>
-            <Meter label="HP" value={game.player.hp} max={100} tone="red" />
-            <Meter label="Qi" value={game.player.qi} max={60} tone="jade" />
-            <Meter label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={120} tone="gold" />
+            <Meter label="HP" value={game.player.hp} max={100} tone="red" delta={statDeltas.nonce === 0 ? 0 : statDeltas.hp} deltaTestid="hp-delta" />
+            <Meter label="Qi" value={game.player.qi} max={60} tone="jade" delta={statDeltas.nonce === 0 ? 0 : statDeltas.qi} deltaTestid="qi-delta" />
+            <Meter className="meter-progress" label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={120} tone="gold" />
             <div className="stat-strip">
               <span>◎ {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
               <span>{word(locale, 'Độ tương hợp', 'root rate')} {Math.round(game.spiritRoot.efficiency * 100)}%</span>
@@ -534,14 +745,45 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </section>
         </aside>
       </div>
+      </div>
 
-      <section className="system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="system-dock">
-        <div className="dock-heading">
+      {routeEncounter !== undefined && <section className="route-encounter-screen parchment-panel" aria-labelledby="route-encounter-title" data-testid="route-encounter-screen">
+        <InkCorner corner="top-left" />
+        <div className="route-encounter-copy">
+          <p className="eyebrow">{word(locale, 'Sự kiện tuyến truyện · tại chỗ', 'Story route encounter · on site')}</p>
+          <p className="route-encounter-location">{location === undefined ? game.player.locationId : localized(locale, location)}</p>
+          <h2 id="route-encounter-title">{word(locale, routeEncounter.titleVi, routeEncounter.titleEn)}</h2>
+          <p className="route-encounter-text">{word(locale, routeEncounter.textVi, routeEncounter.textEn)}</p>
+          <div className="route-encounter-action">
+            <p>{word(locale, 'Chọn điều phải đánh đổi', 'Choose what to risk')}</p>
+            <div className="route-encounter-actions">
+              {routeEncounter.choices.map((choice, index) => <button autoFocus={index === 0} key={choice.approach} onClick={() => onAction({ kind: 'resolve_route_event', approach: choice.approach })} type="button">
+                <strong>{word(locale, choice.labelVi, choice.labelEn)}</strong>
+                <span>{word(locale, choice.consequenceVi, choice.consequenceEn)}</span>
+              </button>)}
+            </div>
+          </div>
+          <aside className="route-encounter-aftermath">
+            <p>{word(locale, 'Vật chứng sẽ mang theo', 'Proof you will carry')}</p>
+            <strong>{word(locale, routeEncounter.proofVi, routeEncounter.proofEn)}</strong>
+            <span>{word(locale, routeEncounter.aftermathVi, routeEncounter.aftermathEn)}</span>
+          </aside>
+        </div>
+      </section>}
+
+      <section className="journal-screen system-dock parchment-panel" aria-labelledby="system-dock-title" data-testid="journal-screen" hidden={!journalOpen || routeEncounter !== undefined} id="journal-screen">
+        <InkCorner corner="bottom-left" />
+        <div className="journal-heading dock-heading">
           <div>
-            <p className="eyebrow">{word(locale, 'Mở khi cần', 'Open when needed')}</p>
+            <p className="eyebrow">{word(locale, 'Sổ tay hành tẩu', 'Wandering journal')}</p>
             <h2 id="system-dock-title">{word(locale, 'Hành trang & giang hồ', 'Journey systems')}</h2>
           </div>
-          <span>{word(locale, 'Không che đường tu hành', 'Keeps the play surface clear')}</span>
+          <button className="journal-return" onClick={() => {
+            setJournalOpen(false)
+            window.requestAnimationFrame(() => journalLauncher.current?.focus())
+          }} type="button">
+            {word(locale, '← Về thế giới', '← Back to world')} <kbd>Esc</kbd>
+          </button>
         </div>
         <div className="dock-tabs" aria-label={word(locale, 'Hệ thống phụ', 'Secondary systems')} role="tablist">
           {([
@@ -552,6 +794,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             ['path', word(locale, 'Đạo đồ & trang bị', 'Path & equipment'), word(locale, 'tu vi', 'cultivation')],
           ] as const).map(([id, label, count]) => (
             <button
+              aria-label={`${label}: ${count}`}
               aria-controls={`dock-panel-${id}`}
               aria-selected={activeDock === id}
               className={`dock-tab ${activeDock === id ? 'is-active' : ''} ${id === 'market' && game.player.locationId === 'market' ? 'is-contextual' : ''}`}
@@ -563,7 +806,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               tabIndex={activeDock === id ? 0 : -1}
               type="button"
             >
-              <span>{label}</span><em>{count}</em>
+              <span>{label}</span><em aria-hidden="true" className="dock-tab-count">{count}</em>
             </button>
           ))}
         </div>
@@ -603,16 +846,34 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           {activeDock === 'inventory' && <section aria-labelledby="inventory-title">
             <div className="panel-heading compact"><h2 id="inventory-title">{word(locale, 'Túi đồ & kho', 'Inventory & storage')}</h2><span>{storageRemaining(game)} {word(locale, 'ô kho', 'storage left')}</span></div>
             <p className="dock-context">{word(locale, 'Túi đồ luôn theo ngươi; kho ghi nhận vật phẩm đã gửi.', 'Your bag travels with you; storage records deposited items.')}</p>
-            <img alt={word(locale, 'Bộ sưu tập vật phẩm tu tiên', 'Cultivation item collection')} className={`item-collection-art ${actionKind === 'use_item' ? 'is-used' : ''}`} src={itemsStillLife} />
-            <ul className="item-list">
-              {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
-                const item = getItem(id)
-                const artwork = itemArtFor(id)
-                const tier = itemTier(item)
-                return <li className={`item-row tier-${tier}`} key={id}>{artwork !== undefined && <img alt={word(locale, `Minh họa ${itemName(id, locale)}`, `Artwork of ${itemName(id, locale)}`)} className="item-art-thumb" src={artwork} />}<div className="item-copy"><strong>{itemName(id, locale)} ×{qty}</strong><span>{item === undefined ? '' : locale === 'vi' ? item.descVi : item.descEn}</span>{item?.sellPrice !== null && item?.sellPrice !== undefined && <em className="item-value-chip" title={word(locale, 'Giá bán tại chợ', 'Market sell price')}>◎ {item.sellPrice}</em>}</div><div className="item-actions">{item?.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: id })} type="button">{word(locale, 'Dùng', 'Use')}</button>}<button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'store', itemId: id, qty: 1 })} type="button">{word(locale, 'Gửi', 'Store')}</button></div></li>
-              })}
-            </ul>
-            {stored.length > 0 && <div className="storage-list"><p className="section-kicker">{word(locale, 'Trong kho', 'In storage')}</p>{stored.map(([id, qty]) => <button disabled={game.terminal || encounterLocked} key={id} onClick={() => onAction({ kind: 'withdraw', itemId: id, qty: 1 })} type="button">{itemName(id, locale)} ×{qty} · {word(locale, 'lấy', 'take')}</button>)}</div>}
+            <div className="inventory-layout">
+              <div className="inventory-list-column">
+                <img alt={word(locale, 'Bộ sưu tập vật phẩm tu tiên', 'Cultivation item collection')} className={`item-collection-art ${actionKind === 'use_item' ? 'is-used' : ''}`} src={itemsStillLife} />
+                <ul className="item-list">
+                  {entries.length === 0 ? <li className="muted">{word(locale, 'Túi trống.', 'Your bag is empty.')}</li> : entries.map(([id, qty]) => {
+                    const item = getItem(id)
+                    const artwork = itemArtFor(id)
+                    const tier = itemTier(item)
+                    const selected = id === selectedInventoryId
+                    return <li className={`item-row tier-${tier} ${selected ? 'is-selected' : ''}`} key={id}><button aria-pressed={selected} className="item-inspect-trigger" onClick={() => setSelectedInventoryItemId(id)} type="button">{artwork !== undefined && <img alt={word(locale, `Minh họa ${itemName(id, locale)}`, `Artwork of ${itemName(id, locale)}`)} className="item-art-thumb" src={artwork} />}<span className="item-copy"><strong>{itemName(id, locale)} ×{qty}</strong><span>{item === undefined ? '' : locale === 'vi' ? item.descVi : item.descEn}</span>{item?.sellPrice !== null && item?.sellPrice !== undefined && <em className="item-value-chip" title={word(locale, 'Giá bán tại chợ', 'Market sell price')}>◎ {item.sellPrice}</em>}</span></button><div className="item-actions">{item?.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: id })} type="button">{word(locale, 'Dùng', 'Use')}</button>}<button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'store', itemId: id, qty: 1 })} type="button">{word(locale, 'Gửi', 'Store')}</button></div></li>
+                  })}
+                </ul>
+                {stored.length > 0 && <div className="storage-list"><p className="section-kicker">{word(locale, 'Trong kho', 'In storage')}</p>{stored.map(([id, qty]) => <button disabled={game.terminal || encounterLocked} key={id} onClick={() => onAction({ kind: 'withdraw', itemId: id, qty: 1 })} type="button">{itemName(id, locale)} ×{qty} · {word(locale, 'lấy', 'take')}</button>)}</div>}
+              </div>
+              <aside className="inventory-inspector" data-testid="inventory-inspector">
+                {selectedInventoryItem === undefined || selectedInventoryId === undefined ? <p className="muted">{word(locale, 'Chọn một vật phẩm để xem chi tiết.', 'Choose an item to inspect it.')}</p> : <>
+                  <p className="section-kicker">{word(locale, `Phẩm cấp ${itemTier(selectedInventoryItem)}`, `${itemTier(selectedInventoryItem)} tier`)}</p>
+                  <img alt={word(locale, `Minh họa lớn ${itemName(selectedInventoryId, locale)}`, `Large artwork of ${itemName(selectedInventoryId, locale)}`)} className="inventory-inspector-art" src={selectedInventoryArt ?? itemsStillLife} />
+                  <h3>{itemName(selectedInventoryId, locale)}</h3>
+                  <p>{locale === 'vi' ? selectedInventoryItem.descVi : selectedInventoryItem.descEn}</p>
+                  <dl>
+                    <div><dt>{word(locale, 'Giá trị', 'Value')}</dt><dd>{selectedInventoryItem.sellPrice === null || selectedInventoryItem.sellPrice === undefined ? word(locale, 'Không bán', 'Not for sale') : `◎ ${selectedInventoryItem.sellPrice}`}</dd></div>
+                    {selectedInventoryEquipment !== undefined && <div><dt>{word(locale, 'Trang bị', 'Equipment')}</dt><dd>{word(locale, `${selectedInventoryEquipment.slot} · Công ${selectedInventoryEquipment.attackBonus} / Thủ ${selectedInventoryEquipment.defenseBonus}`, `${selectedInventoryEquipment.slot} · ATK ${selectedInventoryEquipment.attackBonus} / DEF ${selectedInventoryEquipment.defenseBonus}`)}</dd></div>}
+                  </dl>
+                  <div className="inventory-inspector-actions">{selectedInventoryItem.usable && <button disabled={game.terminal} onClick={() => onAction({ kind: 'use_item', itemId: selectedInventoryId })} type="button">{word(locale, 'Dùng vật phẩm', 'Use item')}</button>}{selectedInventoryEquipment !== undefined && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'equip_item', itemId: selectedInventoryId })} type="button">{word(locale, 'Trang bị ngay', 'Equip now')}</button>}</div>
+                </>}
+              </aside>
+            </div>
           </section>}
 
           {activeDock === 'market' && <section aria-labelledby="market-title">
@@ -655,7 +916,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               </ul>
             </section>
             <div className="achievements">
-              {ACHIEVEMENTS.map((achievement) => <span className={game.achievements.includes(achievement.id) ? 'unlocked' : ''} key={achievement.id} title={locale === 'vi' ? achievement.descVi : achievement.descEn}>{localized(locale, achievement)}</span>)}
+              {ACHIEVEMENTS.map((achievement) => {
+                const unlocked = game.achievements.includes(achievement.id)
+                return <span className={unlocked ? 'unlocked' : ''} key={achievement.id} title={locale === 'vi' ? achievement.descVi : achievement.descEn}>{unlocked && <i aria-hidden="true" className="achievement-seal" data-testid="achievement-seal">{HAN_SEALS.achievement}</i>}{localized(locale, achievement)}</span>
+              })}
             </div>
           </section>}
 
@@ -729,15 +993,31 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 }
 
 interface MeterProps {
+  className?: string
   label: string
   value: number
   max: number
   tone: 'red' | 'jade' | 'gold'
+  delta?: number
+  deltaTestid?: string
 }
 
-function Meter({ label, value, max, tone }: MeterProps) {
+function Meter({ className = '', label, value, max, tone, delta = 0, deltaTestid }: MeterProps) {
   const percent = Math.max(0, Math.min(100, (value / max) * 100))
-  return <div className="meter"><div><span>{label}</span><strong>{value}/{max}</strong></div><span className={`meter-track ${tone}`}><i style={{ width: `${percent}%` }} /></span></div>
+  return (
+    <div className={`meter ${className} ${delta !== 0 ? (delta > 0 ? 'delta-up' : 'delta-down') : ''}`}>
+      <div>
+        <span>{label}</span>
+        {delta !== 0 && deltaTestid !== undefined && (
+          <em className="meter-delta" data-testid={deltaTestid} data-direction={delta > 0 ? 'up' : 'down'}>
+            {delta > 0 ? `+${String(delta)}` : String(delta)}
+          </em>
+        )}
+        <strong>{value}/{max}</strong>
+      </div>
+      <span className={`meter-track ${tone}`}><i style={{ width: `${percent}%` }} /></span>
+    </div>
+  )
 }
 
 interface RealmLadderProps {

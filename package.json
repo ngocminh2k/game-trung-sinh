@@ -7,14 +7,18 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "agent:check": "node scripts/agent-os.mjs check",
+    "agent:claim": "node scripts/agent-os.mjs claim",
+    "agent:handoff": "node scripts/agent-os.mjs handoff",
+    "agent:queue": "node scripts/agent-queue.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

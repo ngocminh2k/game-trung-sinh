@@ -18,6 +18,9 @@ export interface PlayerState {
   posY: number
   locationId: string
   alive: boolean
+  /** Combat conditions (poison, paralysis…). Optional so older saves stay
+   *  valid; the reducer treats a missing array as empty. */
+  status?: import('./content-types').StatusEffect[]
 }
 
 export interface SpiritRootInfo {
@@ -31,6 +34,8 @@ export type QuestStatus = 'available' | 'active' | 'completed'
 
 export interface QuestRuntime {
   status: QuestStatus
+  /** Index into QuestDef.steps of the current step. Defaults to 0 for old saves. */
+  step?: number
 }
 
 export type EquipmentSlot = 'weapon' | 'robe' | 'accessory'
@@ -46,6 +51,9 @@ export interface EncounterState {
   hp: number
   maxHp: number
   guard: number
+  /** Status effects on the enemy (poison, burn…). Optional so older saves
+   *  stay valid; the reducer treats a missing array as empty. */
+  statusEffects?: import('./content-types').StatusEffect[]
 }
 
 export interface GameState {
@@ -66,7 +74,6 @@ export interface GameState {
   encounter: EncounterState | null
   lastLotteryDay: number | null
   corrections: number
-  convergenceCount: number
   terminal: boolean
   endingId: string | null
 }
@@ -87,13 +94,20 @@ export type Action =
   | { kind: 'draw_lottery' }
   | { kind: 'talk'; npcId: string }
   | { kind: 'accept_quest'; questId: string }
+  | { kind: 'turn_in_quest'; questId: string }
+  /** Legacy alias retained for existing commands and saves. */
   | { kind: 'complete_quest'; questId: string }
   | { kind: 'choose_talent'; talentId: string }
   | { kind: 'learn_technique'; techniqueId: string }
   | { kind: 'equip_item'; itemId: string }
   | { kind: 'start_encounter' }
-  | { kind: 'combat_attack'; techniqueId: string }
+  | { kind: 'combat_attack'; techniqueId?: string }
   | { kind: 'combat_defend' }
+  | { kind: 'combat_retreat' }
+
+  | { kind: 'resolve_route_event'; approach: 'present' | 'withhold' }
+  | { kind: 'story_choice'; choiceId: string }
+  | { kind: 'advance_romance'; trackId: string; choiceId: string }
   | { kind: 'free_text'; raw: string }
   | { kind: 'restart'; seed: string }
 
@@ -120,6 +134,7 @@ export const ERROR_CODES = [
   'QUEST_WRONG_STATE',
   'NPC_UNKNOWN',
   'NPC_NOT_HERE',
+  'STORY_CHOICE_UNAVAILABLE',
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]
@@ -131,7 +146,7 @@ export type GameEvent =
   | { type: 'DAY_PASSED'; day: number }
   | { type: 'RESTED'; hpHeal: number }
   | { type: 'TRAINED'; gain: number; stage: number }
-  | { type: 'GATHERED'; itemId: string; qty: number }
+  | { type: 'GATHERED'; itemId: string; qty: number; qiDrain: number }
   | { type: 'REFINED'; recipeId: string; itemId: string; qty: number }
   | { type: 'ITEM_USED'; itemId: string; hpDelta: number; qiDelta: number }
   | { type: 'BOUGHT'; itemId: string; qty: number; goldPaid: number }
@@ -139,16 +154,22 @@ export type GameEvent =
   | { type: 'STORED'; itemId: string; qty: number }
   | { type: 'WITHDRAWN'; itemId: string; qty: number }
   | { type: 'DRAW_RESULT'; tier: 'grand' | 'major' | 'minor' | 'herb' | 'none'; goldDelta: number; itemId?: string }
-  | { type: 'TALKED'; npcId: string }
+  | { type: 'TALKED'; npcId: string; lineVi?: string; lineEn?: string }
+  | { type: 'AFFINITY'; npcId: string; level: number }
+  | { type: 'ROUTE_EVENT_RESOLVED'; route: 'mercy' | 'wealth' | 'truth'; approach: 'present' | 'withhold'; proofVi: string; proofEn: string; progressDelta: number; qiDelta: number; goldDelta: number }
+  | { type: 'STORY_CHOICE'; sceneId: string; choiceId: string; nextSceneId: string | null }
+  | { type: 'ROMANCE_NODE'; npcId: string; nodeId: string; choiceId: string; titleVi: string; titleEn: string }
   | { type: 'QUEST_ACCEPTED'; questId: string }
   | { type: 'QUEST_COMPLETED'; questId: string; rewardGold: number }
   | { type: 'TALENT_CHOSEN'; talentId: string }
   | { type: 'TECHNIQUE_LEARNED'; techniqueId: string; level: number }
   | { type: 'EQUIPPED'; itemId: string; slot: EquipmentSlot }
   | { type: 'ENCOUNTER_STARTED'; enemyId: string }
+  | { type: 'QI_SPENT'; amount: number }
   | { type: 'COMBAT_HIT'; actor: 'player' | 'enemy'; amount: number; enemyId: string }
   | { type: 'COMBAT_GUARDED'; amount: number }
   | { type: 'COMBAT_WON'; enemyId: string; rewardGold: number }
+  | { type: 'COMBAT_RETREATED'; enemyId: string; hpCost: number; progressCost: number }
   | { type: 'WARNING'; level: number; locationId: string; messageVi: string; messageEn: string }
   | { type: 'WARD_USED'; itemId: string }
   | { type: 'DAMAGED'; amount: number; source: string }
@@ -156,7 +177,6 @@ export type GameEvent =
   | { type: 'ACHIEVEMENT_UNLOCKED'; achievementId: string }
   | { type: 'ENDING'; endingId: string }
   | { type: 'CORRECTION_REJECTED'; count: number }
-  | { type: 'FORCED_CONVERGENCE'; action: ConcreteAction }
   | { type: 'ERROR'; code: ErrorCode }
 
 export interface TransitionResult {

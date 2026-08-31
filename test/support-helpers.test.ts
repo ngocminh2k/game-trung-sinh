@@ -42,6 +42,7 @@ describe('shop, storage, and browser store helpers', () => {
 
     useGameStore.getState().reset('store-check')
     useGameStore.getState().dispatch({ kind: 'move', direction: 'west' })
+    useGameStore.getState().dispatch({ kind: 'move', direction: 'west' })
     expect(useGameStore.getState().state.player.locationId).toBe('market')
     useGameStore.getState().reset()
     expect(useGameStore.getState().state.player.locationId).toBe('village')

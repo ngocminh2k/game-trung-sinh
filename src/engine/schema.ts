@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { MAP_HEIGHT, MAP_WIDTH } from '../content/locations'
-import { MAX_HP, MAX_QI, STAGE_THRESHOLDS } from './constants'
+import { MAX_HP, MAX_QI, MAX_STAGE, STAGE_THRESHOLDS } from './constants'
 import { sanitizeRpgState } from './rpg-state'
 
 export const GameStateSchema = z.object({
@@ -24,6 +24,15 @@ export const GameStateSchema = z.object({
     posY: z.number().int().min(0).max(MAP_HEIGHT - 1),
     locationId: z.string().min(1),
     alive: z.boolean(),
+    status: z
+      .array(
+        z.object({
+          kind: z.enum(['poison', 'paralysis', 'burn', 'slow', 'drain']),
+          turns: z.number().int().min(1).max(20),
+          potency: z.number().int().min(1).max(99).optional(),
+        }),
+      )
+      .default([]),
   }),
   spiritRoot: z.object({
     kind: z.literal('defective'),
@@ -34,7 +43,7 @@ export const GameStateSchema = z.object({
   inventory: z.record(z.number().int().min(0)),
   storage: z.record(z.number().int().min(0)),
   flags: z.record(z.union([z.number(), z.boolean(), z.string()])),
-  quests: z.record(z.object({ status: z.enum(['available', 'active', 'completed']) })),
+  quests: z.record(z.object({ status: z.enum(['available', 'active', 'completed']), step: z.number().int().min(0).optional() })),
   achievements: z.array(z.string()),
   // Pre-RPG v1 saves omitted these fields. They keep their existing inventory
   // and receive no retroactive gear/talent bonus; a basic attack remains so a
@@ -54,12 +63,20 @@ export const GameStateSchema = z.object({
       hp: z.number().int().min(1),
       maxHp: z.number().int().min(1),
       guard: z.number().int().min(0).max(99),
+      statusEffects: z
+        .array(
+          z.object({
+            kind: z.enum(['poison', 'paralysis', 'burn', 'slow', 'drain']),
+            turns: z.number().int().min(1).max(20),
+            potency: z.number().int().min(1).max(99).optional(),
+          }),
+        )
+        .default([]),
     })
     .nullable()
     .default(null),
   lastLotteryDay: z.number().int().min(1).nullable(),
   corrections: z.number().int().min(0),
-  convergenceCount: z.number().int().min(0),
   terminal: z.boolean(),
   endingId: z.string().nullable(),
 })
@@ -118,6 +135,12 @@ export const TechniqueDefSchema = z.object({
   power: z.number().int().min(0),
   trainingBonus: z.number().int().min(0),
   sourceItemId: z.string().min(1).optional(),
+  gatherQiDrain: z.number().int().min(0).optional(),
+  sellPenalty: z.number().int().min(0).optional(),
+  benefitVi: z.string().min(1).optional(),
+  benefitEn: z.string().min(1).optional(),
+  costVi: z.string().min(1).optional(),
+  costEn: z.string().min(1).optional(),
 })
 
 export const EquipmentDefSchema = z.object({
@@ -144,6 +167,14 @@ export const EnemyDefSchema = z.object({
   attack: z.number().int().min(1),
   rewardGold: z.number().int().min(0),
   rewardItems: z.record(z.number().int().min(1)),
+  element: z.enum(['Mộc', 'Kim', 'Hỏa', 'Thủy', 'Thổ']).optional(),
+  behaviorPattern: z
+    .enum(['aggressive', 'defensive', 'ranged', 'poison', 'flee', 'counter', 'summon', 'heal_self', 'drain_qi'])
+    .optional(),
+  defense: z.number().int().min(0).max(99).optional(),
+  requiredStage: z.number().int().min(0).max(MAX_STAGE).optional(),
+  exp: z.number().int().min(0).optional(),
+  statusOnHit: z.enum(['poison', 'paralysis', 'burn', 'slow', 'drain']).optional(),
 })
 
 export const LocationDefSchema = z.object({
@@ -190,6 +221,17 @@ export const EndingDefSchema = z.object({
   epitaphEn: z.string().min(1),
 })
 
+const QuestStepSchema = z.object({
+  id: z.string().min(1),
+  descVi: z.string().min(1),
+  descEn: z.string().min(1),
+  completeItems: z.record(z.number().int().min(1)).optional(),
+  completeFlags: z.array(z.string()).optional(),
+  completeNpcTalk: z.string().min(1).optional(),
+  completeNode: z.string().min(1).optional(),
+  isTurnInStep: z.boolean(),
+})
+
 export const QuestDefSchema = z.object({
   id: z.string().min(1),
   giverNpcId: z.string().min(1),
@@ -197,11 +239,16 @@ export const QuestDefSchema = z.object({
   nameEn: z.string().min(1),
   descVi: z.string().min(1),
   descEn: z.string().min(1),
+  steps: z.array(QuestStepSchema).min(1),
   requiredItems: z.record(z.number().int().min(1)),
   requiredFlags: z.array(z.string()),
   rewardGold: z.number().int().min(0),
   rewardItems: z.record(z.number().int().min(1)),
   aliases: z.array(z.string()),
+  secret: z.boolean().optional(),
+  deadlineDays: z.number().int().min(1).optional(),
+  nextQuestId: z.string().min(1).optional(),
+  storySceneNextId: z.string().min(1).optional(),
 })
 
 export const AchievementDefSchema = z.object({

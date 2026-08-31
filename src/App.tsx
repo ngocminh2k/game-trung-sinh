@@ -1,9 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DEFAULT_SEED, applyAction, currentBeat, narrate, newGame } from './engine'
+import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, storyRouteEncounter } from './engine'
 import type { Action, GameEvent, Locale } from './engine'
+import { ENDINGS } from './content'
 import { requestNarration } from './ai/narration'
+import { t } from './i18n'
 import { GameScreen } from './ui/GameScreen'
-import { loadSession, saveSession, type GameSession } from './ui/session'
+import { LoadingScreen } from './ui/LoadingScreen'
+import {
+  SLOT_IDS,
+  deleteSaveSlot,
+  getActiveSlot,
+  loadSaveSlots,
+  saveSlot,
+  setActiveSlot,
+  shouldAutoSave,
+  type GameSession,
+  type SaveSlot,
+  type SessionStorage,
+  type SlotId,
+} from './ui/session'
+import './ui/screens.css'
+
+function browserStorage(): SessionStorage {
+  return {
+    get: (key) => window.localStorage.getItem(key),
+    set: (key, value) => window.localStorage.setItem(key, value),
+    remove: (key) => window.localStorage.removeItem(key),
+  }
+}
 
 function freshSession(locale: Locale = 'vi'): GameSession {
   const game = newGame(DEFAULT_SEED)
@@ -16,12 +40,69 @@ function freshSession(locale: Locale = 'vi'): GameSession {
   }
 }
 
-function initialSession(): GameSession {
-  if (typeof window === 'undefined') return freshSession()
-  return loadSession({
-    get: (key) => window.localStorage.getItem(key),
-    set: (key, value) => window.localStorage.setItem(key, value),
-  }) ?? freshSession()
+function relativeTime(locale: Locale, savedAt: number): string {
+  const elapsed = Math.max(0, Date.now() - savedAt)
+  if (elapsed < 60_000) return t(locale, 'ui.saveSlots.justNow')
+  const minutes = Math.floor(elapsed / 60_000)
+  if (minutes < 60) return t(locale, 'ui.saveSlots.minutesAgo', { count: minutes })
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return t(locale, 'ui.saveSlots.hoursAgo', { count: hours })
+  return t(locale, 'ui.saveSlots.daysAgo', { count: Math.floor(hours / 24) })
+}
+
+interface SaveSlotsScreenProps {
+  slots: Partial<Record<SlotId, SaveSlot>>
+  locale: Locale
+  onSelect: (slotId: SlotId) => void
+  onDelete: (slotId: SlotId) => void
+}
+
+function SaveSlotsScreen({ slots, locale, onSelect, onDelete }: SaveSlotsScreenProps) {
+  const [confirming, setConfirming] = useState<SlotId | null>(null)
+  const moveFocus = (slotId: SlotId, offset: number) => {
+    const index = SLOT_IDS.indexOf(slotId)
+    const next = SLOT_IDS[(index + offset + SLOT_IDS.length) % SLOT_IDS.length]!
+    document.querySelector<HTMLButtonElement>(`[data-save-slot="${next}"]`)?.focus()
+  }
+
+  return <main className="save-slots-screen" data-testid="save-slots-screen" aria-labelledby="save-slots-title">
+    <section className="save-slots-panel">
+      <p className="save-slots-kicker">{t(locale, 'common.appName')}</p>
+      <h1 id="save-slots-title">{t(locale, 'ui.saveSlots.title')}</h1>
+      <p className="save-slots-subtitle">{t(locale, 'ui.saveSlots.subtitle')}</p>
+      <div className="save-slots-list" role="list">
+        {SLOT_IDS.map((slotId) => {
+          const slot = slots[slotId]
+          const ending = slot?.session.game.endingId === null || slot === undefined ? undefined : ENDINGS.find((entry) => entry.id === slot.session.game.endingId)
+          return <article className="save-slot" role="listitem" key={slotId}>
+            <button
+              className="save-slot-main"
+              data-save-slot={slotId}
+              data-testid={`save-slot-${slotId}`}
+              onClick={() => onSelect(slotId)}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') { event.preventDefault(); moveFocus(slotId, -1) }
+                if (event.key === 'ArrowDown' || event.key === 'ArrowRight') { event.preventDefault(); moveFocus(slotId, 1) }
+              }}
+            >
+              <span className="save-slot-number">{t(locale, 'ui.saveSlots.slotName', { slot: slotId })}</span>
+              {slot === undefined
+                ? <span className="save-slot-empty">{t(locale, 'ui.saveSlots.empty')}</span>
+                : <span className="save-slot-meta">
+                    <span>{t(locale, 'ui.saveSlots.day', { day: slot.session.game.day })} · {t(locale, `stages.s${slot.session.game.player.stage}`)}</span>
+                    {ending !== undefined && <span>{t(locale, 'ui.saveSlots.ending', { ending: locale === 'vi' ? ending.nameVi : ending.nameEn })}</span>}
+                    <span>{t(locale, 'ui.saveSlots.saved', { time: relativeTime(locale, slot.savedAt) })}</span>
+                  </span>}
+              <strong>{t(locale, slot === undefined ? 'ui.saveSlots.start' : 'ui.saveSlots.continue')}</strong>
+            </button>
+            {slot !== undefined && <button className="save-slot-delete" data-confirming={confirming === slotId} aria-label={t(locale, confirming === slotId ? 'ui.saveSlots.deleteConfirm' : 'ui.saveSlots.delete')} onClick={() => {
+              if (confirming === slotId) { onDelete(slotId); setConfirming(null) } else setConfirming(slotId)
+            }}>{t(locale, confirming === slotId ? 'ui.saveSlots.deleteConfirm' : 'ui.saveSlots.delete')}</button>}
+          </article>
+        })}
+      </div>
+    </section>
+  </main>
 }
 
 export function visualActionFor(action: Action, events: GameEvent[]): Action['kind'] {
@@ -40,7 +121,6 @@ export function visualActionFor(action: Action, events: GameEvent[]): Action['ki
         if (event.actor === 'player') return 'combat_attack'
         break
       case 'COMBAT_GUARDED': return 'combat_defend'
-      case 'FORCED_CONVERGENCE': return event.action.kind
     }
   }
 
@@ -48,67 +128,71 @@ export function visualActionFor(action: Action, events: GameEvent[]): Action['ki
 }
 
 function App() {
-  const [session, setSession] = useState<GameSession>(initialSession)
+  const bootLocale: Locale = typeof window !== 'undefined' && window.navigator.language.toLowerCase().startsWith('vi') ? 'vi' : 'en'
+  const storage = typeof window === 'undefined' ? undefined : browserStorage()
+  const [slots, setSlots] = useState<Partial<Record<SlotId, SaveSlot>>>(() => storage === undefined ? {} : loadSaveSlots(storage))
+  const [session, setSession] = useState<GameSession | null>(null)
+  const [activeSlot, setActiveSlotState] = useState<SlotId | null>(() => storage === undefined ? null : getActiveSlot(storage))
   const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
-  const sessionRef = useRef(session)
+  const [phase, setPhase] = useState<'slots' | 'loading' | 'playing'>('slots')
+  const sessionRef = useRef<GameSession | null>(null)
 
   useEffect(() => {
     sessionRef.current = session
-    saveSession({
-      get: (key) => window.localStorage.getItem(key),
-      set: (key, value) => window.localStorage.setItem(key, value),
-    }, session)
-  }, [session])
+    if (session !== null && activeSlot !== null) saveSlot(browserStorage(), activeSlot, session)
+  }, [session, activeSlot])
+
+  const selectSlot = useCallback((slotId: SlotId) => {
+    const slot = slots[slotId]
+    const next = slot?.session ?? freshSession()
+    const local = browserStorage()
+    if (slot === undefined) saveSlot(local, slotId, next)
+    setActiveSlot(local, slotId)
+    setActiveSlotState(slotId)
+    sessionRef.current = next
+    setSession(next)
+    setPhase('loading')
+  }, [slots])
+
+  const removeSlot = useCallback((slotId: SlotId) => {
+    const local = browserStorage()
+    deleteSaveSlot(local, slotId)
+    setSlots(loadSaveSlots(local))
+    if (activeSlot === slotId) setActiveSlotState(null)
+  }, [activeSlot])
 
   const act = useCallback((action: Action) => {
     const previous = sessionRef.current
+    if (previous === null) return
     const result = applyAction(previous.game, action)
-    const next = {
-      ...previous,
-      game: result.state,
-      chronicle: [...previous.chronicle, ...narrate(result.events, previous.locale)].slice(-80),
-    }
+    const next = { ...previous, game: result.state, chronicle: [...previous.chronicle, ...narrate(result.events, previous.locale)].slice(-80) }
     sessionRef.current = next
+    if (activeSlot !== null && shouldAutoSave(previous.game, result.state)) saveSlot(browserStorage(), activeSlot, next)
     setSession(next)
     const visualAction = visualActionFor(action, result.events)
     setMotion((current) => ({ kind: visualAction, nonce: current.nonce + 1 }))
 
     void requestNarration(result.state, result.events, previous.locale).then((line) => {
-      if (line === null) return
+      if (line === null || sessionRef.current === null) return
       const current = sessionRef.current
       const narrated = { ...current, chronicle: [...current.chronicle, line].slice(-80) }
       sessionRef.current = narrated
       setSession(narrated)
     })
-  }, [])
+  }, [activeSlot])
 
   useEffect(() => {
-    const movement: Record<string, Action> = {
-      ArrowUp: { kind: 'move', direction: 'north' },
-      w: { kind: 'move', direction: 'north' },
-      ArrowDown: { kind: 'move', direction: 'south' },
-      s: { kind: 'move', direction: 'south' },
-      ArrowLeft: { kind: 'move', direction: 'west' },
-      a: { kind: 'move', direction: 'west' },
-      ArrowRight: { kind: 'move', direction: 'east' },
-      d: { kind: 'move', direction: 'east' },
-    }
+    const movement: Record<string, Action> = { ArrowUp: { kind: 'move', direction: 'north' }, w: { kind: 'move', direction: 'north' }, ArrowDown: { kind: 'move', direction: 'south' }, s: { kind: 'move', direction: 'south' }, ArrowLeft: { kind: 'move', direction: 'west' }, a: { kind: 'move', direction: 'west' }, ArrowRight: { kind: 'move', direction: 'east' }, d: { kind: 'move', direction: 'east' } }
     const handler = (event: KeyboardEvent) => {
       const target = event.target
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || sessionRef.current === null) return
       const move = movement[event.key]
-      if (move !== undefined) {
-        event.preventDefault()
-        act(move)
-        return
-      }
+      if (storyRouteEncounter(sessionRef.current.game) !== undefined && (move !== undefined || /^[1-3]$/.test(event.key))) { event.preventDefault(); return }
+      if (move !== undefined) { event.preventDefault(); act(move); return }
       const choice = Number(event.key)
       if (choice >= 1 && choice <= 3) {
-        const suggested = currentBeat(sessionRef.current.game).suggested[choice - 1]
-        if (suggested !== undefined) {
-          event.preventDefault()
-          act(suggested)
-        }
+        const storyChoice = currentStoryScene(sessionRef.current.game).choices[choice - 1]
+        if (storyChoice !== undefined) { event.preventDefault(); act({ kind: 'story_choice', choiceId: storyChoice.id }) }
       }
     }
     window.addEventListener('keydown', handler)
@@ -116,12 +200,24 @@ function App() {
   }, [act])
 
   const changeLocale = useCallback((locale: Locale) => {
+    if (sessionRef.current === null) return
     const next = { ...sessionRef.current, locale }
     sessionRef.current = next
     setSession(next)
   }, [])
 
-  return <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} />
+  const restart = useCallback(() => {
+    if (sessionRef.current === null) return
+    const fresh = freshSession(sessionRef.current.locale)
+    sessionRef.current = fresh
+    setSession(fresh)
+    setPhase('loading')
+  }, [])
+
+  if (phase === 'slots') return <SaveSlotsScreen slots={slots} locale={bootLocale} onSelect={selectSlot} onDelete={removeSlot} />
+  if (session === null) return null
+  if (phase === 'loading') return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
+  return <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} />
 }
 
 export default App

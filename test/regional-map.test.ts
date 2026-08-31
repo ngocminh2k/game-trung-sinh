@@ -36,7 +36,9 @@ describe('Scenario I regional maps', () => {
 
   it('emits a reached-node event and blocks impassable local terrain', () => {
     const fresh = newGame('regional-node')
-    const moved = applyAction(fresh, { kind: 'move', direction: 'west' })
+    const approach = applyAction(fresh, { kind: 'move', direction: 'west' })
+    expect(approach.state.player.locationId).toBe('village')
+    const moved = applyAction(approach.state, { kind: 'move', direction: 'west' })
     expect(moved.events.some((event) => event.type === 'NODE_REACHED' && event.kind === 'exit')).toBe(true)
     expect(moved.state.player.locationId).toBe('market')
 

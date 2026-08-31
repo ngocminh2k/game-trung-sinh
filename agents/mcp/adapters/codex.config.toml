@@ -1,0 +1,9 @@
+# Copy this server block into the user's Codex config.toml.
+# Resolve `codebase-memory-mcp` through PATH, or replace it locally with an absolute path.
+
+[mcp_servers.codebase-memory]
+command = "codebase-memory-mcp"
+args = []
+
+[mcp_servers.codebase-memory.env]
+CBM_INDEX_SUPERVISOR = "0"

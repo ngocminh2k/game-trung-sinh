@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_STAGE, CORRECTION_LIMIT, applyAction, currentBeat, newGame } from '../src/engine'
+import { applyAction, newGame } from '../src/engine'
 import type { GameState } from '../src/engine'
 import { navTo } from './test-utils'
 
@@ -12,7 +12,6 @@ describe('corrections and bounded forced convergence', () => {
     let state = newGame('corrections-1')
     state = feedGarbage(state)
     expect(state.corrections).toBe(1)
-    expect(state.convergenceCount).toBe(0)
     const loc = state.player.locationId
     const day = state.day
     state = feedGarbage(state)
@@ -21,34 +20,31 @@ describe('corrections and bounded forced convergence', () => {
     expect(state.day).toBe(day)
   })
 
-  it('on the third invalid input the game converges to a suggested action', () => {
+  it('on the third invalid input the game still leaves the player in control', () => {
     let state = newGame('corrections-converge')
-    const beat = currentBeat(state)
-    expect(beat.suggested[0]?.kind).toBe('move')
-    const suggested = beat.suggested[0]
     state = feedGarbage(state)
     state = feedGarbage(state)
     const result = applyAction(state, { kind: 'free_text', raw: 'zzz yyy xxx www' })
     const types = result.events.map((e) => e.type)
     expect(types).toContain('CORRECTION_REJECTED')
-    expect(types).toContain('FORCED_CONVERGENCE')
+    expect(types).not.toContain('FORCED_CONVERGENCE')
+    const loc = state.player.locationId
     state = result.state
-    expect(state.corrections).toBe(0)
-    expect(state.convergenceCount).toBe(1)
-    if (suggested?.kind === 'move') {
-      expect(state.player.locationId).not.toBe('village')
-      expect(state.flags['movedOnce']).toBe(true)
-    }
+    // World is unchanged — the engine never moves or acts for the player.
+    expect(state.player.locationId).toBe(loc)
+    expect(state.corrections).toBe(3)
   })
 
-  it('corrections never exceed the bound across repeated invalid inputs', () => {
+  it('repeated invalid free text keeps counting and leaves the world untouched', () => {
     let state = newGame('corrections-bound')
+    const loc = state.player.locationId
+    const day = state.day
     for (let i = 0; i < 12; i++) {
       state = feedGarbage(state)
-      expect(state.corrections).toBeGreaterThanOrEqual(0)
-      expect(state.corrections).toBeLessThanOrEqual(CORRECTION_LIMIT - 1)
+      expect(state.corrections).toBe(i + 1)
+      expect(state.player.locationId).toBe(loc)
+      expect(state.day).toBe(day)
     }
-    expect(state.convergenceCount).toBeGreaterThan(0)
   })
 
   it('a valid free-text command resets corrections', () => {
@@ -66,58 +62,13 @@ describe('corrections and bounded forced convergence', () => {
     expect(r1.events.some((e) => e.type === 'TRAINED')).toBe(true)
     const r2 = applyAction(r1.state, { kind: 'free_text', raw: 'go west' })
     expect(r2.events.some((e) => e.type === 'MOVED')).toBe(true)
-    const r3 = applyAction(r2.state, {
+    const r2b = applyAction(r2.state, { kind: 'free_text', raw: 'go west' })
+    expect(r2b.events.some((e) => e.type === 'MOVED')).toBe(true)
+    const r3 = applyAction(r2b.state, {
       kind: 'free_text',
       raw: 'nói chuyện với thương nhân Bảo',
     })
     expect(r3.events.some((e) => e.type === 'TALKED')).toBe(true)
-  })
-})
-
-describe('forced convergence runs the normal finalize pipeline', () => {
-  it('the forced action evaluates achievements and endings on the same transition', () => {
-    // Late-game state one step from ascension: whatever lore-consistent
-    // action convergence forces, finalize must immediately grant the stage
-    // achievements and the ENDING — nothing may wait for a later turn.
-    const base = newGame('convergence-finalize')
-    const staged: GameState = {
-      ...base,
-      player: { ...base.player, stage: MAX_STAGE, progress: 999 },
-      flags: { movedOnce: true },
-    }
-    staged.corrections = 2
-    const result = applyAction(staged, { kind: 'free_text', raw: 'blorptastic frumious' })
-    const types = result.events.map((e) => e.type)
-    expect(types).toContain('CORRECTION_REJECTED')
-    expect(types).toContain('FORCED_CONVERGENCE')
-    // Finalize pipeline ran on this very transition:
-    expect(types).toContain('ACHIEVEMENT_UNLOCKED')
-    expect(types).toContain('ENDING')
-    expect(result.state.endingId).toBe('ascension')
-    expect(result.state.terminal).toBe(true)
-    expect(result.state.achievements).toContain('immortal_road_end')
-  })
-
-  it('repeated invalid input alone deterministically drives the run to an ending', () => {
-    // Product rule: after every third invalid free-text attempt the engine
-    // forces a lore-consistent valid action; a stream of nothing but invalid
-    // input therefore still converges to *an* ending (eventually, not
-    // necessarily on the first convergence).
-    let state = newGame('convergence-eventual')
-    let convergences = 0
-    let guard = 0
-    while (!state.terminal && guard < 3000) {
-      const result = applyAction(state, {
-        kind: 'free_text',
-        raw: 'blorptastic frumious bandersnatch',
-      })
-      if (result.events.some((e) => e.type === 'FORCED_CONVERGENCE')) convergences += 1
-      state = result.state
-      guard += 1
-    }
-    expect(convergences).toBeGreaterThan(0)
-    expect(state.terminal).toBe(true)
-    expect(state.endingId).not.toBeNull()
   })
 })
 
