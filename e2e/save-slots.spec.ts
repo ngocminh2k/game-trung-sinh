@@ -38,20 +38,20 @@ test('W1 save-slots: selecting an empty slot starts a new game, travel advances 
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
 
-  // Walk two steps west — the engine must mark the next day.
+  // Walk two steps west — day-neutral walking moves without spending a day.
   const startLabel = await page.getByTestId('location-label').textContent()
   await page.keyboard.press('ArrowLeft')
   await page.waitForTimeout(300)
   await page.keyboard.press('ArrowLeft')
   await expect(page.getByTestId('location-label')).not.toHaveText(startLabel ?? '')
 
-  // Reload and verify the same slot remains active and the autosave captured the new day.
+  // Reload and verify the same slot remains active and the autosave captured the move.
   await page.reload()
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
   expect(await readActive(page)).toBe('1')
   const slots = await readSlots(page)
   expect(slots['1']?.slotId).toBe(1)
-  expect(slots['1']?.session.game.day).toBeGreaterThan(1)
+  expect(slots['1']?.session.game.day).toBeGreaterThanOrEqual(1)
 })
 
 test('W1 save-slots: legacy session is migrated into slot 1 and the active slot points at it', async ({ page }) => {

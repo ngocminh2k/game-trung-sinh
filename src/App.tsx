@@ -171,7 +171,8 @@ function App() {
     if (activeSlot !== null && shouldAutoSave(previous.game, result.state)) saveSlot(browserStorage(), activeSlot, next)
     setSession(next)
     const opensStory = result.events.some((event) => event.type === 'TALKED' || (event.type === 'NODE_REACHED' && event.kind === 'event'))
-    setStoryOpen((open) => !result.state.terminal && (open || opensStory))
+    // A route encounter replaces the world view (no panel renders over it), so it owns the screen — never leave a ghost backdrop open beneath it.
+    setStoryOpen((open) => !result.state.terminal && (open || opensStory) && storyRouteEncounter(result.state) === undefined)
     const visualAction = visualActionFor(action, result.events)
     setMotion((current) => ({ kind: visualAction, nonce: current.nonce + 1 }))
 
@@ -225,7 +226,10 @@ function App() {
   if (phase === 'slots') return <SaveSlotsScreen slots={slots} locale={bootLocale} onSelect={selectSlot} onDelete={removeSlot} />
   if (session === null) return null
   if (phase === 'loading') return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
-  return <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} />
+  return <>
+    {storyOpen && <div className="story-backdrop" onClick={() => setStoryOpen(false)} aria-hidden="true" />}
+    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} />
+  </>
 }
 
 export default App

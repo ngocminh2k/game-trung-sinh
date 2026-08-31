@@ -43,4 +43,18 @@ export const CHAPTERS: ChapterDef[] = [
     taglineVi: 'Không có thiên mệnh nào viết thay câu trả lời của ngươi.',
     taglineEn: 'No destiny writes your answer for you.',
   },
+  {
+    index: 7,
+    nameVi: 'Chương bảy: Đỉnh Mây và Hàn Băng Phong',
+    nameEn: 'Chapter Seven: Cloud Peak and the Frozen Peak',
+    taglineVi: 'Bốn bóng trắng trên đỉnh nhận ra Hệ Thống — và nhận ra nó vẫn còn thở.',
+    taglineEn: 'Four white shadows on the peak recognize the System — and see it still breathing.',
+  },
+  {
+    index: 8,
+    nameVi: 'Chương tám: Phi Thăng',
+    nameEn: 'Chapter Eight: Ascension',
+    taglineVi: 'Đến đỉnh rồi thì chỉ còn một lựa chọn: mang theo bao nhiêu cái tên khi rời đất.',
+    taglineEn: 'From the summit one choice remains: how many names to carry when you leave the earth.',
+  },
 ]

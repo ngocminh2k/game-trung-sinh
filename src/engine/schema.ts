@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { MAP_HEIGHT, MAP_WIDTH } from '../content/locations'
-import { MAX_HP, MAX_QI, MAX_STAGE, STAGE_THRESHOLDS } from './constants'
+import { ATTRIBUTE_MAX, MAX_HP, MAX_QI, MAX_STAGE, MINOR_REALM_MAX, STAGE_THRESHOLDS } from './constants'
 import { sanitizeRpgState } from './rpg-state'
 
 export const GameStateSchema = z.object({
@@ -12,14 +12,19 @@ export const GameStateSchema = z.object({
     hp: z.number().int().min(0).max(MAX_HP),
     qi: z.number().int().min(0).max(MAX_QI),
     gold: z.number().int().min(0),
+    // Multi-tier currency: schema defaults keep pre-economy saves valid.
+    silver: z.number().int().min(0).default(0),
+    spiritStones: z.number().int().min(0).default(0),
     attrs: z.object({
-      body: z.number().int().min(1).max(10),
-      mind: z.number().int().min(1).max(10),
-      charm: z.number().int().min(1).max(10),
-      luck: z.number().int().min(1).max(10),
+      body: z.number().int().min(1).max(ATTRIBUTE_MAX),
+      mind: z.number().int().min(1).max(ATTRIBUTE_MAX),
+      charm: z.number().int().min(1).max(ATTRIBUTE_MAX),
+      luck: z.number().int().min(1).max(ATTRIBUTE_MAX),
     }),
     stage: z.number().int().min(0).max(STAGE_THRESHOLDS.length - 1),
+    realmLevel: z.number().int().min(1).max(MINOR_REALM_MAX).default(1),
     progress: z.number().int().min(0),
+    pendingAttributePoints: z.number().int().min(0).default(0),
     posX: z.number().int().min(0).max(MAP_WIDTH - 1),
     posY: z.number().int().min(0).max(MAP_HEIGHT - 1),
     locationId: z.string().min(1),
@@ -45,6 +50,17 @@ export const GameStateSchema = z.object({
   flags: z.record(z.union([z.number(), z.boolean(), z.string()])),
   quests: z.record(z.object({ status: z.enum(['available', 'active', 'completed']), step: z.number().int().min(0).optional() })),
   achievements: z.array(z.string()),
+  // Expansion fields: older saves omit them and receive safe defaults on parse.
+  rememberedNames: z.array(z.string()).default([]),
+  companionId: z.string().min(1).nullable().default(null),
+  systemQueue: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        vars: z.record(z.union([z.string(), z.number()])),
+      }),
+    )
+    .default([]),
   // Pre-RPG v1 saves omitted these fields. They keep their existing inventory
   // and receive no retroactive gear/talent bonus; a basic attack remains so a
   // migrated save can enter combat without becoming unwinnable.

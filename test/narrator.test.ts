@@ -126,7 +126,11 @@ describe('narrator', () => {
       const beat = currentBeat(state)
       expect(beat.suggested).toHaveLength(3)
       const errorIn = (r: { events: GameEvent[] }) => r.events.some((e) => e.type === 'ERROR')
+      const allocateIsLegal = state.player.pendingAttributePoints > 0 &&
+        (['body', 'mind', 'charm', 'luck'] as const).some((attr) => state.player.attrs[attr] < 100 &&
+          !errorIn(applyAction(state, { kind: 'allocate_attribute', attribute: attr })))
       const applicable =
+        allocateIsLegal ||
         beat.suggested.some((sug) => !errorIn(applyAction(state, sug as never))) ||
         !errorIn(applyAction(state, { kind: 'rest' }))
       expect(
@@ -135,7 +139,9 @@ describe('narrator', () => {
       ).toBe(true)
 
       let result = applyAction(state, { kind: 'rest' })
-      switch (i % 6) {
+      if (state.player.pendingAttributePoints > 0) {
+        result = applyAction(state, { kind: 'allocate_attribute', attribute: 'body' })
+      } else switch (i % 6) {
         case 0:
         case 1:
           result = applyAction(state, { kind: 'move', direction: dirs[i % 4] as never })

@@ -33,9 +33,9 @@ describe('npc-depth data: line count requirements', () => {
     }
   })
 
-  it('30 remaining NPCs have at least 3 authored lines each', () => {
+  it('remaining NPCs have at least 3 authored lines each', () => {
     const supporting = NPCS.filter((n) => !isPrincipal(n))
-    expect(supporting.length, 'should have 30 supporting').toBe(30)
+    expect(supporting.length, 'should have at least 50 supporting').toBeGreaterThanOrEqual(50)
     for (const npc of supporting) {
       const count = npc.lines?.length ?? 0
       expect(count, `${npc.id} has ${count} lines, need ≥3`).toBeGreaterThanOrEqual(3)
@@ -218,19 +218,19 @@ describe('npc-depth data: story scene references', () => {
 // Summary statistics
 // ─────────────────────────────────────────────────────────────────────────────
 describe('npc-depth data: summary', () => {
-  it('total authored lines across all 40 NPCs', () => {
+  it('total authored lines across all NPCs', () => {
     const principal = NPCS.filter(isPrincipal)
     const supporting = NPCS.filter((n) => !isPrincipal(n))
     const pLines = principal.reduce((s, n) => s + (n.lines?.length ?? 0), 0)
     const sLines = supporting.reduce((s, n) => s + (n.lines?.length ?? 0), 0)
     expect(pLines).toBeGreaterThanOrEqual(60) // 10 × 6
-    expect(sLines).toBeGreaterThanOrEqual(90) // 30 × 3
+    expect(sLines).toBeGreaterThanOrEqual(150) // 50 × 3
   })
 
-  it('all 40 NPCs are present with unique ids', () => {
-    expect(NPCS).toHaveLength(40)
+  it('all 60 NPCs are present with unique ids', () => {
+    expect(NPCS.length).toBeGreaterThanOrEqual(60)
     const ids = new Set(NPCS.map((n) => n.id))
-    expect(ids.size).toBe(40)
+    expect(ids.size).toBe(NPCS.length)
   })
 
   it('all NPCs have a valid locationId', () => {

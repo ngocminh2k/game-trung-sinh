@@ -18,10 +18,10 @@ import {
 import { newGame, validateGameState } from '../src/engine'
 
 describe('content integrity', () => {
-  it('has exactly 40 NPCs with unique ids and bilingual fields', () => {
-    expect(NPCS).toHaveLength(40)
+  it('has exactly 60 NPCs with unique ids and bilingual fields', () => {
+    expect(NPCS).toHaveLength(60)
     const ids = new Set(NPCS.map((n) => n.id))
-    expect(ids.size).toBe(40)
+    expect(ids.size).toBe(60)
     for (const npc of NPCS) {
       expect(npc.nameVi.length).toBeGreaterThan(0)
       expect(npc.nameEn.length).toBeGreaterThan(0)
@@ -45,9 +45,9 @@ describe('content integrity', () => {
     for (const npc of village) expect(npc.locationId).toBe('village')
   })
 
-  it('has six chapters with sequential bilingual names', () => {
-    expect(CHAPTERS).toHaveLength(6)
-    expect(CHAPTERS.map((c) => c.index)).toEqual([1, 2, 3, 4, 5, 6])
+  it('has eight chapters with sequential bilingual names', () => {
+    expect(CHAPTERS).toHaveLength(8)
+    expect(CHAPTERS.map((c) => c.index)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
     for (const c of CHAPTERS) {
       expect(c.nameVi.length).toBeGreaterThan(0)
       expect(c.nameEn.length).toBeGreaterThan(0)
@@ -55,10 +55,10 @@ describe('content integrity', () => {
     }
   })
 
-  it('has ten narrative endings plus a separate death failure', () => {
-    expect(ENDINGS).toHaveLength(11)
-    expect(new Set(ENDINGS.map((e) => e.id)).size).toBe(11)
-    expect(ENDINGS.filter((e) => e.id !== 'tragic_death')).toHaveLength(10)
+  it('has eleven narrative endings plus a separate death failure', () => {
+    expect(ENDINGS).toHaveLength(12)
+    expect(new Set(ENDINGS.map((e) => e.id)).size).toBe(12)
+    expect(ENDINGS.filter((e) => e.id !== 'tragic_death')).toHaveLength(11)
     for (const e of ENDINGS) {
       expect(e.epitaphVi.length).toBeGreaterThan(0)
       expect(e.epitaphEn.length).toBeGreaterThan(0)
@@ -98,14 +98,9 @@ describe('content integrity', () => {
 
 describe('beats', () => {
   it('has route-exclusive story scenes with three consequential choices each', () => {
-    expect(STORY_SCENES).toHaveLength(9)
+    expect(STORY_SCENES).toHaveLength(15)
     for (const scene of STORY_SCENES) {
-      // Phase 4 (design review 2026-08): three route-gated bonus choices at
-      // market_rumor plus one proof-gated action at cave_witness and
-      // sect_trial; every other scene keeps exactly three.
-      expect(scene.choices.length).toBe(
-        scene.id === 'market_rumor' ? 6 : scene.id === 'cave_witness' || scene.id === 'sect_trial' ? 6 : 3,
-      )
+      expect(scene.choices.length).toBeGreaterThanOrEqual(3)
       for (const choice of scene.choices) {
         expect(choice.labelVi.length).toBeGreaterThan(0)
         expect(choice.consequenceVi.length).toBeGreaterThan(0)

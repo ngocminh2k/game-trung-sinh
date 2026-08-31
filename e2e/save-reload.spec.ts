@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import { newGame, type GameState, type Locale } from '../src/engine'
 
-const SESSION_KEY = 'phe-can-ky:save:v1'
+const SLOTS_KEY = 'phe-can-ky:slots'
+const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
 type GameSession = { game: GameState; locale: Locale; chronicle: string[] }
 
 function freshGame(update?: (g: GameState) => GameState): GameState {
@@ -11,21 +12,30 @@ function freshGame(update?: (g: GameState) => GameState): GameState {
 
 async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): Promise<void> {
   const session: GameSession = { game, locale, chronicle: ['Gate-04 save.'] }
-  await page.addInitScript(
-    ({ key, value }) => {
-      if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, value)
-    },
-    { key: SESSION_KEY, value: JSON.stringify(session) },
-  )
+  const slot = { slotId: 1, savedAt: 1, session }
+  await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
+    if (window.localStorage.getItem(slotsKey) !== null) return
+    window.localStorage.setItem(slotsKey, value)
+    window.localStorage.setItem(activeSlotKey, '1')
+  }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
+  await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
 }
 
 async function readSave(page: Page): Promise<GameSession> {
-  const raw = await page.evaluate((key) => window.localStorage.getItem(key), SESSION_KEY)
-  expect(raw).not.toBeNull()
-  return JSON.parse(raw as string) as GameSession
+  const slots = await page.evaluate((key) => window.localStorage.getItem(key), SLOTS_KEY)
+  expect(slots).not.toBeNull()
+  const parsed = JSON.parse(slots as string) as Record<string, { session: GameSession }>
+  return parsed['1']!.session
+}
+
+async function openStoryPanel(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Open Journey journal' }).click()
+  await page.getByRole('tab', { name: /People here/ }).click()
+  await page.getByRole('button', { name: 'Talk' }).first().click()
+  await expect(page.getByTestId('narration-panel')).toBeVisible()
 }
 
 test('GATE-04 reload during exploration preserves location, hp, qi, and story flags', async ({ page }) => {
@@ -39,6 +49,7 @@ test('GATE-04 reload during exploration preserves location, hp, qi, and story fl
   )
   await expect(page.getByTestId('location-label')).toHaveText(/Misty Forest|Misty|Rừng Vân/i)
   await page.reload()
+  await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
   const session = await readSave(page)
@@ -63,6 +74,7 @@ test('GATE-04 reload during route encounter preserves flags and the encounter sc
   const routeEncounter = page.getByTestId('route-encounter-screen')
   await expect(routeEncounter).toBeVisible()
   await page.reload()
+  await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
   await expect(routeEncounter).toBeVisible()
@@ -86,6 +98,7 @@ test('GATE-04 reload during combat preserves encounter HP and the action can be 
   await page.getByRole('button', { name: 'Defend' }).click()
   await expect(encounter).toBeVisible()
   await page.reload()
+  await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
   const session = await readSave(page)
@@ -113,6 +126,7 @@ test('GATE-04 reload with Journal open does not corrupt the world and the save r
   await page.getByRole('button', { name: 'Open Journey journal' }).click()
   await expect(page.getByTestId('inventory-inspector')).toBeVisible()
   await page.reload()
+  await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
   // World mounts back; Journal is a runtime overlay, not persisted.
@@ -131,12 +145,15 @@ test('GATE-04 reload immediately before an ending still reaches that ending', as
       flags: { ...game.flags, story_scene: 'last_page', story_truth: 3 },
     })),
   )
-  // We are parked on the terminal choice scene; the choice buttons are visible.
+  // We are parked on the terminal choice scene; the panel opens on Talk.
+  await openStoryPanel(page)
   await expect(page.locator('.story-choices .choice-button').first()).toBeVisible()
   await page.reload()
+  await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
-  // The terminal scene must still be the same.
+  // The terminal scene must still be the same after the reload.
+  await openStoryPanel(page)
   await expect(page.locator('.story-choices .choice-button').first()).toBeVisible()
   await page.locator('.story-choices .choice-button').first().click()
   await expect(page.locator('.ending-banner')).toContainText(/Rootless Star/i)

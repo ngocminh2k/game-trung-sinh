@@ -78,4 +78,11 @@ export const ENDINGS: EndingDef[] = [
     epitaphVi: 'Không thành tiên, nhưng mỗi sáng đều có cháo nóng, tên thật, và tiếng cười.',
     epitaphEn: 'No immortality, but every morning has warm porridge, true names, and laughter.',
   },
+  {
+    id: 'nameless_ascension',
+    nameVi: 'Kết cục: Phi Thăng Vô Danh — và 200 linh hồn được gọi lại',
+    nameEn: 'Ending: Nameless Ascension — and Two Hundred Souls Called Back',
+    epitaphVi: 'Ngươi xóa Hệ Thống trước khi bước lên đỉnh. Hai trăm cái tên trở về, gọi lần lượt nhau dưới trời, và không một ai biết người giải phóng chúng đã đi đâu.',
+    epitaphEn: 'You erase the System before stepping onto the summit. Two hundred names return, calling one another under the sky, and no one knows where the one who freed them has gone.',
+  },
 ]

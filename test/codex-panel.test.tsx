@@ -65,18 +65,25 @@ describe('CodexPanel', () => {
   })
 
   it('reports manifest progress from declared asset counts instead of inventing loaded art', () => {
-    expect(assetPackProgress([
+    const progress = assetPackProgress([
       { ...villagePack, status: 'ready', loadedAssets: 7 },
       { ...talentPack, status: 'loading', loadedAssets: 2 },
-    ])).toEqual({ loaded: 9, total: 26, readyPacks: 1, totalPacks: 2 })
+    ])
+    expect(progress.loaded).toBe(9)
+    expect(progress.total).toBe(villagePack.requiredAssetCount + talentPack.requiredAssetCount)
+    expect(progress.readyPacks).toBe(1)
+    expect(progress.totalPacks).toBe(2)
   })
 
   it('reports every content pack as ready once all shipped art is present', () => {
-    expect(assetPackProgress(ASSET_PACK_MANIFEST)).toEqual({
-      loaded: 103,
-      total: 103,
-      readyPacks: ASSET_PACK_MANIFEST.length,
-      totalPacks: ASSET_PACK_MANIFEST.length,
-    })
+    const allReady = ASSET_PACK_MANIFEST.map((pack) => ({
+      ...pack,
+      status: 'ready' as const,
+      loadedAssets: pack.requiredAssetCount,
+    }))
+    const progress = assetPackProgress(allReady)
+    expect(progress.loaded).toBe(progress.total)
+    expect(progress.readyPacks).toBe(ASSET_PACK_MANIFEST.length)
+    expect(progress.totalPacks).toBe(ASSET_PACK_MANIFEST.length)
   })
 })

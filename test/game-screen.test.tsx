@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { newGame } from '../src/engine'
+import { npcsAt } from '../src/content'
 import { GameScreen } from '../src/ui/GameScreen'
 
 describe('GameScreen', () => {
@@ -30,7 +31,7 @@ describe('GameScreen', () => {
     expect(markup).toContain('role="tablist"')
     expect(markup).toContain('Những gương mặt của giang hồ')
     expect(markup).toContain('data-npc-id="n_elder_meihua"')
-    expect((markup.match(/npc-portrait-card/g) ?? [])).toHaveLength(6)
+    expect((markup.match(/npc-portrait-card/g) ?? [])).toHaveLength(npcsAt('village').length)
     expect(markup).not.toContain('Bộ sưu tập vật phẩm tu tiên')
     expect(markup).not.toContain('Mộc Trượng Thức')
     expect(markup).not.toContain('Minh họa Mộc Trượng Cũ')

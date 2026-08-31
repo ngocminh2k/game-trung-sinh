@@ -79,6 +79,9 @@ export const EN: Dict = {
     NPC_UNKNOWN: 'Nobody by that name here.',
     NPC_NOT_HERE: 'That person is not here.',
     STORY_CHOICE_UNAVAILABLE: 'That choice does not belong to the current story scene.',
+    ATTRIBUTE_ALLOCATION_REQUIRED: 'Spend your new attribute points before continuing.',
+    NO_ATTRIBUTE_POINTS: 'No attribute points remain to spend.',
+    ATTRIBUTE_MAXED: 'That attribute is already at its maximum.',
   },
   narrator: {
     logTitle: 'What just happened',

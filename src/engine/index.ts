@@ -4,6 +4,8 @@ export { currentStoryScene, findStoryChoice, storyRouteEncounter, storyRouteProo
 export { currentStepIndex, isQuestUnlocked, isTurnInReady, questStatus } from './quests'
 export { currentRomanceNode, romanceProgress, romanceTrackUnlocked } from './romance'
 export {
+  ATTRIBUTE_MAX,
+  ATTRIBUTE_POINTS_PER_BREAKTHROUGH,
   BASIC_STRIKE_QI_COST,
   CORRECTION_LIMIT,
   DEADLINE_DAYS,
@@ -13,6 +15,8 @@ export {
   MAX_HP,
   MAX_QI,
   MAX_STAGE,
+  MINOR_REALM_MAX,
+  MINOR_REALM_THRESHOLDS,
   RETREAT_HP_COST,
   RETREAT_PROGRESS_COST,
   STAGE_THRESHOLDS,
@@ -36,6 +40,11 @@ export { applyAction, totalInventoryUnits } from './reducer'
 export { initialRng, nextFloat, nextInt, pickFrom } from './rng'
 export { buyPriceOf, canAfford, hasItem, isBuyable, isSellable, sellPriceOf } from './shop'
 export {
+  attributeCombatBonus,
+  attributeTrainingBonus,
+  charmPriceDiscount,
+  luckGatherBonus,
+  minorRealmThreshold,
   trainingEffectiveness,
   trainProgressGain,
   nextStageThreshold,
@@ -48,6 +57,20 @@ export {
   storageUnitsUsed,
 } from './storage'
 export { useGameStore } from './store'
+export { weatherFor, seasonFor, WEATHER_EFFECTS } from './weather'
+export {
+  GOLD_TO_SILVER,
+  LS_TO_GOLD,
+  canAffordCurrency,
+  goldToSilver,
+  goldToSpiritStones,
+  silverToGold,
+  spendCurrency,
+} from './economy'
+export { MEMORY_GATE, MEMORY_TOTAL, memoryMilestone, rememberedCount, rememberNames } from './memory'
+export { formatSystemMessage, queueDrain, queuePush } from './system'
+export { entryPrice, shopForNpc, validateShops } from './shopStock'
+export { COMPANION_EXTRA_ACTION, canTame, companionBuff } from './companion'
 export { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from '../content/rpg'
 export { canAcceptQuest, canCompleteQuest } from './quests'
 
@@ -57,8 +80,11 @@ export function validateGameState(state: unknown): GameState {
 
 export type {
   Action,
+  AttributeName,
+  Attrs,
   ConcreteAction,
   Direction,
+  EquipmentState,
   ErrorCode,
   GameEvent,
   GameState,

@@ -4,7 +4,7 @@ import { INDIVIDUAL_NPC_PORTRAITS, npcPortraitFor } from '../src/ui/npcArt'
 
 describe('NPC art registry', () => {
   it('resolves every NPC to a real portrait and never orphans a registered key', () => {
-    expect(NPCS).toHaveLength(40)
+    expect(NPCS.length).toBeGreaterThanOrEqual(60)
 
     // Every NPC (core or world cultivator) renders a real PNG; world NPCs may
     // use the truthful ensemble fallback (CONTENT-02), never a missing asset.

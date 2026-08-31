@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
 import {
   ACHIEVEMENTS,
   CHAPTERS,
@@ -15,12 +15,13 @@ import {
   SHOP_STOCK,
   TALENTS,
   TECHNIQUES,
+  getEquipmentByItem,
   getItem,
   getLocation,
   getRegionMap,
 } from '../content'
-import { currentStoryScene, dangerWarning, findStoryChoice, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget, BASIC_STRIKE_QI_COST, RETREAT_HP_COST, techniqueQiCost } from '../engine'
-import type { Action, GameState, Locale } from '../engine'
+import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, currentStoryScene, dangerWarning, findStoryChoice, nextStageThreshold, RETREAT_HP_COST, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget, techniqueQiCost } from '../engine'
+import type { Action, AttributeName, Attrs, EquipmentState, GameState, Locale } from '../engine'
 import type { ItemDef } from '../engine/content-types'
 import itemsStillLife from '../assets/art/items-still-life.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
@@ -187,6 +188,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const [aiSuggesting, setAiSuggesting] = useState(false)
   const journalLauncher = useRef<HTMLButtonElement>(null)
   const chronicleRef = useRef<HTMLDivElement>(null)
+  const allocationHeading = useRef<HTMLHeadingElement>(null!)
   const previousHp = useRef(game.player.hp)
   const processedActionNonce = useRef<number | null>(null)
   const previousLocationId = useRef(game.player.locationId)
@@ -236,6 +238,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   useEffect(() => {
     backgroundRefs.current.forEach((element) => element.toggleAttribute('inert', storyOpen))
   }, [storyOpen])
+  useEffect(() => {
+    if (game.player.pendingAttributePoints > 0) allocationHeading.current?.focus()
+  }, [game.player.pendingAttributePoints])
   const backgroundRegion = (element: HTMLElement | null) => {
     if (element !== null && !backgroundRefs.current.includes(element)) backgroundRefs.current.push(element)
   }
@@ -709,7 +714,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 
         <aside className="hud-panel" ref={backgroundRegion}>
           <section className="stats-card ink-card" aria-labelledby="stats-title">
-            <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2><span>{word(locale, 'cảnh', 'stage')} {game.player.stage}</span></div>
+            <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2>
+              <StageProgress locale={locale} realmLevel={game.player.realmLevel} stage={game.player.stage} progress={game.player.progress} />
+            </div>
             <RealmLadder locale={locale} stage={game.player.stage} />
             <figure className={`protagonist-portrait player-action-art pose-${playerPose}`} data-pose={playerPose} data-testid="player-action-art">
               <img
@@ -720,7 +727,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             </figure>
             <Meter label="HP" value={game.player.hp} max={100} tone="red" delta={statDeltas.nonce === 0 ? 0 : statDeltas.hp} deltaTestid="hp-delta" />
             <Meter label="Qi" value={game.player.qi} max={60} tone="jade" delta={statDeltas.nonce === 0 ? 0 : statDeltas.qi} deltaTestid="qi-delta" />
-            <Meter className="meter-progress" label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={120} tone="gold" />
+            <Meter className="meter-progress" label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={nextStageThreshold(game.player.stage, game.player.realmLevel) ?? Math.max(1, game.player.progress)} tone="gold" />
             <div className="stat-strip">
               <span>◎ {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
               <span>{word(locale, 'Độ tương hợp', 'root rate')} {Math.round(game.spiritRoot.efficiency * 100)}%</span>
@@ -731,13 +738,21 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               <div><dt>{word(locale, 'Mị', 'Charm')}</dt><dd>{game.player.attrs.charm}</dd></div>
               <div><dt>{word(locale, 'Vận', 'Luck')}</dt><dd>{game.player.attrs.luck}</dd></div>
             </dl>
+            {game.player.pendingAttributePoints > 0 && <AttributeAllocation
+              attrs={game.player.attrs}
+              headingRef={allocationHeading}
+              locale={locale}
+              points={game.player.pendingAttributePoints}
+              onAllocate={(attribute) => onAction({ kind: 'allocate_attribute', attribute })}
+            />}
+            <EquipmentSummary equipment={game.equipment} locale={locale} />
           </section>
 
           <section className="quick-actions ink-card" aria-label={word(locale, 'Thao tác nhanh', 'Quick actions')}>
-            <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'rest' })} type="button">{word(locale, 'Nghỉ', 'Rest')}</button>
-            <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'train' })} type="button">{word(locale, 'Tu luyện', 'Cultivate')}</button>
-            <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'gather' })} type="button">{word(locale, 'Hái thảo', 'Gather')}</button>
-            <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">{word(locale, 'Quay', 'Draw')}</button>
+            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'rest' })} type="button">{word(locale, 'Nghỉ', 'Rest')}</button>
+            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'train' })} type="button">{word(locale, 'Tu luyện', 'Cultivate')}</button>
+            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'gather' })} type="button">{word(locale, 'Hái thảo', 'Gather')}</button>
+            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">{word(locale, 'Quay', 'Draw')}</button>
           </section>
         </aside>
       </div>
@@ -1014,6 +1029,84 @@ function Meter({ className = '', label, value, max, tone, delta = 0, deltaTestid
       <span className={`meter-track ${tone}`}><i style={{ width: `${percent}%` }} /></span>
     </div>
   )
+}
+
+interface StageProgressProps {
+  stage: number
+  realmLevel: number
+  progress: number
+  locale: Locale
+}
+
+function StageProgress({ stage, realmLevel, progress, locale }: StageProgressProps) {
+  const threshold = nextStageThreshold(stage, realmLevel)
+  const realm = REALM_STAGES[stage]
+  const realmName = realm === undefined ? word(locale, 'Cảnh giới viên mãn', 'Peak realm') : word(locale, realm.vi, realm.en)
+  const rankName = word(locale, `tầng ${String(realmLevel)}`, `rank ${String(realmLevel)}`)
+  if (threshold === null) return <span className="stage-chip stage-chip--cap">{realmName} · {rankName} · {word(locale, 'viên mãn', 'peak')}</span>
+  const pct = Math.round((progress / threshold) * 100)
+  const progressLabel = word(locale, `Tiến độ tu vi ${String(progress)} trên ${String(threshold)}`, `Cultivation progress ${String(progress)} of ${String(threshold)}`)
+  return (
+    <span className="stage-progress" title={word(locale, `Còn ${String(threshold - progress)} điểm tiến độ tới tầng kế tiếp`, `${String(threshold - progress)} progress to the next rank`)}>
+      <span>{`${realmName} · ${rankName}`}</span>
+      <span>{progress}/{threshold}</span>
+      <i aria-label={progressLabel} aria-valuemax={threshold} aria-valuemin={0} aria-valuenow={progress} role="progressbar"><b style={{ '--progress': `${pct}%` } as CSSProperties} /></i>
+    </span>
+  )
+}
+
+interface AttributeAllocationProps {
+  attrs: Attrs
+  headingRef: RefObject<HTMLHeadingElement>
+  locale: Locale
+  points: number
+  onAllocate: (attribute: AttributeName) => void
+}
+
+function AttributeAllocation({ attrs, headingRef, locale, points, onAllocate }: AttributeAllocationProps) {
+  const options: ReadonlyArray<{ attribute: AttributeName; vi: string; en: string }> = [
+    { attribute: 'body', vi: 'Thân', en: 'Body' },
+    { attribute: 'mind', vi: 'Tâm', en: 'Mind' },
+    { attribute: 'charm', vi: 'Mị', en: 'Charm' },
+    { attribute: 'luck', vi: 'Vận', en: 'Luck' },
+  ]
+  return <section aria-label={word(locale, 'Phân bổ thuộc tính', 'Allocate attribute points')} className="attribute-allocation" role="region">
+    <h3 ref={headingRef} tabIndex={-1}>{word(locale, 'Phân bổ thuộc tính', 'Allocate attribute points')}</h3>
+    <p role="status">{word(locale, `Còn ${String(points)} điểm`, `${String(points)} points remaining`)}</p>
+    <div>
+      {options.map(({ attribute, vi, en }) => {
+        const name = word(locale, vi, en)
+        const value = attrs[attribute]
+        const capped = value >= ATTRIBUTE_MAX
+        return <button
+          aria-label={word(locale, `Tăng ${name} (${String(value)}/${String(ATTRIBUTE_MAX)}), tốn 1 điểm`, `Increase ${name} (${String(value)}/${String(ATTRIBUTE_MAX)}), costs 1 point`)}
+          disabled={capped}
+          key={attribute}
+          onClick={() => onAllocate(attribute)}
+          type="button"
+        >{name} · {value}/{ATTRIBUTE_MAX} · +1</button>
+      })}
+    </div>
+  </section>
+}
+
+function EquipmentSummary({ equipment, locale }: { equipment: EquipmentState; locale: Locale }) {
+  const slots: ReadonlyArray<{ slot: keyof EquipmentState; vi: string; en: string }> = [
+    { slot: 'weapon', vi: 'Vũ khí', en: 'Weapon' },
+    { slot: 'robe', vi: 'Pháp bào', en: 'Robe' },
+    { slot: 'accessory', vi: 'Phụ kiện', en: 'Accessory' },
+  ]
+  return <section aria-label={word(locale, 'Trang bị đang dùng', 'Equipped items')} className="equipment-summary">
+    <h3>{word(locale, 'Trang bị đang dùng', 'Equipped items')}</h3>
+    <dl>{slots.map(({ slot, vi, en }) => {
+      const itemId = equipment[slot]
+      const def = itemId === null ? undefined : getEquipmentByItem(itemId)
+      const name = itemId === null ? word(locale, 'Trống', 'Empty') : localized(locale, def ?? getItem(itemId)!)
+      const bonus = def === undefined ? '' : `Công +${String(def.attackBonus)} / Thủ +${String(def.defenseBonus)} / Khí +${String(def.qiBonus)}`
+      const tooltip = def === undefined ? name : `${name} — ${word(locale, def.descVi, def.descEn)} · ${bonus}`
+      return <div key={slot}><dt>{word(locale, vi, en)}</dt><dd title={tooltip}>{name}{def === undefined ? null : <><br /><span className="equipment-bonus">{bonus}</span></>}</dd></div>
+    })}</dl>
+  </section>
 }
 
 interface RealmLadderProps {

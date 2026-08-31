@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import { newGame, type GameState, type Locale } from '../src/engine'
 
-const SESSION_KEY = 'phe-can-ky:save:v1'
+const SLOTS_KEY = 'phe-can-ky:slots'
+const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
 type GameSession = { game: GameState; locale: Locale; chronicle: string[] }
 
 function freshGame(update?: (g: GameState) => GameState): GameState {
@@ -16,13 +17,14 @@ async function beginPlaying(page: Page): Promise<void> {
 
 async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): Promise<void> {
   const session: GameSession = { game, locale, chronicle: ['Debug run.'] }
-  await page.addInitScript(
-    ({ key, value }) => {
-      if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, value)
-    },
-    { key: SESSION_KEY, value: JSON.stringify(session) },
-  )
+  const slot = { slotId: 1, savedAt: 1, session }
+  await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
+    if (window.localStorage.getItem(slotsKey) !== null) return
+    window.localStorage.setItem(slotsKey, value)
+    window.localStorage.setItem(activeSlotKey, '1')
+  }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
+  await page.getByTestId('save-slot-1').click()
   await beginPlaying(page)
 }
 
@@ -47,8 +49,8 @@ test('debug: check initial map', async ({ page }) => {
   
   // Check game state via evaluate
   const gameState = await page.evaluate(() => {
-    const raw = window.localStorage.getItem('phe-can-ky:save:v1')
-    return raw ? JSON.parse(raw) : null
+    const raw = window.localStorage.getItem('phe-can-ky:slots')
+    return raw ? JSON.parse(raw)['1'] ?? null : null
   })
   console.log(`Loaded game state:`, gameState?.game?.player?.locationId, gameState?.game?.player?.posX, gameState?.game?.player?.posY)
 })

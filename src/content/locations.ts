@@ -246,7 +246,8 @@ export const REGION_MAPS: RegionMapDef[] = [
   }, [
     ...rim('water'),
     { x: 1, y: 1, terrain: 'forest', node: node('village-bamboo', 'Lũy tre', 'Bamboo hedge', 'event') },
-    { x: 2, y: 2, terrain: 'road', node: node('village-elder', 'Hiên nhà Cụ Mai Hoa', 'Elder Mai Hoa’s porch', 'npc') },
+    { x: 2, y: 2, terrain: 'road', node: node('village-elder-porch', 'Hiên nhà Cụ Mai Hoa', 'Elder Meihua’s Porch', 'npc') },
+    { x: 2, y: 3, terrain: 'road', node: node('village-elder-home', 'Cửa nhà Cụ Mai Hoa', 'Elder Meihua’s Door', 'npc') },
     { x: 3, y: 1, terrain: 'road', node: node('village-forest-exit', 'Đường vào rừng sương', 'Misty Woods trail', 'exit'), exitTo: 'misty_forest' },
     { x: 1, y: 3, terrain: 'road', node: node('village-market-exit', 'Cổng chợ Vân Tập', 'Cloudgather Market gate', 'exit'), exitTo: 'market' },
     { x: 3, y: 3, terrain: 'road', node: node('village-home', 'Nhà cũ của ngươi', 'Your old hut', 'event') },

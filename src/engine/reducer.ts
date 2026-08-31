@@ -13,6 +13,8 @@ import {
 } from '../content'
 import { newlyQualifiedAchievements } from './achievements'
 import {
+  ATTRIBUTE_MAX,
+  ATTRIBUTE_POINTS_PER_BREAKTHROUGH,
   BASIC_STRIKE_QI_COST,
   DEADLINE_DAYS,
   HIGH_DANGER_LEVEL,
@@ -41,7 +43,13 @@ import { evaluateEndingId } from './endings'
 import { checkLottery, drawEventFor, rollLottery } from './lottery'
 import { checkMoveFrom } from './map'
 import { currentBeat } from './beats'
-import { applyProgress, trainProgressGain } from './stats'
+import {
+  applyProgress,
+  attributeCombatBonus,
+  charmPriceDiscount,
+  luckGatherBonus,
+  trainProgressGain,
+} from './stats'
 import { canAcceptQuest, canCompleteQuest, tickQuestSteps } from './quests'
 import { applyStoryEffects, applyStoryRouteArrival, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding, storyRouteEncounter } from './story'
 import { applyRomanceChoice, findRomanceChoice, hasOtherCommitment } from './romance'
@@ -52,6 +60,7 @@ import type {
   Action,
   ConcreteAction,
   Direction,
+  AttributeName,
   ErrorCode,
   GameEvent,
   GameState,
@@ -196,6 +205,9 @@ function finalize(state: GameState, events: GameEvent[]): TransitionResult {
 }
 
 function execAction(state: GameState, action: ConcreteAction): R {
+  if (state.player.pendingAttributePoints > 0 && action.kind !== 'allocate_attribute') {
+    return err('ATTRIBUTE_ALLOCATION_REQUIRED')
+  }
   // An encounter is a closed deterministic turn loop. Preventing unrelated
   // actions here keeps the player from escaping damage by moving, resting, or
   // swapping gear mid-fight; consumables remain a deliberate one-turn choice.
@@ -215,6 +227,8 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doRest(state)
     case 'train':
       return doTrain(state)
+    case 'allocate_attribute':
+      return doAllocateAttribute(state, action.attribute)
     case 'gather':
       return doGather(state)
     case 'refine':
@@ -378,11 +392,11 @@ function doTrain(state: GameState): R {
   state = spendDay(state, events)
   const [hpLossVariance, rngAfter] = nextInt(state.rng, 0, 2)
   const gain = trainProgressGain(state)
-  let hp = state.player.hp - TRAIN_HP_COST - hpLossVariance
+  const hp = state.player.hp - TRAIN_HP_COST - hpLossVariance
   const qi = state.player.qi - TRAIN_QI_COST
-  const prog = applyProgress({ ...state, player: { ...state.player, progress: state.player.progress } }, gain)
+  const progress = applyProgress(state, gain)
+
   if (hp <= 0) {
-    hp = 0
     const dead: GameState = {
       ...state,
       rng: rngAfter,
@@ -390,31 +404,61 @@ function doTrain(state: GameState): R {
         ...state.player,
         hp: 0,
         qi: Math.max(0, qi),
-        stage: prog.stage,
-        progress: prog.progress,
+        stage: progress.stage,
+        realmLevel: progress.realmLevel,
+        progress: progress.progress,
+        pendingAttributePoints: 0,
         alive: false,
       },
     }
-    events.push({ type: 'TRAINED', gain, stage: prog.stage })
+    events.push({ type: 'TRAINED', gain, stage: progress.stage })
     events.push({ type: 'DEATH', cause: 'qi_deviation' })
     return { ok: true, state: dead, events }
   }
+
+  const pointsGranted = progress.breakthroughs * ATTRIBUTE_POINTS_PER_BREAKTHROUGH
   const s: GameState = {
     ...state,
     rng: rngAfter,
-    player: { ...state.player, hp, qi, stage: prog.stage, progress: prog.progress },
+    player: {
+      ...state.player,
+      hp,
+      qi,
+      stage: progress.stage,
+      realmLevel: progress.realmLevel,
+      progress: progress.progress,
+      pendingAttributePoints: state.player.pendingAttributePoints + pointsGranted,
+    },
   }
-  events.push({ type: 'TRAINED', gain, stage: prog.stage })
-  if (prog.stagesGained > 0) {
+  events.push({ type: 'TRAINED', gain, stage: progress.stage })
+  if (progress.breakthroughs > 0) {
     events.push({
-      type: 'WARNING',
-      level: 0,
-      locationId: s.player.locationId,
-      messageVi: 'Cảnh giới mới — đan điền ấm ran, nhớ giữ đều nhịp thở.',
-      messageEn: 'A new stage — your dantian hums; keep the breath steady.',
+      type: 'MINOR_REALM_ADVANCED',
+      stage: progress.stage,
+      realmLevel: progress.realmLevel,
+      pointsGranted,
     })
   }
   return { ok: true, state: s, events }
+}
+
+function doAllocateAttribute(state: GameState, attribute: AttributeName): R {
+  if (state.player.pendingAttributePoints <= 0) return err('NO_ATTRIBUTE_POINTS')
+  const value = state.player.attrs[attribute]
+  if (value >= ATTRIBUTE_MAX) return err('ATTRIBUTE_MAXED')
+  const pointsRemaining = state.player.pendingAttributePoints - 1
+  return {
+    ok: true,
+    state: {
+      ...state,
+      player: {
+        ...state.player,
+        attrs: { ...state.player.attrs, [attribute]: value + 1 },
+        pendingAttributePoints: pointsRemaining,
+      },
+    },
+    events: [{ type: 'ATTRIBUTE_ALLOCATED', attribute, value: value + 1, pointsRemaining }],
+  }
 }
 
 function doGather(state: GameState): R {
@@ -430,7 +474,7 @@ function doGather(state: GameState): R {
     ...state,
     rng: nextRng,
     player: qiDrain > 0 ? { ...state.player, qi: state.player.qi - qiDrain } : state.player,
-    inventory: bump(state.inventory, 'spirit_herb', qty),
+    inventory: bump(state.inventory, 'spirit_herb', qty + luckGatherBonus(state.player.attrs.luck)),
     flags: { ...state.flags, gatherCount: flagNum(state.flags, 'gatherCount') + qty },
   }
   return {
@@ -466,7 +510,7 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
   const def = getItem(itemId)
   const price = def?.buyPrice ?? null
   if (price === null || state.player.stage < (def?.requiredStage ?? 0)) return err('ITEM_UNAVAILABLE')
-  const totalCost = price * qty
+  const totalCost = Math.max(0, price - charmPriceDiscount(state.player.attrs.charm)) * qty
   if (state.player.gold < totalCost) return err('INSUFFICIENT_GOLD')
   const events: GameEvent[] = []
   state = spendDay(state, events)
@@ -639,7 +683,7 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
   const guard = technique === undefined ? 0 : techniqueGuard(technique.power, level)
   const powerTerm = technique === undefined ? 0 : technique.power * level
   const [variance, rng] = nextInt(state.rng, 0, 2)
-  const amount = Math.max(1, 5 + state.player.attrs.body + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state) + variance)
+  const amount = Math.max(1, 5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state) + variance)
   const hp = Math.max(0, state.encounter.hp - amount)
   const s: GameState = {
     ...state,
@@ -812,16 +856,25 @@ function doTalk(state: GameState, npcId: string): R {
   const affKey = `aff_${npcId}`
   const talkKey = `talk_${npcId}`
   const before = flagNum(state.flags, affKey)
+  const after = before + 1
+  const flags: Record<string, boolean | number | string> = {
+    ...state.flags,
+    talkCount: flagNum(state.flags, 'talkCount') + 1,
+    lastTalkNpc: npcId,
+    lastTalkRepeated: state.flags.lastTalkNpc === npcId,
+    [affKey]: after,
+    [talkKey]: flagNum(state.flags, talkKey) + 1,
+  }
+  // Affinity gates: reaching 3/6/9 unlocks the corresponding gate flag so
+  // quest requiredFlags can reference it without duplicating the threshold.
+  for (const gateLevel of [3, 6, 9]) {
+    if (before < gateLevel && after >= gateLevel) {
+      flags[`aff_gate_${npcId}`] = true
+    }
+  }
   const s: GameState = {
     ...state,
-    flags: {
-      ...state.flags,
-      talkCount: flagNum(state.flags, 'talkCount') + 1,
-      lastTalkNpc: npcId,
-      lastTalkRepeated: state.flags.lastTalkNpc === npcId,
-      [affKey]: before + 1,
-      [talkKey]: flagNum(state.flags, talkKey) + 1,
-    },
+    flags,
   }
   const events: GameEvent[] = []
   // Affinity milestones surface as their own event so the UI can mark the

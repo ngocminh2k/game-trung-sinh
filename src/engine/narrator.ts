@@ -87,6 +87,18 @@ const TEMPLATES: Record<string, Handler> = {
       ? `Khép lại một chu thiên, tu vi tăng ${String(ev.gain)} điểm.`
       : `One full circulation complete; insight +${String(ev.gain)}.`
   },
+  MINOR_REALM_ADVANCED: (ev, l) => {
+    if (ev.type !== 'MINOR_REALM_ADVANCED') return ''
+    return l === 'vi'
+      ? `Đột phá tầng ${String(ev.realmLevel)}; nhận ${String(ev.pointsGranted)} điểm thuộc tính để tự phân.`
+      : `Breakthrough to rank ${String(ev.realmLevel)}; gain ${String(ev.pointsGranted)} attribute points to assign.`
+  },
+  ATTRIBUTE_ALLOCATED: (ev, l) => {
+    if (ev.type !== 'ATTRIBUTE_ALLOCATED') return ''
+    return l === 'vi'
+      ? `Phân một điểm vào ${ev.attribute}; còn ${String(ev.pointsRemaining)} điểm.`
+      : `Assigned one point to ${ev.attribute}; ${String(ev.pointsRemaining)} remain.`
+  },
   GATHERED: (ev, l) => {
     if (ev.type !== 'GATHERED') return ''
     return l === 'vi'
@@ -301,6 +313,9 @@ const TEMPLATES: Record<string, Handler> = {
       NPC_UNKNOWN: ['Ngươi chưa biết người này là ai.', 'You do not know that person.'],
       NPC_NOT_HERE: ['Người đó không ở đây. Hãy kiểm tra mục Người quen để biết nơi gặp.', 'That person is not here. Check Acquaintances for where to meet them.'],
       STORY_CHOICE_UNAVAILABLE: ['Bước ngoặt đó đã qua hoặc không thuộc cảnh hiện tại. Hãy chọn một trong ba lựa chọn đang hiện.', 'That turning point has passed or does not belong to this scene. Choose one of the three visible options.'],
+      ATTRIBUTE_ALLOCATION_REQUIRED: ['Hãy phân hết điểm thuộc tính vừa nhận trước khi tiếp tục.', 'Spend your new attribute points before continuing.'],
+      NO_ATTRIBUTE_POINTS: ['Không còn điểm thuộc tính để phân.', 'No attribute points remain to spend.'],
+      ATTRIBUTE_MAXED: ['Thuộc tính này đã đạt mức tối đa.', 'That attribute is already at its maximum.'],
     }
     const message = explanations[ev.code]
     return message === undefined ? (l === 'vi' ? 'Ý định ấy chưa thể thành lúc này.' : 'That intent cannot happen right now.') : message[l === 'vi' ? 0 : 1]

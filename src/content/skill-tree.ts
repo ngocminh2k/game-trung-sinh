@@ -111,11 +111,11 @@ const SEEDS: Seed[] = [
     effect: { kind: 'heal', value: 14, trigger: 'onKill' } },
   { id: 'sword_t19', branch: 'sword', tier: 19, nameVi: 'Xuyên Phá', nameEn: 'Piercing Ruin',
     descVi: 'Một nhát xuyên qua cả giáp lẫn ý chí.', descEn: 'One thrust through both armour and will.',
-    cost: { skillPoints: 4, item: 'cloudpiercer_spear' }, require: { stage: 4 },
+    cost: { skillPoints: 4, item: 'cloudpiercer_spear' }, require: { stage: 4, techniques: ['sword_starfall_hidden'] },
     effect: { kind: 'attack', value: 8 } },
   { id: 'sword_t20', branch: 'sword', tier: 20, nameVi: 'Trảm Phong Thần', nameEn: 'Wind-Cleaving Strike',
     descVi: 'Một nhát cuối — gió cũng phải tránh đường.', descEn: 'One final slash — even the wind yields.',
-    cost: { skillPoints: 5 }, require: { stage: 5 },
+    cost: { skillPoints: 5 }, require: { stage: 5, techniques: ['sword_starfall_hidden', 'sword_moonlight_edge_hidden'] },
     effect: { kind: 'attack', value: 12, crit: 15 } },
 
   // ── Khí (Aura): qi pool lớn, defence, guard, drain hp từ qi ──────────
@@ -194,11 +194,11 @@ const SEEDS: Seed[] = [
     effect: { kind: 'buff', value: 2, stat: 'qi', trigger: 'onHit' } },
   { id: 'aura_t19', branch: 'aura', tier: 19, nameVi: 'Tường Khí', nameEn: 'Qi Wall',
     descVi: 'Tường khí dựng đứng — địch phải đợi nhịp thở của ngươi.', descEn: 'A wall of qi; the enemy waits for your breath.',
-    cost: { skillPoints: 4, item: 'cloudveil_robe' }, require: { stage: 4 },
+    cost: { skillPoints: 4, item: 'cloudveil_robe' }, require: { stage: 4, techniques: ['aura_still_water_hidden'] },
     effect: { kind: 'buff', value: 9, stat: 'guard' } },
   { id: 'aura_t20', branch: 'aura', tier: 20, nameVi: 'Đan Điền Vô Tận', nameEn: 'Boundless Dantian',
     descVi: 'Đan điền mở rộng vô tận — khí không bao giờ cạn.', descEn: 'The dantian opens without bound; qi never runs dry.',
-    cost: { skillPoints: 5 }, require: { stage: 5 },
+    cost: { skillPoints: 5 }, require: { stage: 5, techniques: ['aura_still_water_hidden', 'aura_nine_sun_hidden'] },
     effect: { kind: 'buff', value: 30, stat: 'qi' } },
 
   // ── Dược (Herbal): hồi hp/qi, buff tạm, gây độc, giảm danger khi move ──
@@ -276,11 +276,11 @@ const SEEDS: Seed[] = [
     effect: { kind: 'heal', value: 24, stat: 'hp' } },
   { id: 'herbal_t19', branch: 'herbal', tier: 19, nameVi: 'Hương Ngự Yêu', nameEn: 'Beast-Taming Scent',
     descVi: 'Hương thuốc đặc biệt khiến yêu thú e sợ.', descEn: 'A scent that makes beasts fear you.',
-    cost: { skillPoints: 4, item: 'ninefold_pill' }, require: { stage: 4 },
+    cost: { skillPoints: 4, item: 'ninefold_pill' }, require: { stage: 4, techniques: ['herbal_root_whisper_hidden'] },
     effect: { kind: 'utility', value: 2, stat: 'aggro' } },
   { id: 'herbal_t20', branch: 'herbal', tier: 20, nameVi: 'Đan Trường Sinh', nameEn: 'Longevity Pill',
     descVi: 'Một viên đan — sinh lực như vừa mở cửa đan điền.', descEn: 'A single pill; lifeforce gushes back.',
-    cost: { skillPoints: 5 }, require: { stage: 5 },
+    cost: { skillPoints: 5 }, require: { stage: 5, techniques: ['herbal_root_whisper_hidden', 'herbal_grave_soil_hidden'] },
     effect: { kind: 'heal', value: 40, stat: 'hp' } },
 
   // ── Ẩn (Shadow): né tránh, cướp pháp khí, tàng hình, retreat free ─────
@@ -359,11 +359,11 @@ const SEEDS: Seed[] = [
     effect: { kind: 'utility', value: 3, stat: 'retreat' } },
   { id: 'shadow_t19', branch: 'shadow', tier: 19, nameVi: 'Phong Ấn Mờ', nameEn: 'Sealed-Dodge',
     descVi: 'Né xong — phong ấn mờ để địch không bám theo.', descEn: 'Dodge and leave a faint seal; pursuit blurs.',
-    cost: { skillPoints: 4, item: 'bone_ward_charm' }, require: { stage: 4 },
+    cost: { skillPoints: 4, item: 'bone_ward_charm' }, require: { stage: 4, techniques: ['shadow_molt_hidden'] },
     effect: { kind: 'dodge', value: 8 } },
   { id: 'shadow_t20', branch: 'shadow', tier: 20, nameVi: 'Hư Vô Bộ', nameEn: 'Void Stride',
     descVi: 'Bước vào hư vô — địch đánh mà không thấy đâu.', descEn: 'Step into the void; the enemy strikes nothing.',
-    cost: { skillPoints: 5 }, require: { stage: 5 },
+    cost: { skillPoints: 5 }, require: { stage: 5, techniques: ['shadow_molt_hidden', 'shadow_eclipse_step_hidden'] },
     effect: { kind: 'dodge', value: 12 } },
 
   // ── Lôi (Thunder): burst đơn, AoE nhỏ, status tê/bỏng, knockback ─────
@@ -445,15 +445,53 @@ const SEEDS: Seed[] = [
     effect: { kind: 'aoe', value: 6, aoeRadius: 2, knockback: 2 } },
   { id: 'thunder_t20', branch: 'thunder', tier: 20, nameVi: 'Lôi Minh Chấn', nameEn: 'Heaven-Shaking Bolt',
     descVi: 'Một tia sét cuối cùng — trời đất cùng rung.', descEn: 'A final bolt; heaven and earth shake.',
-    cost: { skillPoints: 5 }, require: { stage: 5 },
+    cost: { skillPoints: 5 }, require: { stage: 5, techniques: ['thunder_gasp_hidden'] },
     effect: { kind: 'aoe', value: 8, aoeRadius: 3 } },
 ]
 
 const NODES: readonly SkillNode[] = SEEDS.map((seed) => ({ ...seed }))
 
+// T08 (expansion-x20): capstone unlock node for the nine core techniques. It is
+// deliberately exported OUTSIDE SKILL_NODES: the main tree is pinned at exactly
+// 100 nodes / 20 tiers per branch (module checks below + test/skill-tree.test.ts),
+// and this node is a secret post-tree unlock (tier 21) that T12 wiring decides
+// how to surface. It has NO TechniqueDef — it is an unlock, the 19th technique
+// does not exist.
+export const PHI_PHONG_TRAM: SkillNode = {
+  id: 'phi_phong_tram',
+  branch: 'sword',
+  tier: 21,
+  nameVi: 'Phi Phong Trảm',
+  nameEn: 'Soaring-Wind Cleave',
+  descVi: 'Một nhát chém mang theo cả cơn gió qua trạm — quét sạch mọi thứ đứng thẳng.',
+  descEn: 'One cleave carrying the whole gale through the station — everything left standing is swept away.',
+  cost: { skillPoints: 5 },
+  require: {
+    stage: 5,
+    techniques: [
+      'basic_staff_form',
+      'crooked_circulation',
+      'rift_step',
+      'herbal_breath',
+      'iron_skin',
+      'cloudwalk',
+      'peak_cleaver',
+      'tide_breath',
+      'stone_aegis',
+    ],
+  },
+  effect: { kind: 'aoe', value: 9, aoeRadius: 3 },
+  conflictsWith: [],
+}
+
+export const SPECIAL_NODES: readonly SkillNode[] = [PHI_PHONG_TRAM]
+
 const ALL_IDS = NODES.map((node) => node.id)
+const SPECIAL_IDS = SPECIAL_NODES.map((node) => node.id)
 const UNIQUE = new Set(ALL_IDS)
 if (UNIQUE.size !== ALL_IDS.length) throw new Error('skill-tree: duplicate node id')
+if (new Set(SPECIAL_IDS).size !== SPECIAL_IDS.length) throw new Error('skill-tree: duplicate special node id')
+if (SPECIAL_IDS.some((id) => UNIQUE.has(id))) throw new Error('skill-tree: special node id collides with tree node id')
 
 const TIER_BY_BRANCH: Readonly<Record<typeof branches[number], ReadonlyArray<SkillNode>>> = (() => {
   const map: Record<string, SkillNode[]> = {}
@@ -490,7 +528,7 @@ export const SKILL_NODES: readonly SkillNode[] = NODES
 export const SKILL_BRANCHES = branches
 
 export function getSkillNode(id: string): SkillNode | undefined {
-  return NODES.find((node) => node.id === id)
+  return NODES.find((node) => node.id === id) ?? SPECIAL_NODES.find((node) => node.id === id)
 }
 
 export function skillNodesInBranch(branch: typeof branches[number]): ReadonlyArray<SkillNode> {

@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import { newGame, type GameState, type Locale } from '../src/engine'
 
-const SESSION_KEY = 'phe-can-ky:save:v1'
+const SLOTS_KEY = 'phe-can-ky:slots'
+const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
 type GameSession = { game: GameState; locale: Locale; chronicle: string[] }
 
 function freshGame(update?: (g: GameState) => GameState): GameState {
@@ -11,18 +12,31 @@ function freshGame(update?: (g: GameState) => GameState): GameState {
 
 async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): Promise<void> {
   const session: GameSession = { game, locale, chronicle: ['Fresh E2E run.'] }
-  await page.addInitScript(
-    ({ key, value }) => {
-      if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, value)
-    },
-    { key: SESSION_KEY, value: JSON.stringify(session) },
-  )
+  const slot = { slotId: 1, savedAt: 1, session }
+  await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
+    if (window.localStorage.getItem(slotsKey) !== null) return
+    window.localStorage.setItem(slotsKey, value)
+    window.localStorage.setItem(activeSlotKey, '1')
+  }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
+  await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
 }
 
 async function clickChoice(page: Page, choiceLabel: string | RegExp): Promise<void> {
+  // The story panel is transient (opens on Talk / event nodes) and its backdrop
+  // blocks the world. Route-encounter buttons need the panel closed; story
+  // choices need it open (re-opened via the journal's Talk action).
+  const panelOpen = await page.getByTestId('narration-panel').isVisible().catch(() => false)
+  const routeOpen = await page.getByTestId('route-encounter-screen').isVisible().catch(() => false)
+  if (routeOpen) {
+    if (panelOpen) await page.keyboard.press('Escape')
+  } else if (!panelOpen) {
+    await page.getByRole('button', { name: 'Open Journey journal' }).click()
+    await page.getByRole('tab', { name: /People here/ }).click()
+    await page.getByRole('button', { name: 'Talk' }).first().click()
+  }
   await page.getByRole('button', { name: choiceLabel }).click()
   // Wait for state to propagate and UI to re-render
   await page.waitForTimeout(100)
@@ -38,9 +52,9 @@ async function moveDirection(page: Page, direction: 'north' | 'south' | 'east' |
 
 async function getPlayerPos(page: Page): Promise<{ locationId: string; x: number; y: number }> {
   return await page.evaluate(() => {
-    const raw = window.localStorage.getItem('phe-can-ky:save:v1')
+    const raw = window.localStorage.getItem('phe-can-ky:slots')
     if (!raw) return { locationId: 'unknown', x: -1, y: -1 }
-    const session = JSON.parse(raw)
+    const session = JSON.parse(raw)['1'] ?? {}
     return {
       locationId: session.game?.player?.locationId || 'unknown',
       x: session.game?.player?.posX ?? -1,
@@ -87,6 +101,7 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await waitForMapReady(page)
 
 // Navigate to market (truth route target): west, west, east from village
+    await page.keyboard.press('Escape')
     await moveDirection(page, 'west')
     let pos = await getPlayerPos(page)
     console.log(`[Rootless Star] After west 1: location=${pos.locationId}, pos=(${pos.x},${pos.y})`)
@@ -133,6 +148,7 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /tin lời bà ma|trust granny ma/i)
 
     // The route lead replaces the normal node test id; assert it before entering the porch.
+    await page.keyboard.press('Escape')
     await moveDirection(page, 'north')
     await expect(page.getByTestId('route-event-node')).toBeVisible()
     await moveDirection(page, 'west')
@@ -164,6 +180,7 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /giấu trâm|hide the pin/i)
     await clickChoice(page, /ngồi với ngô|sit with ngo/i)
 
+    await page.keyboard.press('Escape')
     await moveDirection(page, 'west')
     await moveDirection(page, 'west')
     await moveDirection(page, 'east')
@@ -195,6 +212,7 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /bán bản đồ cho bảo|sell the map to bao/i)
 
     // Navigate to the wealth lead: west x4, south from village.
+    await page.keyboard.press('Escape')
     await moveDirection(page, 'west')
     await moveDirection(page, 'west')
     await moveDirection(page, 'west')
@@ -224,6 +242,7 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /trả trâm|return meihua/i)
     await clickChoice(page, /tin lời bà ma|trust granny ma/i)
 
+    await page.keyboard.press('Escape')
     await moveDirection(page, 'north')
     await expect(page.getByTestId('route-event-node')).toBeVisible()
     await moveDirection(page, 'west')
@@ -248,6 +267,7 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /giấu trâm|hide the pin/i)
     await clickChoice(page, /ngồi với ngô|sit with ngo/i)
 
+    await page.keyboard.press('Escape')
     await moveDirection(page, 'west')
     await moveDirection(page, 'west')
     await moveDirection(page, 'east')
@@ -275,14 +295,14 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /trả trâm|return meihua/i)
     await clickChoice(page, /tin lời bà ma|trust granny ma/i)
 
+    // keep_roll_call grants story_mercy + companion, the present proof grants
+    // another mercy point, and confess at the mirror grants khoa_trusted —
+    // mercy >= 3 + khoa_trusted resolves forgiven_enemy at share_last_page.
+    await page.keyboard.press('Escape')
     await moveDirection(page, 'north')
     await expect(page.getByTestId('route-event-node')).toBeVisible()
     await moveDirection(page, 'west')
     await expect(page.getByTestId('route-encounter-screen')).toBeVisible()
-
-    // keep_roll_call grants story_mercy + companion, the present proof grants
-    // another mercy point, and confess at the mirror grants khoa_trusted —
-    // mercy >= 3 + khoa_trusted resolves forgiven_enemy at share_last_page.
     await clickChoice(page, /đọc cái tên|read the name aloud/i) // present proof
     await clickChoice(page, /đi cùng mai hoa|walk with meihua/i) // keep_roll_call
 
@@ -319,7 +339,10 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await expect(page.locator('.death-screen')).toBeVisible({ timeout: 5000 })
     const deathText = await page.locator('.death-epitaph').textContent() || ''
     expect(deathText).toContain('overturned herb basket')
-    // The ending identity itself lands in the chronicle (DeathScreen shows only the epitaph).
-    await expect(page.locator('.chronicle li').last()).toHaveText(/Road Left Unfinished/)
+    // The ending identity lands in the autosave (the chronicle lives inside the
+    // transient story panel, which is closed after a terminal combat).
+    const saved = await page.evaluate(() => window.localStorage.getItem('phe-can-ky:slots'))
+    const endingId = saved === null ? null : (JSON.parse(saved)['1']?.session?.game?.endingId ?? null)
+    expect(endingId).toBe('tragic_death')
   })
 })

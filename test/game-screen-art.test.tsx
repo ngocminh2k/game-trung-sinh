@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ACHIEVEMENTS, ITEMS, LOCATIONS, NPCS, TALENTS, TECHNIQUES } from '../src/content'
 import { newGame } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
@@ -188,5 +188,31 @@ describe('illustrated RPG UI', () => {
     openJournal()
     fireEvent.click(screen.getByRole('tab', { name: /Chợ & thành tựu/ }))
     expect(screen.getByTestId('achievement-seal').textContent).toBe('成')
+  })
+
+  it('shows minor-realm progress and the three passive equipment slots', () => {
+    renderScreen()
+
+    expect(screen.getByText(/Luyện Khí · tầng 1/)).toBeTruthy()
+    const titles = [...document.querySelectorAll('.equipment-summary dd[title]')].map((el) => el.getAttribute('title') ?? '')
+    expect(titles.some((t) => t.includes('Mộc Trượng Cũ'))).toBe(true)
+    expect(titles.some((t) => t.includes('Áo Vải Vá'))).toBe(true)
+    expect(screen.getByText(/Trống/)).toBeTruthy()
+    // Passive bonuses surface as a small inline stat under each equipped item.
+    expect(document.querySelectorAll('.equipment-bonus').length).toBe(2)
+  })
+
+  it('offers all attributes when a breakthrough needs allocation', () => {
+    const base = newGame('pending-attributes')
+    const onAction = vi.fn()
+    render(<GameScreen game={{ ...base, player: { ...base.player, pendingAttributePoints: 2 } }} locale="vi" chronicle={[]} onAction={onAction} onLocaleChange={() => undefined} />)
+
+    expect(screen.getByRole('region', { name: 'Phân bổ thuộc tính' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Thân.*3\/100/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Tâm.*4\/100/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Mị.*3\/100/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Vận.*2\/100/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Thân.*3\/100/ }))
+    expect(onAction).toHaveBeenCalledWith({ kind: 'allocate_attribute', attribute: 'body' })
   })
 })

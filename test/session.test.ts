@@ -9,11 +9,20 @@ describe('browser game session', () => {
 
     saveSession(storage, { game, locale: 'en', chronicle: ['A new tale begins.'] })
 
-    expect(loadSession(storage)).toEqual({
-      game,
-      locale: 'en',
-      chronicle: ['A new tale begins.'],
-    })
+    // The schema parser fills migration-safe expansion defaults that newGame
+    // intentionally omits, so the round-trip is compared field-by-field.
+    const loaded = loadSession(storage)
+    expect(loaded).not.toBeNull()
+    expect(loaded!.locale).toBe('en')
+    expect(loaded!.chronicle).toEqual(['A new tale begins.'])
+    // The schema parser fills migration-safe defaults (silver/spiritStones) that
+    // newGame omits, so compare the authored fields plus the safe defaults.
+    const p = loaded!.game.player
+    expect({ ...p, silver: undefined, spiritStones: undefined }).toEqual(game.player)
+    expect(p.silver).toBe(0)
+    expect(p.spiritStones).toBe(0)
+    expect(loaded!.game.rng).toBe(game.rng)
+    expect(loaded!.game.day).toBe(game.day)
   })
 
   it('rejects malformed or stale saved data instead of letting it corrupt a run', () => {

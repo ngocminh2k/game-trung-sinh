@@ -7,13 +7,21 @@ export interface Attrs {
   luck: number
 }
 
+export type AttributeName = keyof Attrs
+
 export interface PlayerState {
   hp: number
   qi: number
   gold: number
+  /** Multi-tier currency. Migration: schema defaults keep old saves valid. */
+  silver?: number
+  /** Spirit-stone (Linh Thạch) tier. Migration: schema defaults keep old saves valid. */
+  spiritStones?: number
   attrs: Attrs
   stage: number
+  realmLevel: number
   progress: number
+  pendingAttributePoints: number
   posX: number
   posY: number
   locationId: string
@@ -62,6 +70,14 @@ export interface GameState {
   rng: number
   day: number
   player: PlayerState
+  /** Name-memory ids the player has unlocked (T10 data). Optional so older
+   *  saves stay valid; the schema default fills [] on parse. */
+  rememberedNames?: string[]
+  /** Active companion beast id from beasts.ts (T06 data). Optional so older
+   *  saves stay valid; the schema default fills null on parse. */
+  companionId?: string | null
+  /** 【Hệ Thống】 notification queue — reducer pushes, T14 renders (story canon). */
+  systemQueue?: Array<{ id: string; vars: Record<string, string | number> }>
   spiritRoot: SpiritRootInfo
   inventory: Record<string, number>
   storage: Record<string, number>
@@ -84,6 +100,7 @@ export type Action =
   | { kind: 'move'; direction: Direction }
   | { kind: 'rest' }
   | { kind: 'train' }
+  | { kind: 'allocate_attribute'; attribute: AttributeName }
   | { kind: 'gather' }
   | { kind: 'refine'; recipeId: string }
   | { kind: 'buy'; itemId: string; qty?: number }
@@ -135,6 +152,9 @@ export const ERROR_CODES = [
   'NPC_UNKNOWN',
   'NPC_NOT_HERE',
   'STORY_CHOICE_UNAVAILABLE',
+  'ATTRIBUTE_ALLOCATION_REQUIRED',
+  'NO_ATTRIBUTE_POINTS',
+  'ATTRIBUTE_MAXED',
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]
@@ -146,6 +166,8 @@ export type GameEvent =
   | { type: 'DAY_PASSED'; day: number }
   | { type: 'RESTED'; hpHeal: number }
   | { type: 'TRAINED'; gain: number; stage: number }
+  | { type: 'MINOR_REALM_ADVANCED'; stage: number; realmLevel: number; pointsGranted: number }
+  | { type: 'ATTRIBUTE_ALLOCATED'; attribute: AttributeName; value: number; pointsRemaining: number }
   | { type: 'GATHERED'; itemId: string; qty: number; qiDrain: number }
   | { type: 'REFINED'; recipeId: string; itemId: string; qty: number }
   | { type: 'ITEM_USED'; itemId: string; hpDelta: number; qiDelta: number }

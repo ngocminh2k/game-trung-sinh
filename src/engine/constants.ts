@@ -12,6 +12,19 @@ export const MAX_QI = 60
 
 export const STAGE_THRESHOLDS = [0, 12, 30, 55, 85, 120] as const
 export const MAX_STAGE = STAGE_THRESHOLDS.length - 1
+export const MINOR_REALM_MAX = 9
+export const ATTRIBUTE_MAX = 100
+export const ATTRIBUTE_POINTS_PER_BREAKTHROUGH = 2
+
+// Each row is one major realm. Nine small realms take roughly 2–3× the old
+// major-realm duration while keeping the early game readable.
+export const MINOR_REALM_THRESHOLDS = [
+  [3, 3, 3, 3, 3, 4, 4, 4, 4],
+  [5, 6, 7, 8, 8, 9, 10, 11, 12],
+  [9, 10, 11, 12, 13, 14, 15, 16, 17],
+  [17, 18, 19, 20, 21, 22, 23, 24, 25],
+  [24, 25, 26, 27, 28, 29, 30, 31, 32],
+] as const
 
 export const DEFECTIVE_ROOT_EFFICIENCY = 0.5
 export const MANUAL_ROOT_EFFICIENCY = 0.75
@@ -62,7 +75,9 @@ export function newGame(seed: string): GameState {
       gold: START_GOLD,
       attrs: { body: 3, mind: 4, charm: 3, luck: 2 },
       stage: 0,
+      realmLevel: 1,
       progress: 0,
+      pendingAttributePoints: 0,
       posX: 3,
       posY: 3,
       locationId: LOCATION_VILLAGE,

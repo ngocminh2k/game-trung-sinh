@@ -83,7 +83,7 @@ test('opens dialogue for NPC talk and blocks movement until dismissal', async ({
 test('regional map nodes and local exits are visible and usable', async ({ page }) => {
   await openGame(page)
   await expect(page.getByTestId('event-node-village-market-exit')).toBeVisible()
-  await expect(page.getByTestId('event-node-village-elder')).toBeVisible()
+  await expect(page.getByTestId('event-node-village-elder-porch')).toBeVisible()
   await page.keyboard.press('ArrowLeft')
   await page.keyboard.press('ArrowLeft')
   await expect(page.getByTestId('event-node-market-square')).toBeVisible()

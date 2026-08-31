@@ -53,6 +53,30 @@
       "verification": [
         "npx playwright test e2e/fresh-endings.spec.ts --grep \"Rootless Star|Spring for an Enemy\""
       ]
+    },
+    {
+      "id": "system-layer-after-x20",
+      "status": "queued",
+      "worker": "agy",
+      "dependsOn": ["phase4-story-proof-review", "phase3-tradeoff-proof-review", "e2e-fresh-map-root-cause"],
+      "timeoutMinutes": 30,
+      "scope": "docs/plans/system-layer/**, src/content/system-defs.ts, src/content/system-quests.ts, src/engine/system-runtime.ts, src/engine/quests.ts, src/engine/reducer.ts, src/engine/types.ts, src/engine/schema.ts, src/engine/content-types.ts, src/content/story.ts, src/content/index.ts, src/ai/system.ts, src/ui/GameScreen.tsx, src/i18n/vi.ts, src/i18n/en.ts, test/system-*.test.ts, test/ai-system.test.ts, e2e/system-pick.spec.ts",
+      "objective": "Implement the System Layer plan (docs/plans/system-layer/): 10 system definitions, pick-one-at-boot, system quest pool (q_sys_*), LLM chat boundary (src/ai/system.ts), and scenario-agnostic design. Runs ONLY after x20 T12+T13 handoffs are reviewed and the merged tree is green (typecheck/lint/vitest/build/playwright).",
+      "acceptance": [
+        "SYSTEMS.length === 10 with unique ids/orders; system quests use requiredSystemId + giverNpcId null and never set storySceneNextId.",
+        "Boot scene lets the player pick exactly one System; re-pick is rejected (hard-lock); rootless path stays silent.",
+        "System quest accept/turn-in works through the System panel without requiring an NPC/location; rewards stay within each system's budget.",
+        "src/ai/system.ts follows the narration.ts pattern: validates questId against the pool, deterministic fallback when AI disabled, never writes state.",
+        "Scenario-independence containment test passes: system-layer core files import no authored Scenario-I modules (story/npcs/locations/endings/chapters/quests).",
+        "All 5 gates green and results posted in handoff: npm run typecheck, npm run lint, npx vitest run, npm run build, npx playwright test (at least e2e/system-pick.spec.ts)."
+      ],
+      "verification": [
+        "npm run typecheck",
+        "npm run lint",
+        "npx vitest run test/system-defs.test.ts test/system-schema.test.ts test/system-quests.test.ts test/system-engine.test.ts test/system-boot.test.ts test/ai-system.test.ts test/system-ui.test.tsx test/system-scenario.test.ts",
+        "npm run build",
+        "npx playwright test e2e/system-pick.spec.ts"
+      ]
     }
   ]
 }

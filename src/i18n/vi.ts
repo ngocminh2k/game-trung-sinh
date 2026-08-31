@@ -77,6 +77,9 @@ export const VI = {
     NPC_UNKNOWN: 'Không có ai tên ấy cả.',
     NPC_NOT_HERE: 'Người đó không ở đây.',
     STORY_CHOICE_UNAVAILABLE: 'Lựa chọn này không thuộc cảnh truyện hiện tại.',
+    ATTRIBUTE_ALLOCATION_REQUIRED: 'Hãy phân hết điểm thuộc tính vừa nhận trước khi tiếp tục.',
+    NO_ATTRIBUTE_POINTS: 'Không còn điểm thuộc tính để phân.',
+    ATTRIBUTE_MAXED: 'Thuộc tính này đã đạt mức tối đa.',
   },
   narrator: {
     logTitle: 'Dấu chân trên đường tu',

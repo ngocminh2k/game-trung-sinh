@@ -48,8 +48,14 @@ export {
   regionCellAt,
 } from './locations'
 export { getItem, ITEMS, SHOP_STOCK } from './items'
+export { HYBRID_RECIPES, hybridForSeason } from './alchemy'
+export { BEASTS } from './beasts'
+export { NAME_MEMORIES, NIGHT_PAGES } from './name-memories'
 export { getRecipe, RECIPES } from './refinement'
 export { ROMANCE_TRACKS, romanceTrackFor } from './romance'
+export { SHOPS, NPCS_WITHOUT_SHOP } from './shops'
+export { SUBLAYERS, sublayerFor } from './sublayers'
+export { SYSTEM_MESSAGES, SYSTEM_HEADER_EN, SYSTEM_HEADER_VI } from './system-messages'
 export { getNpc, NPCS, npcsAt } from './npcs'
 export { getQuest, QUESTS } from './quests'
 export {
@@ -88,10 +94,10 @@ export function validateAllContent(): ContentValidationReport {
   check(z.array(EnemyDefSchema).min(1), ENEMIES, 'ENEMIES')
   check(z.array(LocationDefSchema).min(1), LOCATIONS, 'LOCATIONS')
   check(z.array(CellDefSchema).length(MAP_WIDTH * MAP_HEIGHT), CELLS, 'CELLS')
-  check(NpcDefSchema.array().length(40), NPCS, 'NPCS')
-  check(z.array(ChapterDefSchema).length(6), CHAPTERS, 'CHAPTERS')
-  check(z.array(EndingDefSchema).length(11), ENDINGS, 'ENDINGS')
-  check(z.array(QuestDefSchema).min(1), QUESTS, 'QUESTS')
+  check(NpcDefSchema.array().min(60), NPCS, 'NPCS')
+  check(z.array(ChapterDefSchema).length(8), CHAPTERS, 'CHAPTERS')
+  check(z.array(EndingDefSchema).length(12), ENDINGS, 'ENDINGS')
+  check(z.array(QuestDefSchema).min(150), QUESTS, 'QUESTS')
   check(z.array(AchievementDefSchema).min(1), ACHIEVEMENTS, 'ACHIEVEMENTS')
   check(z.array(BeatDefSchema).min(1), BEATS, 'BEATS')
   if (STORY_SCENES.length < 6) errors.push('STORY_SCENES: six authored scenes are required')

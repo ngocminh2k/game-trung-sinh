@@ -35,14 +35,14 @@ export type StoryRouteEncounterChoice = {
 }
 
 const ROUTE_TARGETS: Record<string, StoryRouteTarget> = {
-  mercy: { locationId: 'village', nodeId: 'village-elder' },
+  mercy: { locationId: 'village', nodeId: 'village-elder-porch' },
   wealth: { locationId: 'market', nodeId: 'market-stalls' },
   truth: { locationId: 'market', nodeId: 'market-teahouse' },
 }
 
 const ROUTE_ENCOUNTERS: Record<StoryRouteId, StoryRouteEncounter> = {
   mercy: {
-    route: 'mercy', contactVi: 'Mai Hoa', contactEn: 'Meihua', locationId: 'village', nodeId: 'village-elder',
+    route: 'mercy', contactVi: 'Mai Hoa', contactEn: 'Meihua', locationId: 'village', nodeId: 'village-elder-porch',
     titleVi: 'Hiên nhà Mai Hoa · Nút dây cuối', titleEn: 'Meihua’s Porch · The Last Knot',
     textVi: 'Mai Hoa không đưa đáp án. Bà đặt trước mặt ngươi cuộn điểm danh bảy nhà, một cái tên bị mưa làm nhòe. “Đọc nó đi,” bà nói. “Không phải để ta tin ngươi — để người bị quên biết còn có người gọi.” Linh căn phế của ngươi nghe thấy tiếng thở ở khoảng mực trắng.',
     textEn: 'Meihua offers no answer. She lays out the roll call of seven homes, one name blurred by rain. “Read it,” she says. “Not so I believe you — so the forgotten know someone still calls.” Your defective root hears a breath in the white space of the ink.',
