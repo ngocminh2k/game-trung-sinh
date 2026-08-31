@@ -8,6 +8,14 @@ const FIRST_SCENE_ID = 'letter_at_dawn'
 export type StoryRouteTarget = { locationId: string; nodeId: string }
 export type StoryRouteId = 'mercy' | 'wealth' | 'truth'
 
+// Lookup helpers are own-property only: flags come from parsed saves, so a
+// value like "toString" must not resolve through Object.prototype.
+const ROUTE_IDS: readonly StoryRouteId[] = ['mercy', 'wealth', 'truth']
+
+export function isStoryRouteId(value: unknown): value is StoryRouteId {
+  return typeof value === 'string' && (ROUTE_IDS as readonly string[]).includes(value)
+}
+
 export type StoryRouteEncounter = {
   route: StoryRouteId
   contactVi: string
@@ -34,7 +42,7 @@ export type StoryRouteEncounterChoice = {
   playerDelta: { progress?: number; qi?: number; gold?: number }
 }
 
-const ROUTE_TARGETS: Record<string, StoryRouteTarget> = {
+const ROUTE_TARGETS: Record<StoryRouteId, StoryRouteTarget> = {
   mercy: { locationId: 'village', nodeId: 'village-elder' },
   wealth: { locationId: 'market', nodeId: 'market-stalls' },
   truth: { locationId: 'market', nodeId: 'market-teahouse' },
@@ -95,7 +103,7 @@ function flagTrue(state: GameState, key: string): boolean {
 // it tips every later story decision in the route's own currency. Mercy banks
 // testimony, wealth banks coin, truth pays qi to keep the erased name. Applied
 // at Hồi III/IV (cave_witness, sect_trial) where the proof sits on the table.
-const ROUTE_PROOF_TIP: Record<string, {
+const ROUTE_PROOF_TIP: Record<StoryRouteId, {
   effects: Record<string, boolean>
   playerDelta: Partial<Record<'hp' | 'qi' | 'gold' | 'progress', number>>
 }> = {
@@ -112,21 +120,19 @@ export function currentStoryScene(state: GameState): StorySceneDef {
 export function storyRouteTarget(state: GameState): StoryRouteTarget | undefined {
   if (state.flags.story_route_ready === true || state.flags.story_route_arrived === true) return undefined
   const route = state.flags.story_route
-  return typeof route === 'string' ? ROUTE_TARGETS[route] : undefined
+  return isStoryRouteId(route) ? ROUTE_TARGETS[route] : undefined
 }
 
 export function storyRouteEncounter(state: GameState): StoryRouteEncounter | undefined {
   if (state.flags.story_route_arrived !== true || state.flags.story_route_ready === true) return undefined
   const route = state.flags.story_route
-  return typeof route === 'string' && route in ROUTE_ENCOUNTERS ? ROUTE_ENCOUNTERS[route as StoryRouteId] : undefined
+  return isStoryRouteId(route) ? ROUTE_ENCOUNTERS[route] : undefined
 }
 
 export function storyRouteProof(state: GameState): StoryRouteEncounter | undefined {
   if (state.flags.story_route_ready !== true) return undefined
   const route = state.flags.story_route
-  return typeof route === 'string' && state.flags.story_route_proof === route && route in ROUTE_ENCOUNTERS
-    ? ROUTE_ENCOUNTERS[route as StoryRouteId]
-    : undefined
+  return isStoryRouteId(route) && state.flags.story_route_proof === route ? ROUTE_ENCOUNTERS[route] : undefined
 }
 
 export function applyStoryRouteArrival(state: GameState, nodeId: string): GameState {
@@ -157,22 +163,27 @@ export function applyStoryEffects(state: GameState, choice: StoryChoiceDef): Gam
   // changes — every choice stays legal — only the consequence is route-shaped.
   const proof = state.flags.story_route_proof
   const tip =
-    (scene === 'cave_witness' || scene === 'sect_trial') && typeof proof === 'string'
+    (scene === 'cave_witness' || scene === 'sect_trial') && isStoryRouteId(proof)
       ? ROUTE_PROOF_TIP[proof]
       : undefined
   if (tip !== undefined) {
     for (const [key, value] of Object.entries(tip.effects)) flags[key] = value
   }
-  const delta = { ...choice.playerDelta, ...tip?.playerDelta }
+  // Compose choice and proof-tip deltas per-field so an authored cost
+  // is never overwritten by the proof's bonus on a colliding key.
+  const delta = { hp: 0, qi: 0, gold: 0, progress: 0 }
+  for (const key of ['hp', 'qi', 'gold', 'progress'] as const) {
+    delta[key] = (choice.playerDelta?.[key] ?? 0) + (tip?.playerDelta?.[key] ?? 0)
+  }
   return {
     ...state,
     flags,
     player: {
       ...state.player,
-      hp: Math.max(0, Math.min(MAX_HP, state.player.hp + (delta.hp ?? 0))),
-      qi: Math.max(0, Math.min(MAX_QI, state.player.qi + (delta.qi ?? 0))),
-      gold: Math.max(0, state.player.gold + (delta.gold ?? 0)),
-      progress: Math.max(0, state.player.progress + (delta.progress ?? 0)),
+      hp: Math.max(0, Math.min(MAX_HP, state.player.hp + delta.hp)),
+      qi: Math.max(0, Math.min(MAX_QI, state.player.qi + delta.qi)),
+      gold: Math.max(0, state.player.gold + delta.gold),
+      progress: Math.max(0, state.player.progress + delta.progress),
     },
   }
 }

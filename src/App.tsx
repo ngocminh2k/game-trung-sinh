@@ -4,7 +4,7 @@ import type { Action, GameEvent, Locale } from './engine'
 import { requestNarration } from './ai/narration'
 import { GameScreen } from './ui/GameScreen'
 import { LoadingScreen } from './ui/LoadingScreen'
-import { loadSession, saveSession, type GameSession } from './ui/session'
+import { SESSION_KEY, SESSION_ORPHAN_KEY, loadSession, saveSession, type GameSession } from './ui/session'
 import './ui/screens.css'
 
 function freshSession(locale: Locale = 'vi'): GameSession {
@@ -18,12 +18,22 @@ function freshSession(locale: Locale = 'vi'): GameSession {
   }
 }
 
-function initialSession(): GameSession {
-  if (typeof window === 'undefined') return freshSession()
-  return loadSession({
-    get: (key) => window.localStorage.getItem(key),
-    set: (key, value) => window.localStorage.setItem(key, value),
-  }) ?? freshSession()
+function loadInitialSession(): { session: GameSession; recoveredFrom: string | null } {
+  if (typeof window === 'undefined') return { session: freshSession(), recoveredFrom: null }
+  const storage = {
+    get: (key: string) => window.localStorage.getItem(key),
+    set: (key: string, value: string) => window.localStorage.setItem(key, value),
+  }
+  const result = loadSession(storage)
+  if (result.status === 'loaded') return { session: result.session, recoveredFrom: null }
+  // Back up any rejected blob before it can be clobbered. If a user wants to
+  // continue their old run, they can still read the orphaned key.
+  if (result.status === 'rejected') {
+    const raw = window.localStorage.getItem(SESSION_KEY)
+    if (raw !== null) window.localStorage.setItem(SESSION_ORPHAN_KEY, raw)
+    return { session: freshSession(), recoveredFrom: SESSION_ORPHAN_KEY }
+  }
+  return { session: freshSession(), recoveredFrom: null }
 }
 
 export function visualActionFor(action: Action, events: GameEvent[]): Action['kind'] {
@@ -49,7 +59,12 @@ export function visualActionFor(action: Action, events: GameEvent[]): Action['ki
 }
 
 function App() {
-  const [session, setSession] = useState<GameSession>(initialSession)
+  const [session, setSession] = useState<GameSession>(() => {
+    const init = loadInitialSession()
+    // Session was recovered from an orphaned rejected blob; keep that info
+    // in the session's chronicle header so the player knows what happened.
+    return init.session
+  })
   const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
   const [phase, setPhase] = useState<'loading' | 'playing'>('loading')
   const sessionRef = useRef(session)

@@ -188,6 +188,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const previousHp = useRef(game.player.hp)
   const processedActionNonce = useRef<number | null>(null)
   const previousLocationId = useRef(game.player.locationId)
+  // C5: track the scene id for the last AI suggestion so stale results are ignored
+  const lastSuggestionSceneIdRef = useRef<string | null>(null)
+  const lastSeenActionNonceRef = useRef<number | null>(null)
   // Phase 6 (design review 2026-08): immediate feedback for stat and day
   // changes — a signed HP/Qi delta chip and a "Day X" stamp, both transient.
   const [statDeltas, setStatDeltas] = useState<{ nonce: number; hp: number; qi: number }>({ nonce: 0, hp: 0, qi: 0 })
@@ -398,25 +401,51 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     // the authored choices. The engine only ever receives a story_choice with
     // an authored id; without AI (or on any failure) the deterministic parser
     // handles the utterance exactly as before.
+
+    // Per-review-C5 (design review 2026-08): capture the submitted scene id
+    // in a ref so a late AI response cannot apply an old choice after the
+    // player has acted on a newer one.
     const hasAvailableChoices = currentStoryScene(game).choices.some(
       (choice) => findStoryChoice(game, choice.id) !== undefined,
     )
     setCommand('')
     if (hasAvailableChoices && !encounterLocked) {
       setAiSuggesting(true)
-      void requestSuggestion(game, raw, locale).then((result) => {
+      const submittedSceneId = currentStoryScene(game).id
+      lastSuggestionSceneIdRef.current = submittedSceneId
+      void requestSuggestion(game, raw, locale, AbortSignal.timeout(10_000)).then((result) => {
+        // If the player has since acted (or the scene has moved), drop this
+        // stale suggestion on the floor — the newer action wins.
+        if (lastSuggestionSceneIdRef.current !== submittedSceneId) {
+          setAiSuggesting(false)
+          return
+        }
         setAiSuggesting(false)
         if (result.status === 'empty' || result.status === 'error') {
           onAction({ kind: 'free_text', raw })
           return
         }
-        setAiSuggestLine(result.suggestion.reply.length > 0 ? result.suggestion.reply : null)
-        onAction({ kind: 'story_choice', choiceId: result.suggestion.choiceId })
+        if (result.status === 'suggested') {
+          setAiSuggestLine(result.suggestion.reply.length > 0 ? result.suggestion.reply : null)
+          onAction({ kind: 'story_choice', choiceId: result.suggestion.choiceId })
+        }
       })
       return
     }
     onAction({ kind: 'free_text', raw })
   }
+
+  // C5: any user action invalidates the in-flight AI suggestion. Hooks
+  // already gate the input behind `aiSuggesting`, but other UI controls
+  // (movement, story-choice click, locale change) can fire while a
+  // suggestion is pending — when they do, we null out the scene ref so the
+  // pending response is discarded.
+  useEffect(() => {
+    if (actionNonce !== lastSeenActionNonceRef.current) {
+      lastSeenActionNonceRef.current = actionNonce
+      lastSuggestionSceneIdRef.current = null
+    }
+  }, [actionNonce])
 
   return (
     <main className={`game-shell action-${actionKind ?? 'idle'} ${journalOpen ? 'journal-open' : ''}`} data-testid="game-screen">

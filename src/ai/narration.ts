@@ -102,16 +102,25 @@ export function buildSuggestPayload(game: GameState, utterance: string, locale: 
   }
 }
 
-export async function requestSuggestion(game: GameState, utterance: string, locale: Locale): Promise<SuggestionResult> {
+// A proxy that accepts the request but never answers must not leave the
+// command form stuck on "Listening…" forever — bound the wait instead.
+const SUGGEST_TIMEOUT_MS = 10_000
+
+export async function requestSuggestion(game: GameState, utterance: string, locale: Locale, externalSignal?: AbortSignal): Promise<SuggestionResult> {
   if (import.meta.env.VITE_AI_NARRATION_ENABLED !== 'true') return { status: 'error' }
   const payload = buildSuggestPayload(game, utterance, locale)
   if (payload.choices.length === 0 || payload.playerUtterance.length === 0) return { status: 'empty' }
 
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), SUGGEST_TIMEOUT_MS)
+  const forwardAbort = () => controller.abort()
+  externalSignal?.addEventListener('abort', forwardAbort, { once: true })
   try {
     const response = await fetch('/api/narrate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     })
     if (!response.ok) return { status: 'error' }
     const data: unknown = await response.json()
@@ -125,6 +134,11 @@ export async function requestSuggestion(game: GameState, utterance: string, loca
       : ''
     return { status: 'suggested', suggestion: { choiceId: candidate.choiceId, reply } }
   } catch {
+    // Abort (timeout, external cancel) and network failures all recover to the
+    // deterministic parser.
     return { status: 'error' }
+  } finally {
+    clearTimeout(timer)
+    externalSignal?.removeEventListener('abort', forwardAbort)
   }
 }

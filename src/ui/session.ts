@@ -2,6 +2,7 @@ import { validateGameState } from '../engine'
 import type { GameState, Locale } from '../engine'
 
 export const SESSION_KEY = 'phe-can-ky:save:v1'
+export const SESSION_ORPHAN_KEY = 'phe-can-ky:save:v1:orphaned'
 
 export interface GameSession {
   game: GameState
@@ -18,22 +19,32 @@ export function saveSession(storage: SessionStorage, session: GameSession): void
   storage.set(SESSION_KEY, JSON.stringify(session))
 }
 
-export function loadSession(storage: SessionStorage): GameSession | null {
+/** Discriminated load result so a rejected save is never silently mistaken
+ * for a missing one (which would let a fresh run overwrite the old save). */
+export type LoadResult =
+  | { status: 'loaded'; session: GameSession }
+  | { status: 'missing' }
+  | { status: 'rejected' }
+
+export function loadSession(storage: SessionStorage): LoadResult {
   const raw = storage.get(SESSION_KEY)
-  if (typeof raw !== 'string') return null
+  if (typeof raw !== 'string') return { status: 'missing' }
 
   try {
     const candidate = JSON.parse(raw) as Partial<GameSession>
-    if (candidate.locale !== 'vi' && candidate.locale !== 'en') return null
+    if (candidate.locale !== 'vi' && candidate.locale !== 'en') return { status: 'rejected' }
     if (!Array.isArray(candidate.chronicle) || !candidate.chronicle.every((line) => typeof line === 'string')) {
-      return null
+      return { status: 'rejected' }
     }
     return {
-      game: validateGameState(candidate.game),
-      locale: candidate.locale,
-      chronicle: candidate.chronicle.slice(-80),
+      status: 'loaded',
+      session: {
+        game: validateGameState(candidate.game),
+        locale: candidate.locale,
+        chronicle: candidate.chronicle.slice(-80),
+      },
     }
   } catch {
-    return null
+    return { status: 'rejected' }
   }
 }

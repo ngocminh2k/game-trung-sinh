@@ -9,16 +9,37 @@ describe('browser game session', () => {
 
     saveSession(storage, { game, locale: 'en', chronicle: ['A new tale begins.'] })
 
-    expect(loadSession(storage)).toEqual({
-      game,
-      locale: 'en',
-      chronicle: ['A new tale begins.'],
-    })
+    const result = loadSession(storage)
+    expect(result.status).toBe('loaded')
+    if (result.status === 'loaded') {
+      expect(result.session).toEqual({
+        game,
+        locale: 'en',
+        chronicle: ['A new tale begins.'],
+      })
+    }
   })
 
-  it('rejects malformed or stale saved data instead of letting it corrupt a run', () => {
+  it('rejects malformed saved data instead of letting it corrupt a run', () => {
     const storage = new Map<string, string>([['phe-can-ky:save:v1', '{not-json']])
 
-    expect(loadSession(storage)).toBeNull()
+    expect(loadSession(storage).status).toBe('rejected')
+  })
+
+  it('reports "missing" for an empty store rather than faking a loaded session', () => {
+    const storage = new Map<string, string>()
+    expect(loadSession(storage).status).toBe('missing')
+  })
+
+  it('rejects saves with invalid locale or chronicle shape without returning a session', () => {
+    const badLocale = new Map<string, string>([
+      ['phe-can-ky:save:v1', JSON.stringify({ game: { version: 1 }, locale: 'fr', chronicle: [] })],
+    ])
+    expect(loadSession(badLocale).status).toBe('rejected')
+
+    const badChronicle = new Map<string, string>([
+      ['phe-can-ky:save:v1', JSON.stringify({ game: { version: 1 }, locale: 'vi', chronicle: 'nope' })],
+    ])
+    expect(loadSession(badChronicle).status).toBe('rejected')
   })
 })
