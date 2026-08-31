@@ -2,6 +2,7 @@ import { validateGameState } from '../engine'
 import type { GameState, Locale } from '../engine'
 
 export const SESSION_KEY = 'phe-can-ky:save:v1'
+export const LEGACY_SESSION_KEY = SESSION_KEY
 // C2 (design review 2026-08): back up any rejected blob before it can be
 // clobbered by a fresh run, so the player can still recover an old save.
 export const SESSION_ORPHAN_KEY = 'phe-can-ky:save:v1:orphaned'
