@@ -1,10 +1,11 @@
 import { validateGameState } from '../engine'
-import type { GameState, Locale } from '../engine'
+import type { GameDifficulty, GameState, Locale } from '../engine'
 
 export const SESSION_KEY = 'phe-can-ky:save:v1'
 export const LEGACY_SESSION_KEY = SESSION_KEY
 export const SLOTS_KEY = 'phe-can-ky:slots'
 export const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
+export const SETTINGS_KEY = 'phe-can-ky:settings'
 export const SLOT_IDS = [1, 2, 3, 4, 5] as const
 export type SlotId = (typeof SLOT_IDS)[number]
 
@@ -25,6 +26,43 @@ export interface SessionStorage {
   set(key: string, value: string): unknown
   delete?(key: string): unknown
   remove?(key: string): unknown
+}
+
+// Device-local player preferences, deliberately separate from game saves:
+// they follow the browser, not the cultivator. Never holds credentials — the
+// narration proxy's server-side env (AI_BASE_URL/AI_API_KEY/AI_MODEL) stays in
+// vite.config.ts; this only stores an on/off intent.
+export interface PlayerSettings {
+  /** Default difficulty offered to the next New Game run. */
+  difficulty: GameDifficulty
+  /** false = deterministic narration always; true = prefer the configured
+   *  proxy when the operator enabled it server-side. Falls back silently. */
+  narrationEnabled: boolean
+  locale: Locale
+}
+
+export const DEFAULT_SETTINGS: PlayerSettings = { difficulty: 'balanced', narrationEnabled: false, locale: 'vi' }
+
+function parseSettings(raw: string | null | undefined): PlayerSettings {
+  if (typeof raw !== 'string') return { ...DEFAULT_SETTINGS }
+  try {
+    const candidate = JSON.parse(raw) as Partial<PlayerSettings>
+    return {
+      difficulty: candidate.difficulty === 'story' || candidate.difficulty === 'hard' ? candidate.difficulty : 'balanced',
+      narrationEnabled: candidate.narrationEnabled === true,
+      locale: candidate.locale === 'en' ? 'en' : 'vi',
+    }
+  } catch {
+    return { ...DEFAULT_SETTINGS }
+  }
+}
+
+export function loadSettings(storage: SessionStorage): PlayerSettings {
+  return parseSettings(storage.get(SETTINGS_KEY))
+}
+
+export function saveSettings(storage: SessionStorage, settings: PlayerSettings): void {
+  storage.set(SETTINGS_KEY, JSON.stringify(settings))
 }
 
 function isSlotId(value: unknown): value is SlotId {

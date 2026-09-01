@@ -7,9 +7,11 @@ describe('browser game journey', () => {
   beforeEach(() => window.localStorage.clear())
   afterEach(() => cleanup())
 
-  // Boot: the slot screen appears first; select slot 1, then dismiss the loading screen.
+  // Boot: main menu → New Game → pick a System on the 5×2 grid → dismiss loading.
   const beginGame = () => {
-    fireEvent.click(screen.getByTestId('save-slot-1'))
+    fireEvent.click(screen.getByTestId('menu-new-game'))
+    fireEvent.click(screen.getByTestId('system-tile-sys_battle'))
+    fireEvent.click(screen.getByTestId('newgame-confirm'))
     fireEvent.click(screen.getByRole('button', { name: /nhấn|press/i }))
   }
 

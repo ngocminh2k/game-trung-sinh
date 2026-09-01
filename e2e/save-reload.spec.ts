@@ -1,12 +1,15 @@
 import { expect, test, type Page } from '@playwright/test'
-import { newGame, type GameState, type Locale } from '../src/engine'
+import { applyAction, newGame, type GameState, type Locale } from '../src/engine'
 
 const SLOTS_KEY = 'phe-can-ky:slots'
 const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
 type GameSession = { game: GameState; locale: Locale; chronicle: string[] }
 
+// Complete the two-step System boot so exploration fixtures open on the world,
+// not under the boot narration backdrop (legacy-boot saves keep that panel).
 function freshGame(update?: (g: GameState) => GameState): GameState {
-  const game = newGame('gate04-save-reload-seed')
+  let game = applyAction(newGame('gate04-save-reload-seed'), { kind: 'story_choice', choiceId: 'accept_system_mercy' }).state
+  game = applyAction(game, { kind: 'story_choice', choiceId: 'pick_sys_battle' }).state
   return update === undefined ? game : update(game)
 }
 
@@ -19,6 +22,8 @@ async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): 
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
+  // The app opens on the main menu; a save in slot 1 resumes through Load Game.
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
@@ -49,6 +54,7 @@ test('GATE-04 reload during exploration preserves location, hp, qi, and story fl
   )
   await expect(page.getByTestId('location-label')).toHaveText(/Misty Forest|Misty|Rừng Vân/i)
   await page.reload()
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
@@ -74,6 +80,7 @@ test('GATE-04 reload during route encounter preserves flags and the encounter sc
   const routeEncounter = page.getByTestId('route-encounter-screen')
   await expect(routeEncounter).toBeVisible()
   await page.reload()
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
@@ -98,6 +105,7 @@ test('GATE-04 reload during combat preserves encounter HP and the action can be 
   await page.getByRole('button', { name: 'Defend' }).click()
   await expect(encounter).toBeVisible()
   await page.reload()
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
@@ -126,6 +134,7 @@ test('GATE-04 reload with Journal open does not corrupt the world and the save r
   await page.getByRole('button', { name: 'Open Journey journal' }).click()
   await expect(page.getByTestId('inventory-inspector')).toBeVisible()
   await page.reload()
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
@@ -149,6 +158,7 @@ test('GATE-04 reload immediately before an ending still reaches that ending', as
   await openStoryPanel(page)
   await expect(page.locator('.story-choices .choice-button').first()).toBeVisible()
   await page.reload()
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()

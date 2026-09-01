@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { newGame, type GameState, type Locale } from '../src/engine'
+import { applyAction, newGame, type GameState, type Locale } from '../src/engine'
 
 const SLOTS_KEY = 'phe-can-ky:slots'
 const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
@@ -7,7 +7,8 @@ const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
 type GameSession = { game: GameState; locale: Locale; chronicle: string[] }
 
 function freshGame(update?: (game: GameState) => GameState): GameState {
-  const game = newGame('browser-acceptance-seed')
+  let game = applyAction(newGame('browser-acceptance-seed'), { kind: 'story_choice', choiceId: 'accept_system_mercy' }).state
+  game = applyAction(game, { kind: 'story_choice', choiceId: 'pick_sys_battle' }).state
   return update === undefined ? game : update(game)
 }
 
@@ -32,6 +33,7 @@ async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): 
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await beginPlaying(page)
 }
@@ -46,14 +48,16 @@ async function openDialogue(page: Page): Promise<void> {
 test('starts as exploration, travels without losing a day, and persists', async ({ page }) => {
   await openGame(page, freshGame(), 'vi')
   await expect(page.getByTestId('narration-panel')).toHaveCount(0)
-  await expect(page.locator('.day-chip')).toContainText('Ngày 1')
+  // Boot consumed two story-choice days; ordinary travel must not cost more.
+  await expect(page.locator('.day-chip')).toContainText('Ngày 3')
   await page.getByRole('button', { name: 'EN', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Local area map' })).toBeVisible()
   await page.keyboard.press('ArrowLeft')
   await page.keyboard.press('ArrowLeft')
   await expect(page.getByTestId('location-label')).toHaveText('Cloudgather Market')
-  await expect(page.locator('.day-chip')).toContainText('Day 1')
+  await expect(page.locator('.day-chip')).toContainText('Day 3')
   await page.reload()
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await beginPlaying(page)
   await expect(page.getByTestId('location-label')).toHaveText('Cloudgather Market')

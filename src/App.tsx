@@ -1,20 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, storyRouteEncounter } from './engine'
-import type { Action, GameEvent, Locale } from './engine'
+import type { Action, GameDifficulty, GameEvent, Locale } from './engine'
 import { ENDINGS } from './content'
 import { requestNarration } from './ai/narration'
 import { t } from './i18n'
 import { GameScreen } from './ui/GameScreen'
 import { LoadingScreen } from './ui/LoadingScreen'
+import { MainMenu, NewGameScreen, SettingsScreen } from './ui/MainMenu'
 import {
   SLOT_IDS,
+  DEFAULT_SETTINGS,
   deleteSaveSlot,
   getActiveSlot,
   loadSaveSlots,
+  loadSettings,
+  saveSettings,
   saveSlot,
   setActiveSlot,
   shouldAutoSave,
   type GameSession,
+  type PlayerSettings,
   type SaveSlot,
   type SessionStorage,
   type SlotId,
@@ -29,8 +34,12 @@ function browserStorage(): SessionStorage {
   }
 }
 
-function freshSession(locale: Locale = 'vi'): GameSession {
-  const game = newGame(DEFAULT_SEED)
+function freshSession(locale: Locale = 'vi', options: { systemId?: string | null; difficulty?: GameDifficulty } = {}): GameSession {
+  // Pre-menu new games carry the System pick straight into the state and open
+  // on the first authored scene — no boot-story actions, no days spent.
+  const game = options.systemId === undefined
+    ? newGame(DEFAULT_SEED)
+    : newGame(DEFAULT_SEED, { systemId: options.systemId, difficulty: options.difficulty ?? 'balanced', storyScene: 'letter_at_dawn' })
   return {
     game,
     locale,
@@ -127,15 +136,27 @@ export function visualActionFor(action: Action, events: GameEvent[]): Action['ki
   return 'free_text'
 }
 
+function firstFreeSlot(slots: Partial<Record<SlotId, SaveSlot>>): SlotId {
+  return SLOT_IDS.find((slotId) => slots[slotId] === undefined) ?? 1
+}
+
+/** New Game with every slot occupied: 0 is not a real slot — it means "ask
+ *  the player which save to overwrite" and routes through the slots screen. */
+const NEED_SLOT = 0 as unknown as SlotId
+
 function App() {
-  const bootLocale: Locale = typeof window !== 'undefined' && window.navigator.language.toLowerCase().startsWith('vi') ? 'vi' : 'en'
   const storage = typeof window === 'undefined' ? undefined : browserStorage()
+  const [settings, setSettings] = useState<PlayerSettings>(() => storage === undefined ? { ...DEFAULT_SETTINGS } : loadSettings(storage))
+  const [locale, setLocale] = useState<Locale>(settings.locale)
   const [slots, setSlots] = useState<Partial<Record<SlotId, SaveSlot>>>(() => storage === undefined ? {} : loadSaveSlots(storage))
   const [session, setSession] = useState<GameSession | null>(null)
   const [activeSlot, setActiveSlotState] = useState<SlotId | null>(() => storage === undefined ? null : getActiveSlot(storage))
   const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
   const [storyOpen, setStoryOpen] = useState(false)
-  const [phase, setPhase] = useState<'slots' | 'loading' | 'playing'>('slots')
+  const [phase, setPhase] = useState<'menu' | 'slots' | 'newgame' | 'settings' | 'loading' | 'playing'>('menu')
+  // New Game intent: slot chosen on the slots screen, awaiting its System pick.
+  const [pendingSlot, setPendingSlot] = useState<SlotId | null>(null)
+  const [runDifficulty, setRunDifficulty] = useState<GameDifficulty>(settings.difficulty)
   const sessionRef = useRef<GameSession | null>(null)
 
   useEffect(() => {
@@ -143,17 +164,61 @@ function App() {
     if (session !== null && activeSlot !== null) saveSlot(browserStorage(), activeSlot, session)
   }, [session, activeSlot])
 
+  const updateSettings = useCallback((next: PlayerSettings) => {
+    setSettings(next)
+    setLocale(next.locale)
+    if (typeof window !== 'undefined') saveSettings(browserStorage(), next)
+  }, [])
+
+  // Slot selection. Occupied slot resumes in place — unless we arrived from a
+  // new game that needs a target slot, in which case any pick is overwrite
+  // intent and goes through the System grid. Empty slot starts a new run.
   const selectSlot = useCallback((slotId: SlotId) => {
     const slot = slots[slotId]
-    const next = slot?.session ?? freshSession()
+    if (pendingSlot === NEED_SLOT) {
+      setPendingSlot(slotId)
+      setPhase('newgame')
+      return
+    }
+    if (slot !== undefined) {
+      const next = slot.session
+      const local = browserStorage()
+      setActiveSlot(local, slotId)
+      setActiveSlotState(slotId)
+      sessionRef.current = next
+      setSession(next)
+      setLocale(next.locale)
+      setStoryOpen(
+        next.game.flags.system_refused !== true
+        && (currentStoryScene(next.game).id === 'scene_transmigration' || currentStoryScene(next.game).id === 'scene_system_selection'),
+      )
+      setPhase('loading')
+      return
+    }
+    setPendingSlot(slotId)
+    setPhase('newgame')
+  }, [pendingSlot, slots])
+
+  const startNewGame = useCallback((systemId: string) => {
+    // No free slot and no explicit slot chosen: let the player pick (and thus
+    // choose which run to overwrite) instead of silently replacing slot 1.
+    if (pendingSlot === null && !SLOT_IDS.some((slotId) => slots[slotId] === undefined)) {
+      setPendingSlot(NEED_SLOT)
+      return
+    }
+    const slotId = pendingSlot ?? firstFreeSlot(slots)
     const local = browserStorage()
-    if (slot === undefined) saveSlot(local, slotId, next)
+    const next = freshSession(locale, { systemId, difficulty: runDifficulty })
+    saveSlot(local, slotId, next)
     setActiveSlot(local, slotId)
     setActiveSlotState(slotId)
+    setSlots(loadSaveSlots(local))
     sessionRef.current = next
     setSession(next)
+    setPendingSlot(null)
+    setStoryOpen(false)
     setPhase('loading')
-  }, [slots])
+  }, [locale, pendingSlot, runDifficulty, slots])
 
   const removeSlot = useCallback((slotId: SlotId) => {
     const local = browserStorage()
@@ -171,8 +236,12 @@ function App() {
     if (activeSlot !== null && shouldAutoSave(previous.game, result.state)) saveSlot(browserStorage(), activeSlot, next)
     setSession(next)
     const opensStory = result.events.some((event) => event.type === 'TALKED' || (event.type === 'NODE_REACHED' && event.kind === 'event'))
+    const bootScene = currentStoryScene(previous.game).id
+    const resolvesSystemBoot = action.kind === 'story_choice'
+      && (bootScene === 'scene_transmigration' || bootScene === 'scene_system_selection')
+      && (result.state.systemId != null || result.state.flags.system_refused === true)
     // A route encounter replaces the world view (no panel renders over it), so it owns the screen — never leave a ghost backdrop open beneath it.
-    setStoryOpen((open) => !result.state.terminal && (open || opensStory) && storyRouteEncounter(result.state) === undefined)
+    setStoryOpen((open) => !resolvesSystemBoot && !result.state.terminal && (open || opensStory) && storyRouteEncounter(result.state) === undefined)
     const visualAction = visualActionFor(action, result.events)
     setMotion((current) => ({ kind: visualAction, nonce: current.nonce + 1 }))
 
@@ -208,9 +277,9 @@ function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [act, storyOpen])
 
-  const changeLocale = useCallback((locale: Locale) => {
+  const changeLocale = useCallback((nextLocale: Locale) => {
     if (sessionRef.current === null) return
-    const next = { ...sessionRef.current, locale }
+    const next = { ...sessionRef.current, locale: nextLocale }
     sessionRef.current = next
     setSession(next)
   }, [])
@@ -223,7 +292,25 @@ function App() {
     setPhase('loading')
   }, [])
 
-  if (phase === 'slots') return <SaveSlotsScreen slots={slots} locale={bootLocale} onSelect={selectSlot} onDelete={removeSlot} />
+  const hasSave = Object.keys(slots).length > 0
+
+  if (phase === 'menu') return <MainMenu
+    locale={locale}
+    hasSave={hasSave}
+    onNewGame={() => { setPendingSlot(null); setRunDifficulty(settings.difficulty); setPhase('newgame') }}
+    onLoadGame={() => setPhase('slots')}
+    onSettings={() => setPhase('settings')}
+    onLocaleChange={(next) => updateSettings({ ...settings, locale: next })}
+  />
+  if (phase === 'settings') return <SettingsScreen locale={locale} settings={settings} onChange={updateSettings} onBack={() => setPhase('menu')} />
+  if (phase === 'newgame') return <NewGameScreen
+    locale={locale}
+    difficulty={runDifficulty}
+    onDifficulty={setRunDifficulty}
+    onPick={startNewGame}
+    onBack={() => { setPendingSlot(null); setPhase('menu') }}
+  />
+  if (phase === 'slots') return <SaveSlotsScreen slots={slots} locale={locale} onSelect={selectSlot} onDelete={removeSlot} />
   if (session === null) return null
   if (phase === 'loading') return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
   return <>

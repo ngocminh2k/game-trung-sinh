@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { newGame } from '../src/engine'
 import type { Action } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
+import { newGame } from './test-utils'
 
 afterEach(() => {
   cleanup()

@@ -31,6 +31,7 @@ import {
   STORAGE_CAPACITY,
   TRAIN_HP_COST,
   TRAIN_QI_COST,
+  damageMultiplier,
   hashSeed,
   newGame,
   techniqueGuard,
@@ -51,6 +52,7 @@ import {
   trainProgressGain,
 } from './stats'
 import { canAcceptQuest, canCompleteQuest, tickQuestSteps } from './quests'
+import { queuePush } from './system'
 import { applyStoryEffects, applyStoryRouteArrival, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding, storyRouteEncounter } from './story'
 import { applyRomanceChoice, findRomanceChoice, hasOtherCommitment } from './romance'
 import { storageUnitsUsed } from './storage'
@@ -237,6 +239,8 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doBuy(state, action.itemId, action.qty ?? 1)
     case 'sell':
       return doSell(state, action.itemId, action.qty ?? 1)
+    case 'convert_currency':
+      return doConvertCurrency(state, action.from, action.qty)
     case 'use_item':
       return doUseItem(state, action.itemId, action.qty ?? 1)
     case 'store':
@@ -251,6 +255,12 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doAcceptQuest(state, action.questId)
     case 'turn_in_quest':
     case 'complete_quest':
+      return doCompleteQuest(state, action.questId)
+    // System Layer: panel accept/turn-in go through the same cores — the
+    // widened canAccept/canComplete gates already skip NPC/location checks.
+    case 'system_accept_quest':
+      return doAcceptQuest(state, action.questId)
+    case 'system_turn_in_quest':
       return doCompleteQuest(state, action.questId)
     case 'choose_talent':
       return doChooseTalent(state, action.talentId)
@@ -340,7 +350,8 @@ function doMove(state: GameState, direction: Direction): R {
         }
         events.push({ type: 'WARD_USED', itemId: ITEM_TALISMAN })
       } else {
-        const [damage, nextRng] = damageRoll(s.rng, danger)
+        const [rolled, nextRng] = damageRoll(s.rng, danger)
+        const damage = Math.max(1, Math.round(rolled * damageMultiplier(s.difficulty ?? 'balanced')))
         s = { ...s, rng: nextRng }
         const newHp = Math.max(0, s.player.hp - damage)
         s = { ...s, player: { ...s.player, hp: newHp } }
@@ -511,12 +522,27 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
   const price = def?.buyPrice ?? null
   if (price === null || state.player.stage < (def?.requiredStage ?? 0)) return err('ITEM_UNAVAILABLE')
   const totalCost = Math.max(0, price - charmPriceDiscount(state.player.attrs.charm)) * qty
-  if (state.player.gold < totalCost) return err('INSUFFICIENT_GOLD')
+  // Silver fallback (T02 economy): gold is spent first; any shortfall is
+  // covered from silver at the authored 10-per-gold rate.
+  let goldSpent = 0
+  let silverSpent = 0
+  if (state.player.gold >= totalCost) {
+    goldSpent = totalCost
+  } else {
+    const shortfallSilver = (totalCost - state.player.gold) * 10
+    if ((state.player.silver ?? 0) < shortfallSilver) return err('INSUFFICIENT_GOLD')
+    goldSpent = state.player.gold
+    silverSpent = shortfallSilver
+  }
   const events: GameEvent[] = []
   state = spendDay(state, events)
   const s: GameState = {
     ...state,
-    player: { ...state.player, gold: state.player.gold - totalCost },
+    player: {
+      ...state.player,
+      gold: state.player.gold - goldSpent,
+      silver: (state.player.silver ?? 0) - silverSpent,
+    },
     inventory: bump(state.inventory, itemId, qty),
     flags: { ...state.flags, buyCount: flagNum(state.flags, 'buyCount') + qty },
   }
@@ -524,6 +550,44 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
     ok: true,
     state: s,
     events: [...events, { type: 'BOUGHT', itemId, qty, goldPaid: totalCost }],
+  }
+}
+
+/** The System produces notifications only while a protocol is active (canon §3: refusal silences it). */
+function systemIsActive(state: GameState): boolean {
+  return state.systemId != null && state.flags.system_refused !== true
+}
+
+/**
+ * Currency exchange at the market (T02 economy, 3 layers).
+ * Authored rates: 1 spirit stone = 10 gold = 100 silver.
+ */
+function doConvertCurrency(state: GameState, from: 'spiritStone' | 'silver', qty: number): R {
+  if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION')
+  if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
+  if (from === 'spiritStone') {
+    const have = state.player.spiritStones ?? 0
+    if (have < qty) return err('INSUFFICIENT_SPIRIT_STONES')
+    const goldGain = qty * 10
+    return {
+      ok: true,
+      state: {
+        ...state,
+        player: { ...state.player, spiritStones: have - qty, gold: state.player.gold + goldGain },
+      },
+      events: [{ type: 'CURRENCY_CONVERTED', from, qty, goldGain }],
+    }
+  }
+  const have = state.player.silver ?? 0
+  const cost = qty * 10
+  if (have < cost) return err('INSUFFICIENT_SILVER')
+  return {
+    ok: true,
+    state: {
+      ...state,
+      player: { ...state.player, silver: have - cost, gold: state.player.gold + qty },
+    },
+    events: [{ type: 'CURRENCY_CONVERTED', from, qty, goldGain: qty }],
   }
 }
 
@@ -752,7 +816,10 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
   const enemy = getEnemy(state.encounter.enemyId)
   if (enemy === undefined) return err('ITEM_UNAVAILABLE')
   const [variance, rng] = nextInt(state.rng, 0, 2)
-  const amount = Math.max(1, enemy.attack + variance - equippedDefenseBonus(state) - talentDefenseBonus(state) - state.encounter.guard)
+  // Difficulty scales only what the enemy deals, after defences — one central
+  // knob (damageMultiplier) for the whole combat path.
+  const raw = (enemy.attack + variance - equippedDefenseBonus(state) - talentDefenseBonus(state) - state.encounter.guard) * damageMultiplier(state.difficulty ?? 'balanced')
+  const amount = Math.max(1, Math.round(raw))
   const hp = Math.max(0, state.player.hp - amount)
   const s: GameState = {
     ...state,
@@ -933,11 +1000,24 @@ function doStoryChoice(state: GameState, choiceId: string): R {
   const scene = currentStoryScene(state)
   const choice = findStoryChoice(state, choiceId)
   if (choice === undefined) return err('STORY_CHOICE_UNAVAILABLE')
+  // System Layer hard-lock: the System pick is a one-time boot decision.
+  if (typeof choice.effects?.systemId === 'string' && state.systemId != null) {
+    return err('STORY_CHOICE_UNAVAILABLE')
+  }
   const events: GameEvent[] = []
   state = spendDay(state, events)
   let s = applyStoryEffects(state, choice)
+  const chosen = choice.effects?.systemId
+  if (typeof chosen === 'string') {
+    s = { ...s, systemId: chosen }
+    events.push({ type: 'SYSTEM_CHOSEN', systemId: chosen })
+  }
   if (choice.final === true) {
     s = { ...s, flags: { ...s.flags, story_ending: resolveStoryEnding(s, choiceId) } }
+  }
+  // T09 (canon §4, beat C6): pressing on the System's origin gets the authored dodge.
+  if (choiceId === 'ask_system_origin' && systemIsActive(state)) {
+    s = { ...s, systemQueue: queuePush(s.systemQueue ?? [], 'sys_dodge') }
   }
   return {
     ok: true,
@@ -982,7 +1062,11 @@ function doAcceptQuest(state: GameState, questId: string): R {
     flags,
     quests: { ...state.quests, [questId]: { status: 'active', step: 0 } },
   }
-  return { ok: true, state: s, events: [{ type: 'QUEST_ACCEPTED', questId }] }
+  // T14/canon §3: the System announces every loaded quest while it is active.
+  const systemQueue = systemIsActive(state)
+    ? queuePush(state.systemQueue ?? [], 'sys_quest_loaded', { quest: def.nameVi, questEn: def.nameEn, days: def.deadlineDays ?? 0 })
+    : state.systemQueue
+  return { ok: true, state: { ...s, systemQueue }, events: [{ type: 'QUEST_ACCEPTED', questId }] }
 }
 
 function doCompleteQuest(state: GameState, questId: string): R {
@@ -1016,12 +1100,37 @@ function doCompleteQuest(state: GameState, questId: string): R {
     ...state,
     quests: { ...state.quests, [questId]: { status: 'completed', step: stepIdx } },
     flags,
-    player: { ...state.player, gold: state.player.gold + def.rewardGold },
+    player: {
+      ...state.player,
+      gold: state.player.gold + def.rewardGold,
+      // System Layer: system quests may pay spirit stones (authored quests
+      // never set the field, so this is a no-op for them).
+      spiritStones: (state.player.spiritStones ?? 0) + (def.rewardSpiritStones ?? 0),
+    },
     inventory,
   }
+  // T14/canon §3: reward reports never misstate the amount (canon §8).
+  const rewardPartsVi: string[] = []
+  const rewardPartsEn: string[] = []
+  if (def.rewardGold > 0) {
+    rewardPartsVi.push(`${def.rewardGold} vàng`)
+    rewardPartsEn.push(`${def.rewardGold} gold`)
+  }
+  for (const [itemId, qty] of Object.entries(def.rewardItems)) {
+    const item = getItem(itemId)
+    rewardPartsVi.push(`${item?.nameVi ?? itemId} ×${qty}`)
+    rewardPartsEn.push(`${item?.nameEn ?? itemId} ×${qty}`)
+  }
+  if ((def.rewardSpiritStones ?? 0) > 0) {
+    rewardPartsVi.push(`${def.rewardSpiritStones} linh thạch`)
+    rewardPartsEn.push(`${def.rewardSpiritStones} spirit stones`)
+  }
+  const systemQueue = systemIsActive(state)
+    ? queuePush(state.systemQueue ?? [], 'sys_reward', { reward: rewardPartsVi.join(', '), rewardEn: rewardPartsEn.join(', ') })
+    : state.systemQueue
   return {
     ok: true,
-    state: s,
+    state: { ...s, systemQueue },
     events: [{ type: 'QUEST_COMPLETED', questId, rewardGold: def.rewardGold }],
   }
 }

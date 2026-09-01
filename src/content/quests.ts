@@ -1,4 +1,5 @@
 import type { QuestDef } from '../engine/content-types'
+import { SYSTEM_QUESTS } from './system-quests'
 
 const turnIn = (id: string, vi: string, en: string, completeItems?: Record<string, number>, completeFlags?: string[]): QuestDef['steps'][number] => ({
   id, descVi: vi, descEn: en, completeItems, completeFlags, isTurnInStep: true,
@@ -645,6 +646,7 @@ export const QUESTS: QuestDef[] = [
     { id: 'visit_cuu', descVi: 'Hỏi tư tế tro xương Cửu về tên bị xóa.', descEn: 'Ask ash priest Cuu about erased names.', completeNpcTalk: 'n_ash_priest_cuu', isTurnInStep: false },
     turnIn('report', 'Đem điều Cửu nói về cho Bạch.', 'Bring Cuu\'s words back to Bach.'),
   ] },
+  ...SYSTEM_QUESTS,
 ]
 
 export function getQuest(questId: string): QuestDef | undefined {

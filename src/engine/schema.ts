@@ -61,6 +61,8 @@ export const GameStateSchema = z.object({
       }),
     )
     .default([]),
+  systemId: z.string().min(1).nullable().default(null),
+  difficulty: z.enum(['story', 'balanced', 'hard']).default('balanced'),
   // Pre-RPG v1 saves omitted these fields. They keep their existing inventory
   // and receive no retroactive gear/talent bonus; a basic attack remains so a
   // migrated save can enter combat without becoming unwinnable.
@@ -250,7 +252,7 @@ const QuestStepSchema = z.object({
 
 export const QuestDefSchema = z.object({
   id: z.string().min(1),
-  giverNpcId: z.string().min(1),
+  giverNpcId: z.string().min(1).nullable(),
   nameVi: z.string().min(1),
   nameEn: z.string().min(1),
   descVi: z.string().min(1),
@@ -265,6 +267,9 @@ export const QuestDefSchema = z.object({
   deadlineDays: z.number().int().min(1).optional(),
   nextQuestId: z.string().min(1).optional(),
   storySceneNextId: z.string().min(1).optional(),
+  requiredSystemId: z.string().min(1).optional(),
+  difficulty: z.number().int().min(1).max(10).optional(),
+  rewardSpiritStones: z.number().int().min(0).optional(),
 })
 
 export const AchievementDefSchema = z.object({

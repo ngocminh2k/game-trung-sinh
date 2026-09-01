@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { DEADLINE_DAYS, applyAction, newGame } from '../src/engine'
+import { DEADLINE_DAYS, applyAction } from '../src/engine'
 import type { GameState } from '../src/engine'
-import { navTo } from './test-utils'
+import { navTo, newGame } from './test-utils'
 import { deriveObjective, nightDeadlineRemaining } from '../src/ui/objective'
 
 function gatherUntilDeadline(seed: string): GameState {

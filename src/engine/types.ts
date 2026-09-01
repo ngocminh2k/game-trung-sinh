@@ -1,5 +1,9 @@
 export type Locale = 'vi' | 'en'
 
+/** Combat-pressure preset. 'balanced' reproduces the pre-menu engine rules
+ *  exactly; 'story' softens enemy output; 'hard' sharpens it. Never feeds RNG. */
+export type GameDifficulty = 'story' | 'balanced' | 'hard'
+
 export interface Attrs {
   body: number
   mind: number
@@ -78,6 +82,12 @@ export interface GameState {
   companionId?: string | null
   /** 【Hệ Thống】 notification queue — reducer pushes, T14 renders (story canon). */
   systemQueue?: Array<{ id: string; vars: Record<string, string | number> }>
+  /** Chosen System id (system-defs). null before boot; locked once set. */
+  systemId?: string | null
+  /** Combat pressure preset, chosen at new-game setup and persisted per save.
+   *  Optional so older saves stay valid; the schema default is 'balanced'
+   *  (byte-identical to the pre-difficulty engine rules). */
+  difficulty?: GameDifficulty
   spiritRoot: SpiritRootInfo
   inventory: Record<string, number>
   storage: Record<string, number>
@@ -105,6 +115,7 @@ export type Action =
   | { kind: 'refine'; recipeId: string }
   | { kind: 'buy'; itemId: string; qty?: number }
   | { kind: 'sell'; itemId: string; qty?: number }
+| { kind: 'convert_currency'; from: 'spiritStone' | 'silver'; qty: number }
   | { kind: 'use_item'; itemId: string; qty?: number }
   | { kind: 'store'; itemId: string; qty: number }
   | { kind: 'withdraw'; itemId: string; qty: number }
@@ -112,6 +123,9 @@ export type Action =
   | { kind: 'talk'; npcId: string }
   | { kind: 'accept_quest'; questId: string }
   | { kind: 'turn_in_quest'; questId: string }
+  /** System Layer: accept/turn-in from the System panel (no NPC/location). */
+  | { kind: 'system_accept_quest'; questId: string }
+  | { kind: 'system_turn_in_quest'; questId: string }
   /** Legacy alias retained for existing commands and saves. */
   | { kind: 'complete_quest'; questId: string }
   | { kind: 'choose_talent'; talentId: string }
@@ -138,6 +152,8 @@ export const ERROR_CODES = [
   'MOVE_BLOCKED',
   'NOT_AT_LOCATION',
   'INSUFFICIENT_GOLD',
+  'INSUFFICIENT_SILVER',
+  'INSUFFICIENT_SPIRIT_STONES',
   'INSUFFICIENT_QI',
   'NO_ITEM',
   'ITEM_NOT_USABLE',
@@ -173,6 +189,7 @@ export type GameEvent =
   | { type: 'ITEM_USED'; itemId: string; hpDelta: number; qiDelta: number }
   | { type: 'BOUGHT'; itemId: string; qty: number; goldPaid: number }
   | { type: 'SOLD'; itemId: string; qty: number; goldGain: number }
+  | { type: 'CURRENCY_CONVERTED'; from: 'spiritStone' | 'silver'; qty: number; goldGain: number }
   | { type: 'STORED'; itemId: string; qty: number }
   | { type: 'WITHDRAWN'; itemId: string; qty: number }
   | { type: 'DRAW_RESULT'; tier: 'grand' | 'major' | 'minor' | 'herb' | 'none'; goldDelta: number; itemId?: string }
@@ -183,6 +200,7 @@ export type GameEvent =
   | { type: 'ROMANCE_NODE'; npcId: string; nodeId: string; choiceId: string; titleVi: string; titleEn: string }
   | { type: 'QUEST_ACCEPTED'; questId: string }
   | { type: 'QUEST_COMPLETED'; questId: string; rewardGold: number }
+  | { type: 'SYSTEM_CHOSEN'; systemId: string }
   | { type: 'TALENT_CHOSEN'; talentId: string }
   | { type: 'TECHNIQUE_LEARNED'; techniqueId: string; level: number }
   | { type: 'EQUIPPED'; itemId: string; slot: EquipmentSlot }

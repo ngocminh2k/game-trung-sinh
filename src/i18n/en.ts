@@ -65,6 +65,8 @@ export const EN: Dict = {
     MOVE_BLOCKED: 'Mountains or water that way — impassable.',
     NOT_AT_LOCATION: 'You are not in the right place.',
     INSUFFICIENT_GOLD: 'Not enough gold.',
+  INSUFFICIENT_SILVER: 'Not enough silver.',
+  INSUFFICIENT_SPIRIT_STONES: 'Not enough spirit stones.',
     INSUFFICIENT_QI: 'Your qi is spent; rest first.',
     NO_ITEM: 'You do not carry that item.',
     ITEM_NOT_USABLE: 'That item cannot be used directly.',
@@ -90,8 +92,18 @@ export const EN: Dict = {
   ui: {
     loading: { aria: 'Loading — press to begin', subtitle: 'A Reborn-Cultivator Saga · The Broken Root', begin: 'Press to begin' },
     saveSlots: { title: 'Choose your cultivation life', subtitle: 'Each record keeps a separate path.', slotName: 'Save {{slot}}', empty: '— empty —', start: 'Begin new life', continue: 'Continue', day: 'Day {{day}}', stage: 'Stage: {{stage}}', ending: 'Ending: {{ending}}', saved: 'Saved {{time}}', justNow: 'just now', minutesAgo: '{{count}} minutes ago', hoursAgo: '{{count}} hours ago', daysAgo: '{{count}} days ago', delete: 'Delete save', deleteConfirm: 'Press again to delete' },
+    newGame: { title: 'Choose Your System', subtitle: 'Ten Systems answer at dawn. Only one vow stays with you — choose before you begin.', confirm: 'Seal the Contract' },
+    settings: {
+      difficultyHint: 'Applies to the next new game. An active run keeps its own difficulty.',
+      difficulty: { story: 'Story', balanced: 'Balanced', hard: 'Hard' },
+      narrationTitle: 'System (AI)',
+      narrationHint: 'The System uses the server proxy configured by the operator. Without a proxy, the System still replies in its fixed voice.',
+      narrationOn: 'Proxy: on',
+      narrationOff: 'Proxy: off',
+    },
     death: { aria: 'Game over', title: 'This Life Closes', restart: 'Be Reborn', dismiss: 'Step Back' },
     codex: { title: 'Wandering Codex', kicker: 'Content & artwork', progress: 'Asset loading progress', registered: 'Assets registered in the game', packsReady: 'packs ready', packs: 'Asset packs', entries: 'Codex entries', open: 'Open', view: 'View', kind: { npc: 'Character', item: 'Item', talent: 'Talent', technique: 'Technique', location: 'Location' }, status: { queued: 'Queued', loading: 'Loading', ready: 'Ready', failed: 'Needs retry' } },
     objective: { title: 'Objective', battle: 'In battle: strike or defend', danger: 'Local danger: face {{enemy}} in {{location}}', progress: 'Cultivate to build realm progress ({{progress}}/120)', breakthrough: 'Progress is full — seek a breakthrough to Tier {{stage}}', beats: { letter_at_dawn: 'Read the letter and decide how to meet Elder Meihua. Your broken root gathers qi slowly, but it can feel cracks in sealed memories.', market_rumor: 'Go to Cloudgather Market and decide who deserves your trust before the twelfth night.', cave_witness: 'Find the Sealed Cave; Ha’s testimony needs someone willing to hear it.', sect_trial: 'Carry the truth to Hidden Cloud, then decide who should own the village’s memory.', mirror_choice: 'Face the prior life: the enemy you pursue may be yourself.', last_page: 'Make the final decision about the mirror — no one else may choose for you.' } },
   },
+  system: { panelTitle: 'System', chatPlaceholder: 'Ask the System...', acceptQuest: 'Accept quest', turnIn: 'Turn in', difficulty: 'Difficulty', noSystem: 'No System chosen', poolHeader: 'Secret quests', chatFallback: 'The System is silent.', chooseOne: 'Choose one System', locked: 'Locked', refused: 'You refused the System.' },
 }

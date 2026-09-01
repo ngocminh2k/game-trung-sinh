@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { deriveObjective } from '../src/ui/objective'
-import { newGame } from '../src/engine'
+import { newGame } from './test-utils'
 import type { Locale } from '../src/engine'
 
 function seededState() {

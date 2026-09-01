@@ -375,6 +375,273 @@
 .death-dismiss:hover { border-color: #e9e2d2; }
 
 /* ===========================================================================
+   MAIN MENU — rice-paper title scene, hanging action stack, vermilion seal
+   =========================================================================== */
+.menu-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 32px 24px;
+  font-family: Spectral, 'Noto Serif', Georgia, serif;
+  background: radial-gradient(circle at 50% 30%, #f5eeda 0%, #e9dfc4 46%, #cdbf9f 100%);
+}
+.menu-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 24% 20%, rgba(120, 150, 120, .18), transparent 40%),
+    radial-gradient(circle at 80% 84%, rgba(110, 90, 60, .16), transparent 46%),
+    repeating-linear-gradient(0deg, rgba(80, 70, 50, .04) 0 1px, transparent 1px 5px);
+}
+.menu-seal {
+  position: absolute;
+  top: 8%;
+  right: 7%;
+  width: min(12vmin, 92px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 3px solid rgba(179, 64, 42, .75);
+  color: rgba(179, 64, 42, .85);
+  font-size: min(6vmin, 44px);
+  font-weight: 700;
+  transform: rotate(6deg);
+  opacity: .85;
+  pointer-events: none;
+  font-family: 'Noto Serif', serif;
+}
+.menu-panel {
+  position: relative;
+  width: min(560px, 100%);
+  display: grid;
+  gap: 6px;
+  padding: 42px 46px;
+  border: 1px solid rgba(52, 76, 60, .28);
+  background: rgba(255, 253, 241, .72);
+  box-shadow: 0 18px 40px rgba(62, 54, 39, .12);
+}
+.menu-kicker {
+  margin: 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #6d7a6c;
+}
+.menu-panel h1 {
+  margin: 2px 0 0;
+  font-size: clamp(28px, 5vmin, 44px);
+  color: #1d3328;
+}
+.menu-tagline {
+  margin: 0 0 18px;
+  font-size: 14px;
+  font-style: italic;
+  color: #5d6358;
+}
+.menu-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.menu-action {
+  border: none;
+  border-bottom: 1px solid rgba(40, 85, 62, .35);
+  padding: 8px 6px;
+  background: transparent;
+  text-align: left;
+  font-family: Spectral, 'Noto Serif', Georgia, serif;
+  font-size: clamp(20px, 3vmin, 26px);
+  color: #244c38;
+  transition: color .13s ease, border-color .13s ease, transform .13s ease;
+}
+.menu-action:hover:not(:disabled) { color: #9d3e2e; border-bottom-color: #9d3e2e; transform: translateX(4px); }
+.menu-action:disabled { opacity: .45; cursor: not-allowed; }
+.menu-action:focus-visible,
+.menu-back:focus-visible,
+.menu-locale button:focus-visible,
+.system-tile:focus-visible,
+.difficulty-option:focus-visible,
+.narration-switch:focus-visible { outline: 3px solid #bb7c28; outline-offset: 2px; }
+.menu-locale {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.menu-locale button {
+  border: 1px solid #b9b59c;
+  padding: 4px 12px;
+  background: transparent;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #315c43;
+}
+.menu-locale button[aria-pressed='true'] { border-color: #28553e; background: #28553e; color: #fdf6e7; }
+.menu-back {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  border: 1px solid rgba(52, 76, 60, .4);
+  padding: 5px 12px;
+  background: transparent;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #315c43;
+}
+.menu-back:hover { border-color: #28553e; background: rgba(40, 85, 62, .08); }
+
+/* ---- New Game: 5×2 System reliquary grid + difficulty ---- */
+.menu-newgame-panel { width: min(1040px, 100%); }
+.menu-newgame-panel h1 { font-size: clamp(24px, 4vmin, 36px); }
+.system-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin: 4px 0 18px;
+}
+.system-tile {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 14px 12px 12px;
+  border: 1px solid #b9b59c;
+  background: rgba(255, 253, 241, .55);
+  text-align: left;
+  min-height: 118px;
+  transition: border-color .13s ease, background .13s ease, box-shadow .13s ease;
+}
+.system-tile:hover { border-color: #497956; background: #f8f4e4; }
+.system-tile[data-selected='true'] {
+  border-color: #b3402a;
+  background: #faf0e0;
+  box-shadow: inset 0 0 0 1px #b3402a;
+}
+.system-tile[data-selected='true']::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #b3402a;
+  border-radius: 50%;
+  color: #b3402a;
+  font-size: 13px;
+  font-weight: 700;
+}
+.system-tile-order {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  color: #9d3e2e;
+}
+.system-tile-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1d3328;
+}
+.system-tile-persona {
+  font-size: 11.5px;
+  font-style: italic;
+  line-height: 1.45;
+  color: #5d6358;
+}
+.newgame-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+.difficulty-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.difficulty-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #6d7a6c;
+}
+.difficulty-option {
+  border: 1px solid #b9b59c;
+  padding: 6px 14px;
+  background: transparent;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #315c43;
+}
+.difficulty-option[aria-checked='true'] { border-color: #28553e; background: #28553e; color: #fdf6e7; }
+.menu-confirm { justify-self: end; font-size: clamp(17px, 2.4vmin, 21px); }
+
+/* ---- Settings: bound parchment groups ---- */
+.menu-settings-panel { width: min(620px, 100%); }
+.settings-group {
+  display: grid;
+  gap: 6px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(52, 76, 60, .18);
+}
+.settings-group:first-of-type { border-top: none; }
+.settings-group h2 {
+  margin: 0;
+  font-size: 17px;
+  color: #244c38;
+}
+.settings-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: #5d6358;
+}
+.narration-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  padding: 6px 0;
+  background: transparent;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #315c43;
+}
+.narration-track {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  border: 1px solid #b9b59c;
+  background: rgba(255, 253, 241, .8);
+  transition: background .15s ease;
+}
+.narration-track i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: #8a8574;
+  transition: transform .15s ease, background .15s ease;
+}
+.narration-switch[aria-checked='true'] .narration-track { background: #28553e; }
+.narration-switch[aria-checked='true'] .narration-track i { transform: translateX(20px); background: #c9a24a; }
+
+/* Wide System tiles need two rows of five on desktop; stack below it. */
+@media (max-width: 880px) {
+  .system-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .menu-panel { padding: 30px 26px; }
+  .menu-seal { right: 4%; }
+}
+
+/* ===========================================================================
    MOTION (only when the player has not requested reduced motion)
    =========================================================================== */
 @media (prefers-reduced-motion: no-preference) {
@@ -428,6 +695,8 @@
 
   /* death */
   .death-vignette { animation: vig-breathe 6s ease-in-out infinite; }
+  /* menu */
+  .menu-panel { opacity: 0; animation: fade-up .7s ease-out both; }
   .death-enso-ring {
     stroke-dasharray: 578;
     stroke-dashoffset: 578;

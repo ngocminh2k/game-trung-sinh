@@ -46,3 +46,10 @@ or story outcomes.
 
 Generated art is reviewed before it enters `src/assets/art`; credentials and
 generation service keys are never stored in the repository.
+
+## Reviewed map badges
+
+`src/assets/art/location-icons/` contains 16 reviewed 9router-generated
+PNG destination badges for Scenario I locations. They are display-only map art:
+location IDs, exits, movement, and saves remain authored deterministic data.
+No 9router credential or endpoint is stored in the repository.

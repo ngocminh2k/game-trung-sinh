@@ -11,6 +11,8 @@ interface SlotEnvelope {
 
 async function bootSlots(page: Page): Promise<void> {
   await page.goto('/')
+  // The app opens on the main menu; Load Game reveals the five-slot screen.
+  await page.getByTestId('menu-load-game').click()
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
 }
 
@@ -26,14 +28,17 @@ async function readActive(page: Page): Promise<string | null> {
 test('W1 save-slots: shows the slot screen on first boot and a fresh slot is empty', async ({ page }) => {
   await bootSlots(page)
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
-  await expect(page.getByText(/empty/i).first()).toBeVisible()
-  await expect(page.getByText(/Begin new life/i).first()).toBeVisible()
+  // Default device settings are Vietnamese: fresh slots read "— trống —".
+  await expect(page.getByText(/trống|empty/i).first()).toBeVisible()
+  await expect(page.getByText(/Bắt đầu mới|Begin new life/i).first()).toBeVisible()
 })
 
 test('W1 save-slots: selecting an empty slot starts a new game, travel advances day, reload resumes the same slot', async ({ page }) => {
   await bootSlots(page)
-  // Click the first slot's primary action — opens a fresh life in slot 1.
+  // Click the first slot's primary action — empty slot routes through the System grid.
   await page.locator('[data-save-slot="1"]').click()
+  await page.getByTestId('system-tile-sys_battle').click()
+  await page.getByTestId('newgame-confirm').click()
   // Loading screen shows before the play surface; press through it.
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
@@ -47,6 +52,7 @@ test('W1 save-slots: selecting an empty slot starts a new game, travel advances 
 
   // Reload and verify the same slot remains active and the autosave captured the move.
   await page.reload()
+  await page.getByTestId('menu-load-game').click()
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
   expect(await readActive(page)).toBe('1')
   const slots = await readSlots(page)
@@ -60,6 +66,7 @@ test('W1 save-slots: legacy session is migrated into slot 1 and the active slot 
     window.localStorage.setItem('phe-can-ky:save:v1', JSON.stringify(legacy))
   })
   await page.goto('/')
+  await page.getByTestId('menu-load-game').click()
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
   expect(await readActive(page)).toBe('1')
   const slots = await readSlots(page)
@@ -70,13 +77,16 @@ test('W1 save-slots: legacy session is migrated into slot 1 and the active slot 
 test('W1 save-slots: deleting the active slot removes it and clears the active pointer', async ({ page }) => {
   await bootSlots(page)
   await page.locator('[data-save-slot="1"]').click()
+  await page.getByTestId('system-tile-sys_battle').click()
+  await page.getByTestId('newgame-confirm').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
   await page.reload()
+  await page.getByTestId('menu-load-game').click()
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
   // First click switches the delete button into confirm state; second click deletes.
-  await page.getByRole('button', { name: /delete save/i }).click()
-  await page.getByRole('button', { name: /press again to delete/i }).click({ force: true })
+  await page.getByRole('button', { name: /xóa lưu|delete save/i }).click()
+  await page.getByRole('button', { name: /bấm lần nữa để xóa|press again to delete/i }).click({ force: true })
   expect(await readActive(page)).toBeNull()
   expect(await readSlots(page)).not.toHaveProperty('1')
 })

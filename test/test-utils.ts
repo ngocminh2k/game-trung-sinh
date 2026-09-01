@@ -1,4 +1,14 @@
-import { applyAction, findPath, newGame, playerPosition } from '../src/engine'
+import { applyAction, findPath, newGame as baseNewGame, playerPosition } from '../src/engine'
+
+// Legacy-test boot: the story now opens with the transmigration/System
+// contract (two authored scenes before letter_at_dawn). Tests written against
+// the pre-System story start here, one System chosen, day 3.
+export function newGame(seed: string): GameState {
+  let game = baseNewGame(seed)
+  game = applyAction(game, { kind: 'story_choice', choiceId: 'accept_system_mercy' }).state
+  game = applyAction(game, { kind: 'story_choice', choiceId: 'pick_sys_battle' }).state
+  return game
+}
 import type { Action, GameEvent, GameState } from '../src/engine'
 
 export function runScript(

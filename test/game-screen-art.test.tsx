@@ -170,6 +170,20 @@ describe('illustrated RPG UI', () => {
     expect(screen.getByRole('img', { name: 'La bàn: Bắc ở phía trên' })).toBeTruthy()
   })
 
+  it('uses destination artwork only on exit nodes without losing map semantics', () => {
+    renderScreen()
+
+    const exits = document.querySelectorAll('.map-node.node-exit')
+    expect(exits.length).toBeGreaterThan(0)
+    expect(document.querySelectorAll('.map-exit-icon')).toHaveLength(exits.length)
+    expect(document.querySelectorAll('.map-node:not(.node-exit) .map-exit-icon')).toHaveLength(0)
+    expect([...exits].every((node) => node.getAttribute('title')?.includes('Lối ra:'))).toBe(true)
+    expect(screen.getByText('Lối ra — sang vùng khác')).toBeTruthy()
+    expect(within(screen.getByRole('list', { name: 'Các điểm trên bản đồ' })).getByText(/Cổng chợ Vân Tập/)).toBeTruthy()
+    // All authored nodes render their text label on the regional map
+    expect(document.querySelectorAll('.map-node-label').length).toBeGreaterThanOrEqual(exits.length)
+  })
+
   it('orients exploration around the player’s current cell', () => {
     renderScreen()
 

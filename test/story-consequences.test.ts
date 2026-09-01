@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { applyAction, currentStoryScene, findStoryChoice, newGame, storyRouteTarget } from '../src/engine'
+import { applyAction, currentStoryScene, findStoryChoice, storyRouteTarget } from '../src/engine'
 import type { GameState } from '../src/engine'
-import { navTo } from './test-utils'
+import { navTo, newGame } from './test-utils'
 
 const ROUTES = ['mercy', 'wealth', 'truth'] as const
 type Route = (typeof ROUTES)[number]

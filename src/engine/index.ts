@@ -23,9 +23,11 @@ export {
   START_GOLD,
   STORAGE_CAPACITY,
   WEALTH_ENDING_GOLD,
+  damageMultiplier,
   newGame,
   techniqueGuard,
   techniqueQiCost,
+  type NewGameOptions,
 } from './constants'
 export { parseFreeText, normalizeText } from './corrections'
 import type { GameState } from './types'
@@ -71,6 +73,7 @@ export { MEMORY_GATE, MEMORY_TOTAL, memoryMilestone, rememberedCount, rememberNa
 export { formatSystemMessage, queueDrain, queuePush } from './system'
 export { entryPrice, shopForNpc, validateShops } from './shopStock'
 export { COMPANION_EXTRA_ACTION, canTame, companionBuff } from './companion'
+export { activeSystem, budgetOk, canChooseSystem, isSystemQuest, systemQuestsFor } from './system-runtime'
 export { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from '../content/rpg'
 export { canAcceptQuest, canCompleteQuest } from './quests'
 
@@ -86,6 +89,7 @@ export type {
   Direction,
   EquipmentState,
   ErrorCode,
+  GameDifficulty,
   GameEvent,
   GameState,
   Locale,

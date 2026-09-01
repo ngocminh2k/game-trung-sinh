@@ -24,6 +24,7 @@ async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): 
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await beginPlaying(page)
 }

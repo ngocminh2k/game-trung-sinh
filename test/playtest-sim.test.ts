@@ -10,8 +10,8 @@
 // the self-run. We do not touch DEADLINE_DAYS unless the table is decisive.
 
 import { describe, expect, it } from 'vitest'
-import { DEADLINE_DAYS, applyAction, newGame, storyRouteTarget, storyRouteEncounter } from '../src/engine'
-import { navTo } from './test-utils'
+import { DEADLINE_DAYS, applyAction, storyRouteTarget, storyRouteEncounter } from '../src/engine'
+import { navTo, newGame } from './test-utils'
 
 type Route = 'mercy' | 'wealth' | 'truth'
 
@@ -170,7 +170,9 @@ const TABLE_HEADER = [
 ].join(' | ')
 
 function toRow(t: RunTrace): string {
-  const outings = t.finalDay - 1 - t.travelDays // finalDay-1 = total non-closing days
+  // finalDay-1 = total action days; -2 more because the System boot (inside
+  // test-utils newGame) burns two days before the route script starts.
+  const outings = t.finalDay - 3 - t.travelDays
   const within = t.deadlineDay === null ? '—' : t.finalDay <= t.deadlineDay ? 'yes' : 'no'
   return [
     t.route,

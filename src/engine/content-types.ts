@@ -264,7 +264,7 @@ export interface QuestStep {
 
 export interface QuestDef {
   id: string
-  giverNpcId: string
+  giverNpcId: string | null
   nameVi: string
   nameEn: string
   descVi: string
@@ -285,6 +285,12 @@ export interface QuestDef {
   nextQuestId?: string
   /** A main-quest turn-in moves the story to this authored scene. */
   storySceneNextId?: string
+  /** System Layer: only the matching chosen System can accept/see this quest. */
+  requiredSystemId?: string
+  /** System Layer: 1–10 shown as quest difficulty. */
+  difficulty?: number
+  /** System Layer: paid by the turn-in helper on quest completion. */
+  rewardSpiritStones?: number
 }
 
 export interface AchievementDef {

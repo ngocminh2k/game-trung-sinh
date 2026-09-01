@@ -1,5 +1,6 @@
 import { currentStoryScene, findStoryChoice } from '../engine'
 import type { GameEvent, GameState, Locale } from '../engine'
+import { SETTINGS_KEY } from '../ui/session'
 
 export interface NarrationPayload {
   locale: Locale
@@ -33,8 +34,24 @@ export function buildNarrationPayload(game: GameState, events: readonly GameEven
   }
 }
 
+// Narration gate: the player's Settings toggle wins; when the toggle is on but
+// the operator hasn't configured the proxy server-side (VITE_AI_NARRATION_ENABLED),
+// requests fail and the deterministic fallback stays — no error reaches play.
+// Reads only the on/off intent; credentials never enter the browser.
+export function narrationWanted(): boolean {
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_KEY)
+    if (raw !== null) {
+      const wanted = (JSON.parse(raw) as { narrationEnabled?: boolean }).narrationEnabled
+      if (wanted === true) return true
+      if (wanted === false) return false
+    }
+  } catch { /* unreadable settings — fall through to the operator default */ }
+  return import.meta.env.VITE_AI_NARRATION_ENABLED === 'true'
+}
+
 export async function requestNarration(game: GameState, events: readonly GameEvent[], locale: Locale): Promise<string | null> {
-  if (import.meta.env.VITE_AI_NARRATION_ENABLED !== 'true' || events.length === 0) return null
+  if (!narrationWanted() || events.length === 0) return null
 
   try {
     const response = await fetch('/api/narrate', {
@@ -103,7 +120,7 @@ export function buildSuggestPayload(game: GameState, utterance: string, locale: 
 }
 
 export async function requestSuggestion(game: GameState, utterance: string, locale: Locale): Promise<SuggestionResult> {
-  if (import.meta.env.VITE_AI_NARRATION_ENABLED !== 'true') return { status: 'error' }
+  if (!narrationWanted()) return { status: 'error' }
   const payload = buildSuggestPayload(game, utterance, locale)
   if (payload.choices.length === 0 || payload.playerUtterance.length === 0) return { status: 'empty' }
 

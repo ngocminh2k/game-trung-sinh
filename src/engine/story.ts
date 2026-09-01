@@ -3,7 +3,7 @@ import { MAX_HP, MAX_QI } from './constants'
 import type { NpcLine, StoryChoiceDef, StorySceneDef } from './content-types'
 import type { GameState } from './types'
 
-const FIRST_SCENE_ID = 'letter_at_dawn'
+const FIRST_SCENE_ID = 'scene_transmigration'
 
 export type StoryRouteTarget = { locationId: string; nodeId: string }
 export type StoryRouteId = 'mercy' | 'wealth' | 'truth'

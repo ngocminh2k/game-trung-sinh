@@ -20,12 +20,12 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, currentStoryScene, dangerWarning, findStoryChoice, nextStageThreshold, RETREAT_HP_COST, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget, techniqueQiCost } from '../engine'
+import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, isQuestUnlocked, nextStageThreshold, queueDrain, RETREAT_HP_COST, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
 import type { Action, AttributeName, Attrs, EquipmentState, GameState, Locale } from '../engine'
 import type { ItemDef } from '../engine/content-types'
 import itemsStillLife from '../assets/art/items-still-life.png'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
-import { locationBackdropFor } from './locationArt'
+import { locationBackdropFor, locationIconFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
 import { deriveObjective, nightDeadlineRemaining } from './objective'
 import { DeathScreen } from './DeathScreen'
@@ -35,6 +35,7 @@ import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
 import { playerArtFor, type PlayerActionKey } from './playerArt'
 import { requestSuggestion } from '../ai/narration'
+import { requestSystemReply, type SystemReply } from '../ai/system'
 import { t } from '../i18n'
 
 export interface GameScreenProps {
@@ -175,6 +176,17 @@ function moveDockFocus(event: KeyboardEvent<HTMLButtonElement>, current: DockPan
   document.getElementById(`dock-tab-${next}`)?.focus()
 }
 
+/** Formats one queued System notification for the active locale (max 3 lines shown). */
+function systemNotificationText(entry: { id: string; vars: Record<string, string | number> }, locale: Locale): string {
+  if (entry.id === 'sys_quest_loaded') {
+    return formatSystemMessage('sys_quest_loaded', { quest: locale === 'vi' ? String(entry.vars.quest ?? '') : String(entry.vars.questEn ?? ''), days: Number(entry.vars.days ?? 0) }, locale)
+  }
+  if (entry.id === 'sys_reward') {
+    return formatSystemMessage('sys_reward', { reward: locale === 'vi' ? String(entry.vars.reward ?? '') : String(entry.vars.rewardEn ?? '') }, locale)
+  }
+  return formatSystemMessage(entry.id, entry.vars, locale)
+}
+
 export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange, onRestart = () => {}, storyOpen = false, onStoryClose = () => {} }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
@@ -186,6 +198,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   // free text; its one in-character line is shown here. The reducer stays the law.
   const [aiSuggestLine, setAiSuggestLine] = useState<string | null>(null)
   const [aiSuggesting, setAiSuggesting] = useState(false)
+  const [systemMessage, setSystemMessage] = useState('')
+  const [systemReply, setSystemReply] = useState<SystemReply | null>(null)
+  const [systemReplying, setSystemReplying] = useState(false)
   const journalLauncher = useRef<HTMLButtonElement>(null)
   const chronicleRef = useRef<HTMLDivElement>(null)
   const allocationHeading = useRef<HTMLHeadingElement>(null!)
@@ -210,6 +225,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const showHurtFeedback = hurtFeedbackNonce === actionNonce
   const playerPose = playerPoseFor(actionKind, game, showHurtFeedback)
   const routeEncounter = storyRouteEncounter(game)
+  const system = activeSystem(game)
+  const systemQuests = system === null || game.flags.system_refused === true ? [] : systemQuestsFor(game)
+  const systemFeed = game.systemQueue === undefined || game.flags.system_refused === true || system === null ? [] : queueDrain(game.systemQueue, 3).visible
   useEffect(() => {
     if (processedActionNonce.current === actionNonce) return
 
@@ -419,6 +437,16 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     }
   }
 
+  const submitSystemMessage = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (systemMessage.trim().length === 0 || game.terminal || systemReplying) return
+    setSystemReplying(true)
+    void requestSystemReply(game, systemMessage, locale).then((reply) => {
+      setSystemReplying(false)
+      setSystemReply(reply)
+    })
+  }
+
   const submitCommand = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const raw = command.trim()
@@ -578,16 +606,25 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <div className="map-grid-overlay" aria-hidden="true">
               {(regionMap?.cells ?? []).map((cell) => {
                 const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
+                const exitIcon = cell.node?.kind === 'exit' && cell.exitTo !== undefined ? locationIconFor(cell.exitTo) : undefined
+                const nodeLabel = cell.node === undefined ? undefined : word(locale, cell.node.nameVi, cell.node.nameEn)
                 return (
                   <div className={`map-cell terrain-${cell.terrain}`} key={`${cell.x}-${cell.y}`}>
-                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind} ${routeTarget?.nodeId === cell.node.id ? 'is-route-target' : ''}`} data-testid={routeTarget?.nodeId === cell.node.id ? 'route-event-node' : `event-node-${cell.node.id}`} title={word(locale, `Chấm ${cell.node.kind}: ${cell.node.nameVi}`, `${cell.node.kind} point: ${cell.node.nameEn}`)} />}
+                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind} ${routeTarget?.nodeId === cell.node.id ? 'is-route-target' : ''}`} data-testid={routeTarget?.nodeId === cell.node.id ? 'route-event-node' : `event-node-${cell.node.id}`} title={word(locale, `${cell.node.kind === 'exit' ? 'Lối ra' : cell.node.kind === 'npc' ? 'Người' : cell.node.kind === 'danger' ? 'Hiểm họa' : 'Sự kiện'}: ${cell.node.nameVi}`, `${cell.node.kind === 'exit' ? 'Exit' : cell.node.kind === 'npc' ? 'NPC' : cell.node.kind === 'danger' ? 'Danger' : 'Event'}: ${cell.node.nameEn}`)}>{exitIcon !== undefined && <img alt="" aria-hidden="true" className="map-exit-icon" src={exitIcon} />}</span>}
                     {routeTarget?.nodeId === cell.node?.id && <span aria-hidden="true" className="route-node-seal">{word(locale, 'Dấu vết', 'Lead')}</span>}
-                    {cell.node !== undefined && <span className="map-node-label" aria-hidden="true">{locale === 'vi' ? cell.node.nameVi : cell.node.nameEn}</span>}
+                    {cell.node !== undefined && <span className="map-node-label">{nodeLabel}</span>}
                     {isPlayer && <span className={`player-map-marker action-${actionKind ?? 'idle'}`} data-testid="player-map-marker" key={`player-${actionNonce}`} title={word(locale, 'Nhân vật của bạn', 'Your character')} />}
                   </div>
                 )
               })}
             </div>
+            <ul className="map-node-summary" aria-label={word(locale, 'Các điểm trên bản đồ', 'Map points')}>
+              {(regionMap?.cells ?? []).flatMap((cell) => cell.node === undefined ? [] : [
+                <li key={`map-summary-${cell.node.id}`}>
+                  {word(locale, `${cell.node.nameVi} — ${cell.node.kind}, ô ${cell.x + 1} · ${cell.y + 1}`, `${cell.node.nameEn} — ${cell.node.kind}, cell ${cell.x + 1} · ${cell.y + 1}`)}
+                </li>,
+              ])}
+            </ul>
           </div>
           <div className="map-legend" aria-label={word(locale, 'Chú giải bản đồ', 'Map legend')}>
             <span><i className="legend-player" />{word(locale, 'Ngươi', 'You')}</span>
@@ -713,6 +750,30 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       </section>}
 
         <aside className="hud-panel" ref={backgroundRegion}>
+          {system !== null && game.flags.system_refused !== true && <section className="system-panel ink-card" aria-labelledby="system-panel-title" data-testid="system-panel">
+            <div className="panel-heading compact"><h2 id="system-panel-title">{locale === 'vi' ? system.headerVi : system.headerEn}</h2><span>{t(locale, 'system.poolHeader')}</span></div>
+            {systemFeed.length > 0 && <ul className="system-feed" data-testid="system-feed">
+              {systemFeed.map((entry, index) => <li key={`${entry.id}-${index}`}>{systemNotificationText(entry, locale)}</li>)}
+            </ul>}
+            <p className="system-personality">{locale === 'vi' ? system.personalityVi : system.personalityEn}</p>
+            <ul className="system-quest-list">
+              {systemQuests.map((quest) => {
+                const status = game.quests[quest.id]?.status ?? 'available'
+                const turnInReady = status === 'active' && canCompleteQuest(game, quest.id).ok
+                return <li key={quest.id}>
+                  <div><strong>{localized(locale, quest)}</strong><small>{t(locale, 'system.difficulty')} {quest.difficulty}</small></div>
+                  {status === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'system_accept_quest', questId: quest.id })} type="button">{t(locale, 'system.acceptQuest')}</button>}
+                  {status === 'active' && <button disabled={game.terminal || encounterLocked || !turnInReady} onClick={() => onAction({ kind: 'system_turn_in_quest', questId: quest.id })} type="button">{t(locale, 'system.turnIn')}</button>}
+                  {status === 'completed' && <em>{t(locale, 'system.locked')}</em>}
+                </li>
+              })}
+            </ul>
+            <form className="system-chat" onSubmit={submitSystemMessage}>
+              <label htmlFor="system-chat">{locale === 'vi' ? system.nameVi : system.nameEn}</label>
+              <div><input disabled={game.terminal || systemReplying} id="system-chat" maxLength={300} onChange={(event) => setSystemMessage(event.target.value)} placeholder={t(locale, 'system.chatPlaceholder')} value={systemMessage} /><button disabled={game.terminal || systemReplying || systemMessage.trim().length === 0} type="submit">{word(locale, 'Hỏi', 'Talk')}</button></div>
+              {systemReply !== null ? <p role="status">{locale === 'vi' ? systemReply.textVi : systemReply.textEn}{systemReply.questId !== undefined && (game.quests[systemReply.questId]?.status ?? 'available') === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => { onAction({ kind: 'system_accept_quest', questId: systemReply.questId! }); setSystemReply(null) }} type="button">{t(locale, 'system.acceptQuest')}</button>}</p> : <small>{t(locale, 'system.chatFallback')}</small>}
+            </form>
+          </section>}
           <section className="stats-card ink-card" aria-labelledby="stats-title">
             <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2>
               <StageProgress locale={locale} realmLevel={game.player.realmLevel} stage={game.player.stage} progress={game.player.progress} />
@@ -729,7 +790,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <Meter label="Qi" value={game.player.qi} max={60} tone="jade" delta={statDeltas.nonce === 0 ? 0 : statDeltas.qi} deltaTestid="qi-delta" />
             <Meter className="meter-progress" label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={nextStageThreshold(game.player.stage, game.player.realmLevel) ?? Math.max(1, game.player.progress)} tone="gold" />
             <div className="stat-strip">
-              <span>◎ {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
+              <span data-testid="currency-gold">◎ {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
+              <span data-testid="currency-silver">◉ {game.player.silver ?? 0} {word(locale, 'bạc', 'silver')}</span>
+              <span data-testid="currency-spirit-stones">✦ {game.player.spiritStones ?? 0} {word(locale, 'linh thạch', 'spirit stones')}</span>
               <span>{word(locale, 'Độ tương hợp', 'root rate')} {Math.round(game.spiritRoot.efficiency * 100)}%</span>
             </div>
             <dl className="attributes">
@@ -842,12 +905,13 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           {activeDock === 'quests' && <section aria-labelledby="quest-title">
             <div className="panel-heading compact"><h2 id="quest-title">{word(locale, 'Nhiệm vụ', 'Quests')}</h2><span>{QUESTS.filter((quest) => game.quests[quest.id]?.status === 'completed').length}/{QUESTS.length}</span></div>
             <ul className="quest-list">
-              {QUESTS.map((quest) => {
+              {QUESTS.filter((quest) => isQuestUnlocked(game, quest.id)).map((quest) => {
                 const status = game.quests[quest.id]?.status ?? 'available'
+                const questSystem = quest.requiredSystemId === undefined ? null : activeSystem({ systemId: quest.requiredSystemId })
                 return <li key={quest.id} className={`quest-${status}`}>
-                  <div><strong>{localized(locale, quest)}</strong><span>{locale === 'vi' ? quest.descVi : quest.descEn}</span></div>
-                  {status === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'accept_quest', questId: quest.id })} type="button">{word(locale, 'Nhận', 'Accept')}</button>}
-                  {status === 'active' && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'complete_quest', questId: quest.id })} type="button">{word(locale, 'Nộp', 'Turn in')}</button>}
+                  <div><strong>{localized(locale, quest)}</strong><span>{locale === 'vi' ? quest.descVi : quest.descEn}</span>{questSystem !== null && <small className="system-quest-tag">{locale === 'vi' ? questSystem.headerVi : questSystem.headerEn} · {t(locale, 'system.difficulty')} {quest.difficulty}</small>}</div>
+                  {status === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: quest.requiredSystemId === undefined ? 'accept_quest' : 'system_accept_quest', questId: quest.id })} type="button">{quest.requiredSystemId === undefined ? word(locale, 'Nhận', 'Accept') : t(locale, 'system.acceptQuest')}</button>}
+                  {status === 'active' && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: quest.requiredSystemId === undefined ? 'complete_quest' : 'system_turn_in_quest', questId: quest.id })} type="button">{quest.requiredSystemId === undefined ? word(locale, 'Nộp', 'Turn in') : t(locale, 'system.turnIn')}</button>}
                   {status === 'completed' && <em>{word(locale, 'Xong', 'Done')}</em>}
                 </li>
               })}
@@ -908,6 +972,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <p className="dock-context">{game.player.locationId === 'market'
               ? word(locale, 'Ngươi đang ở Chợ Tụ Vân: có thể giao dịch ngay.', 'You are at Cloudgather Market: trade is available.')
               : word(locale, 'Chỉ giao dịch được tại Chợ Tụ Vân. Các món vẫn được ghi nhớ ở đây.', 'Trading is available only at Cloudgather Market. The wares remain listed here.')}</p>
+            <div className="currency-exchange" data-testid="currency-exchange">
+              <button disabled={game.terminal || encounterLocked || game.player.locationId !== 'market' || (game.player.spiritStones ?? 0) < 1} onClick={() => onAction({ kind: 'convert_currency', from: 'spiritStone', qty: 1 })} type="button">{word(locale, 'Đổi 1 linh thạch → 10 vàng', 'Exchange 1 spirit stone → 10 gold')}</button>
+              <button disabled={game.terminal || encounterLocked || game.player.locationId !== 'market' || (game.player.silver ?? 0) < 10} onClick={() => onAction({ kind: 'convert_currency', from: 'silver', qty: 1 })} type="button">{word(locale, 'Đổi 10 bạc → 1 vàng', 'Exchange 10 silver → 1 gold')}</button>
+            </div>
             <div className="shop-list">
               {SHOP_STOCK.map((id) => {
                 const item = getItem(id)

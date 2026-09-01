@@ -63,6 +63,8 @@ export const VI = {
     MOVE_BLOCKED: 'Phía đó là núi hoặc nước — không đi được.',
     NOT_AT_LOCATION: 'Ngươi không ở đúng nơi cần.',
     INSUFFICIENT_GOLD: 'Không đủ lượng.',
+  INSUFFICIENT_SILVER: 'Không đủ bạc.',
+  INSUFFICIENT_SPIRIT_STONES: 'Không đủ linh thạch.',
     INSUFFICIENT_QI: 'Linh khí cạn rồi, hãy nghỉ trước.',
     NO_ITEM: 'Trong túi không có món đó.',
     ITEM_NOT_USABLE: 'Món này không thể dùng trực tiếp.',
@@ -88,10 +90,20 @@ export const VI = {
   ui: {
     loading: { aria: 'Màn hình tải — nhấn để bắt đầu', subtitle: 'Truyền kỳ trọng sinh · linh căn phế', begin: 'Nhấn để bước vào' },
     saveSlots: { title: 'Chọn kiếp tu hành', subtitle: 'Mỗi quyển lưu giữ một con đường riêng.', slotName: 'Lưu {{slot}}', empty: '— trống —', start: 'Bắt đầu mới', continue: 'Tiếp tục', day: 'Ngày {{day}}', stage: 'Cảnh giới: {{stage}}', ending: 'Kết cục: {{ending}}', saved: 'Lưu {{time}}', justNow: 'vừa xong', minutesAgo: '{{count}} phút trước', hoursAgo: '{{count}} giờ trước', daysAgo: '{{count}} ngày trước', delete: 'Xóa lưu', deleteConfirm: 'Bấm lần nữa để xóa' },
+    newGame: { title: 'Chọn Hệ Thống của ngươi', subtitle: 'Mười Hệ Thống đáp lời vào lúc bình minh. Chỉ một ký ở lại với ngươi — chọn trước khi đặt bút mở đầu.', confirm: 'Ký khế ước' },
+    settings: {
+      difficultyHint: 'Áp dụng cho kiếp mới. Kiếp đang chơi giữ nguyên độ khó của nó.',
+      difficulty: { story: 'Chuyện tình', balanced: 'Cân bằng', hard: 'Khó nhằn' },
+      narrationTitle: 'Hệ Thống (AI)',
+      narrationHint: 'Hệ Thống dùng máy chủ proxy đã cấu hình sẵn. Không có proxy, Hệ Thống vẫn trả lời bằng giọng cố định.',
+      narrationOn: 'Proxy: đang bật',
+      narrationOff: 'Proxy: tắt',
+    },
     death: { aria: 'Kết thúc', title: 'Kiếp này khép lại', restart: 'Trọng sinh lại', dismiss: 'Thu lại' },
     codex: { title: 'Tu điển giang hồ', kicker: 'Nội dung & minh họa', progress: 'Tiến độ tải asset', registered: 'Asset đã đăng ký trong game', packsReady: 'gói sẵn sàng', packs: 'Gói asset', entries: 'Mục tu điển', open: 'Mở', view: 'Xem', kind: { npc: 'Nhân vật', item: 'Vật phẩm', talent: 'Thiên phú', technique: 'Công pháp', location: 'Địa điểm' }, status: { queued: 'Đang chờ', loading: 'Đang tải', ready: 'Sẵn sàng', failed: 'Cần tải lại' } },
     objective: { title: 'Mục tiêu', battle: 'Giao chiến: xuất chiêu hoặc thủ thế', danger: 'Hiểm họa cận kề: đối mặt {{enemy}} tại {{location}}', progress: 'Tu luyện tích lũy tiến độ cảnh giới ({{progress}}/120)', breakthrough: 'Tiến độ đã đủ — tìm cơ duyên đột phá lên Cảnh {{stage}}', beats: { letter_at_dawn: 'Đọc lá thư và chọn cách đối diện Cụ Mai Hoa. Linh căn phế không hút linh khí nhanh, nhưng nhận ra vết nứt trong ký ức bị phong ấn.', market_rumor: 'Đến Chợ Vân Tập và quyết định ai đáng tin trước đêm thứ mười hai.', cave_witness: 'Tìm đường vào Hang Phong Ấn; lời chứng của Hà cần một người chịu lắng nghe.', sect_trial: 'Mang sự thật đến Vân Ẩn, rồi chọn xem ký ức nên thuộc về ai.', mirror_choice: 'Nhìn thẳng vào kiếp trước: kẻ ngươi truy đuổi có thể chính là ngươi.', last_page: 'Đưa ra quyết định cuối cùng về chiếc gương — không ai còn được chọn thay ngươi.' } },
   },
+  system: { panelTitle: 'Hệ Thống', chatPlaceholder: 'Hỏi Hệ Thống...', acceptQuest: 'Nhận nhiệm vụ', turnIn: 'Nộp nhiệm vụ', difficulty: 'Độ khó', noSystem: 'Chưa có Hệ Thống', poolHeader: 'Nhiệm vụ bí mật', chatFallback: 'Hệ Thống im lặng.', chooseOne: 'Chọn một Hệ Thống', locked: 'Đã khóa', refused: 'Ngươi đã từ chối Hệ Thống.' },
 }
 
 export type Dict = typeof VI

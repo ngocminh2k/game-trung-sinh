@@ -21,15 +21,22 @@ export function currentStepIndex(state: GameState, questId: string): number {
   return typeof rt.step === 'number' ? rt.step : 0
 }
 
-/** A secret quest is hidden from the journal until the player has met
- * its unlock condition (specific flag, NPC, or scene). It still resolves
- * correctly via the engine — the UI just refuses to show it. */
+/** A quest is hidden from the journal until its unlock condition is met:
+ * the matching System for system quests, and the authored requiredFlags
+ * (prerequisite chain / story gates / secret discovery) for every quest.
+ * It still resolves correctly via the engine — the UI just refuses to show
+ * a quest the player cannot accept yet. */
 export function isQuestUnlocked(state: GameState, questId: string): boolean {
   const def = getQuest(questId)
   if (def === undefined) return false
-  if (def.secret !== true) return true
-  // Secret quests: require the requiredFlags + a secret-specific unlock.
-  // requiredFlags doubles as the unlock key.
+  // System Layer: a system quest unlocks only for the matching chosen System
+  // (unless already accepted, so the panel keeps showing progress).
+  if (def.requiredSystemId !== undefined) {
+    const active = state.quests[questId]?.status
+    if (active !== 'active' && state.systemId !== def.requiredSystemId) return false
+    if (!def.requiredFlags.every((flag) => Boolean(state.flags[flag]))) return false
+  }
+  // Main/side/secret quests: requiredFlags gate visibility (chain/story/secret).
   return def.requiredFlags.every((flag) => Boolean(state.flags[flag]))
 }
 
@@ -39,8 +46,6 @@ export function canAcceptQuest(
 ): { ok: true; giverLocationId: string } | { ok: false; code: QuestCheckErr } {
   const def = getQuest(questId)
   if (def === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
-  const giver = getNpc(def.giverNpcId)
-  if (giver === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
   if (questStatus(state, questId) !== 'available') return { ok: false, code: 'QUEST_WRONG_STATE' }
   if (!isQuestUnlocked(state, questId)) return { ok: false, code: 'QUEST_WRONG_STATE' }
   // Honour legacy requiredFlags for backwards compat — old quest items/flags
@@ -48,6 +53,13 @@ export function canAcceptQuest(
   for (const flag of def.requiredFlags) {
     if (!state.flags[flag]) return { ok: false, code: 'QUEST_WRONG_STATE' }
   }
+  // System Layer: system quests need no NPC/location — they are accepted and
+  // turned in from the System panel wherever the player stands.
+  if (def.requiredSystemId !== undefined) {
+    return { ok: true, giverLocationId: state.player.locationId }
+  }
+  const giver = def.giverNpcId === null ? undefined : getNpc(def.giverNpcId)
+  if (giver === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
   if (state.player.locationId !== giver.locationId) return { ok: false, code: 'NOT_AT_LOCATION' }
   return { ok: true, giverLocationId: giver.locationId }
 }
@@ -98,12 +110,15 @@ export function canCompleteQuest(
 ): { ok: true } | { ok: false; code: QuestCheckErr } {
   const def = getQuest(questId)
   if (def === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
-  const giver = getNpc(def.giverNpcId)
-  if (giver === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
   if (questStatus(state, questId) !== 'active') return { ok: false, code: 'QUEST_WRONG_STATE' }
   const expiry = state.flags[`quest_${questId}_expires_day`]
   if (typeof expiry === 'number' && state.day > expiry) return { ok: false, code: 'QUEST_WRONG_STATE' }
-  if (state.player.locationId !== giver.locationId) return { ok: false, code: 'NOT_AT_LOCATION' }
+  // System Layer: turn-in happens from the System panel — no location gate.
+  if (def.requiredSystemId === undefined) {
+    const giver = def.giverNpcId === null ? undefined : getNpc(def.giverNpcId)
+    if (giver === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
+    if (state.player.locationId !== giver.locationId) return { ok: false, code: 'NOT_AT_LOCATION' }
+  }
   if (!isTurnInReady(state, questId)) return { ok: false, code: 'QUEST_WRONG_STATE' }
   return { ok: true }
 }

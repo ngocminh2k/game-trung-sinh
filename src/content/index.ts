@@ -26,6 +26,7 @@ import { NPCS } from './npcs'
 import { QUESTS } from './quests'
 import { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from './rpg'
 import { STORY_SCENES } from './story'
+import { SYSTEMS, systemById } from './system-defs'
 
 export { ACHIEVEMENTS, getAchievement } from './achievements-data'
 export { BEATS, BEAT_PREDICATE_IDS } from './beats-data'
@@ -56,6 +57,8 @@ export { ROMANCE_TRACKS, romanceTrackFor } from './romance'
 export { SHOPS, NPCS_WITHOUT_SHOP } from './shops'
 export { SUBLAYERS, sublayerFor } from './sublayers'
 export { SYSTEM_MESSAGES, SYSTEM_HEADER_EN, SYSTEM_HEADER_VI } from './system-messages'
+export { SYSTEMS, systemById } from './system-defs'
+export { SYSTEM_QUESTS } from './system-quests'
 export { getNpc, NPCS, npcsAt } from './npcs'
 export { getQuest, QUESTS } from './quests'
 export {
@@ -119,11 +122,36 @@ export function validateAllContent(): ContentValidationReport {
   checkUniqueIds('QUESTS', QUESTS)
   checkUniqueIds('ACHIEVEMENTS', ACHIEVEMENTS)
   checkUniqueIds('BEATS', BEATS)
+  if (SYSTEMS.length !== 10) errors.push('SYSTEMS: exactly 10 systems are required')
+  const systemIds = new Set<string>()
+  for (const [index, system] of SYSTEMS.entries()) {
+    if (systemIds.has(system.id)) errors.push(`SYSTEMS: duplicate id ${system.id}`)
+    systemIds.add(system.id)
+    if (system.order !== index + 1) errors.push(`SYSTEMS: ${system.id} order must be ${String(index + 1)}`)
+  }
 
   const npcIds = new Set(NPCS.map((n) => n.id))
   const itemIds = new Set(ITEMS.map((item) => item.id))
   for (const q of QUESTS) {
-    if (!npcIds.has(q.giverNpcId)) errors.push(`QUESTS: giver ${q.giverNpcId} missing`)
+    if (q.requiredSystemId !== undefined) {
+      const system = systemById(q.requiredSystemId)
+      if (!q.id.startsWith('q_sys_')) errors.push(`QUESTS: system quest ${q.id} must use q_sys_ id`)
+      if (q.giverNpcId !== null) errors.push(`QUESTS: system quest ${q.id} must have no giver`)
+      if (q.storySceneNextId !== undefined) errors.push(`QUESTS: system quest ${q.id} must not advance story`)
+      if (q.difficulty === undefined || q.difficulty < 1 || q.difficulty > 10) errors.push(`QUESTS: system quest ${q.id} difficulty must be 1..10`)
+      if (system === undefined) {
+        errors.push(`QUESTS: system quest ${q.id} has unknown system ${q.requiredSystemId}`)
+      } else {
+        const budget = system.rewardBudget
+        if (q.rewardGold < budget.minGold || q.rewardGold > budget.maxGold) errors.push(`QUESTS: system quest ${q.id} reward gold outside budget`)
+        if (q.rewardSpiritStones === undefined || q.rewardSpiritStones < budget.minSpiritStones || q.rewardSpiritStones > budget.maxSpiritStones) errors.push(`QUESTS: system quest ${q.id} spirit stones outside budget`)
+        for (const itemId of Object.keys(q.rewardItems)) {
+          if (!budget.itemPool.includes(itemId)) errors.push(`QUESTS: system quest ${q.id} reward ${itemId} outside budget`)
+        }
+      }
+    } else if (q.giverNpcId === null) {
+      errors.push(`QUESTS: ${q.id} has no giver and no system`)
+    } else if (!npcIds.has(q.giverNpcId)) errors.push(`QUESTS: giver ${q.giverNpcId} missing`)
     if (q.steps.length === 0) errors.push(`QUESTS: ${q.id} has no steps`)
     for (const step of q.steps) {
       if (step.completeItems !== undefined) {

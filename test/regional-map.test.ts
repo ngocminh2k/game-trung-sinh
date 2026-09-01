@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { LOCATIONS, MAP_HEIGHT, MAP_WIDTH, REGION_MAPS, getRegionMap, isPassable } from '../src/content'
 import { applyAction, findPath, newGame, validateGameState } from '../src/engine'
 import type { GameState } from '../src/engine'
+import { locationIconFor } from '../src/ui/locationArt'
 
 function travel(state: GameState, destinationId: string): GameState {
   const path = findPath(state.player.posX, state.player.posY, destinationId, state.player.locationId)
@@ -20,7 +21,10 @@ describe('Scenario I regional maps', () => {
       const entry = map?.cells.find((cell) => cell.x === map.entry.x && cell.y === map.entry.y)
       expect(entry === undefined ? false : isPassable(entry), `${location.id} entry`).toBe(true)
       for (const cell of map?.cells ?? []) {
-        if (cell.exitTo !== undefined) expect(getRegionMap(cell.exitTo), `${location.id} exit`).toBeDefined()
+        if (cell.exitTo !== undefined) {
+          expect(getRegionMap(cell.exitTo), `${location.id} exit`).toBeDefined()
+          expect(locationIconFor(cell.exitTo), `${location.id} exit badge`).toMatch(/\.png$/)
+        }
       }
     }
   })

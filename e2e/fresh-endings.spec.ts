@@ -1,12 +1,15 @@
 import { expect, test, type Page } from '@playwright/test'
-import { newGame, type GameState, type Locale } from '../src/engine'
+import { applyAction, newGame, type GameState, type Locale } from '../src/engine'
 
 const SLOTS_KEY = 'phe-can-ky:slots'
 const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
 type GameSession = { game: GameState; locale: Locale; chronicle: string[] }
 
+// These journeys drive the authored story from letter_at_dawn onward, so the
+// fixture completes the two-step System boot (no narration backdrop left open).
 function freshGame(update?: (g: GameState) => GameState): GameState {
-  const game = newGame('e2e-fresh-seed')
+  let game = applyAction(newGame('e2e-fresh-seed'), { kind: 'story_choice', choiceId: 'accept_system_mercy' }).state
+  game = applyAction(game, { kind: 'story_choice', choiceId: 'pick_sys_battle' }).state
   return update === undefined ? game : update(game)
 }
 
@@ -19,6 +22,7 @@ async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): 
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
+  await page.getByTestId('menu-load-game').click()
   await page.getByTestId('save-slot-1').click()
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()

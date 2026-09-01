@@ -1,4 +1,4 @@
-import type { GameState } from './types'
+import type { GameDifficulty, GameState } from './types'
 
 export const GAME_STATE_VERSION = 1 as const
 
@@ -63,7 +63,19 @@ export const LOCATION_CAVE = 'sealed_cave'
 export const LOCATION_RIFT = 'cursed_rift'
 export const LOCATION_VILLAGE = 'village'
 
-export function newGame(seed: string): GameState {
+export interface NewGameOptions {
+  /** Boot-time System pick (main-menu 5×2 grid). null keeps the legacy
+   *  in-story boot scenes for old saves / story-driven starts. */
+  systemId?: string | null
+  /** Combat-pressure preset; defaults to 'balanced' (pre-menu rules). */
+  difficulty?: GameDifficulty
+  /** First story scene; defaults to the transmigration boot ('scene_transmigration').
+   *  Pre-menu new games start at 'letter_at_dawn' — the boot scenes are a
+   *  one-time System contract and the menu picks the System before day 1. */
+  storyScene?: string
+}
+
+export function newGame(seed: string, options: NewGameOptions = {}): GameState {
   return {
     version: GAME_STATE_VERSION,
     seed,
@@ -92,7 +104,6 @@ export function newGame(seed: string): GameState {
     },
     inventory: { [ITEM_HERB]: 1, pill_hp: 1, wooden_staff: 1, tattered_robe: 1 },
     storage: {},
-    flags: {},
     quests: {},
     achievements: [],
     talents: ['tenacious_root'],
@@ -103,6 +114,9 @@ export function newGame(seed: string): GameState {
     corrections: 0,
     terminal: false,
     endingId: null,
+    systemId: options.systemId ?? null,
+    difficulty: options.difficulty ?? 'balanced',
+    flags: options.storyScene === undefined ? {} : { story_scene: options.storyScene },
   }
 }
 
@@ -118,6 +132,16 @@ export const RETREAT_PROGRESS_COST = 3
 // the stronger the technique is, and shields the player for the enemy's reply
 // (guard scales with technique power × level).
 export const BASIC_STRIKE_QI_COST = 4
+
+// Difficulty (main-menu feature): one central multiplier on everything the
+// world deals to the player — enemy strikes and danger damage alike. 'balanced'
+// is 1 (byte-identical to the pre-menu rules); 'story' softens; 'hard'
+// sharpens. Pure arithmetic, never RNG, so determinism holds per difficulty.
+const DIFFICULTY_PRESSURE: Record<GameDifficulty, number> = { story: 0.65, balanced: 1, hard: 1.5 }
+
+export function damageMultiplier(difficulty: GameDifficulty): number {
+  return DIFFICULTY_PRESSURE[difficulty]
+}
 
 export function techniqueQiCost(power: number, level: number): number {
   return 2 + 2 * power * level

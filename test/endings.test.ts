@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { applyAction, currentStoryScene, findStoryChoice, newGame, storyRouteEncounter, storyRouteProof } from '../src/engine'
+import { applyAction, currentStoryScene, findStoryChoice, storyRouteEncounter, storyRouteProof } from '../src/engine'
 import type { GameState } from '../src/engine'
+import { newGame } from './test-utils'
 
 function choose(state: GameState, choiceId: string): GameState {
   const result = applyAction(state, { kind: 'story_choice', choiceId })

@@ -150,7 +150,9 @@ describe('player action artwork', () => {
 
   it('uses the reducer-resolved action for a free-text command pose', async () => {
     render(<App />)
-    fireEvent.click(screen.getByTestId('save-slot-1'))
+    fireEvent.click(screen.getByTestId('menu-new-game'))
+    fireEvent.click(screen.getByTestId('system-tile-sys_battle'))
+    fireEvent.click(screen.getByTestId('newgame-confirm'))
     fireEvent.click(screen.getByRole('button', { name: /nhấn|press/i }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Mở Hành trang và giang hồ' }))

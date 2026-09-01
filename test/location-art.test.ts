@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { LOCATIONS } from '../src/content/locations'
 import {
   hasLocationBackdrop,
+  hasLocationIcon,
   locationBackdropFor,
+  locationIconFor,
   SCENARIO_ONE_LOCATION_IDS,
 } from '../src/ui/locationArt'
 
@@ -17,8 +19,17 @@ describe('Scenario I location art registry', () => {
     }
   })
 
+  it('registers one destination badge for every playable Scenario I location', () => {
+    for (const location of LOCATIONS) {
+      expect(hasLocationIcon(location.id)).toBe(true)
+      expect(locationIconFor(location.id)).toMatch(/\.png$/)
+    }
+  })
+
   it('does not pretend that unknown locations have visual coverage', () => {
     expect(hasLocationBackdrop('future_location')).toBe(false)
+    expect(hasLocationIcon('future_location')).toBe(false)
     expect(locationBackdropFor('future_location')).toBeUndefined()
+    expect(locationIconFor('future_location')).toBeUndefined()
   })
 })
