@@ -15,10 +15,6 @@ function rootlessGame(seed: string): GameState {
   return game
 }
 
-function hasError(state: GameState): boolean {
-  return state.events === undefined
-}
-
 function lastQueued(state: GameState): { id: string; vars: Record<string, string | number> } | undefined {
   const queue = state.systemQueue ?? []
   return queue[queue.length - 1]
