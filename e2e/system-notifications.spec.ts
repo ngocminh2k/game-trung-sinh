@@ -41,6 +41,7 @@ test('accepting and turning in a system quest announces load and exact reward', 
   await expect(feed).toBeVisible()
   await expect(feed).toContainText(/Main quest loaded/)
   await expect(feed).toContainText(/Battle I/)
+  await expect(feed).toContainText(/Deliver beast fangs to the System/)
   // The panel shows at most three notification lines.
   expect(await feed.locator('li').count()).toBeLessThanOrEqual(3)
 

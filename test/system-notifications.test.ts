@@ -35,6 +35,8 @@ describe('system notifications (T14 producers, canon §3)', () => {
     expect(entry?.vars.days).toBe(2)
     expect(String(entry?.vars.quest ?? '')).toContain('Chiến Đấu I')
     expect(String(entry?.vars.questEn ?? '')).toContain('Battle I')
+    expect(entry?.vars.objective).toBe('Giao nanh thú cho Hệ Thống.')
+    expect(entry?.vars.objectiveEn).toBe('Deliver beast fangs to the System.')
   })
 
   it('queues the reward announcement with the exact amounts on turn-in', () => {

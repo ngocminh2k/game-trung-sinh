@@ -15,7 +15,7 @@ export interface SystemMessage {
   /** id: sys_quest_loaded, sys_reward, sys_unlock, sys_warning, sys_deadline_near, sys_dodge, sys_snark_01..05 */
   id: string
   kind: SystemKind
-  /** Template body (without the header). Tokens: {quest}, {days}, {reward}, {feature}, {danger} */
+  /** Template body (without the header). Tokens: {quest}, {days}, {objective}, {reward}, {feature}, {danger} */
   templateVi: string
   templateEn: string
 }
@@ -27,8 +27,8 @@ export const SYSTEM_MESSAGES: SystemMessage[] = [
   {
     id: 'sys_quest_loaded',
     kind: 'quest',
-    templateVi: 'Nhiệm vụ chính tải xong: {quest}. Hạn: {days} ngày.',
-    templateEn: 'Main quest loaded: {quest}. Time limit: {days} days.',
+    templateVi: 'Nhiệm vụ chính tải xong: {quest}. Hạn: {days} ngày. {objective}',
+    templateEn: 'Main quest loaded: {quest}. Time limit: {days} days. {objective}',
   },
   {
     id: 'sys_reward',

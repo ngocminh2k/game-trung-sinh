@@ -1062,9 +1062,18 @@ function doAcceptQuest(state: GameState, questId: string): R {
     flags,
     quests: { ...state.quests, [questId]: { status: 'active', step: 0 } },
   }
-  // T14/canon §3: the System announces every loaded quest while it is active.
+  // T14/canon §3: the System announces every loaded quest while it is active,
+  // telling the host the first step's objective — the announcement must be
+  // actionable, not just a title and deadline.
+  const step0 = def.steps[0]
   const systemQueue = systemIsActive(state)
-    ? queuePush(state.systemQueue ?? [], 'sys_quest_loaded', { quest: def.nameVi, questEn: def.nameEn, days: def.deadlineDays ?? 0 })
+    ? queuePush(state.systemQueue ?? [], 'sys_quest_loaded', {
+        quest: def.nameVi,
+        questEn: def.nameEn,
+        days: def.deadlineDays ?? 0,
+        objective: step0?.descVi ?? '',
+        objectiveEn: step0?.descEn ?? '',
+      })
     : state.systemQueue
   return { ok: true, state: { ...s, systemQueue }, events: [{ type: 'QUEST_ACCEPTED', questId }] }
 }

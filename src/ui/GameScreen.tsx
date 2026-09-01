@@ -20,7 +20,7 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, isQuestUnlocked, nextStageThreshold, queueDrain, RETREAT_HP_COST, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
+import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStepIndex, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, isQuestUnlocked, nextStageThreshold, queueDrain, RETREAT_HP_COST, storageRemaining, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
 import type { Action, AttributeName, Attrs, EquipmentState, GameState, Locale } from '../engine'
 import type { ItemDef } from '../engine/content-types'
 import itemsStillLife from '../assets/art/items-still-life.png'
@@ -179,7 +179,7 @@ function moveDockFocus(event: KeyboardEvent<HTMLButtonElement>, current: DockPan
 /** Formats one queued System notification for the active locale (max 3 lines shown). */
 function systemNotificationText(entry: { id: string; vars: Record<string, string | number> }, locale: Locale): string {
   if (entry.id === 'sys_quest_loaded') {
-    return formatSystemMessage('sys_quest_loaded', { quest: locale === 'vi' ? String(entry.vars.quest ?? '') : String(entry.vars.questEn ?? ''), days: Number(entry.vars.days ?? 0) }, locale)
+    return formatSystemMessage('sys_quest_loaded', { quest: locale === 'vi' ? String(entry.vars.quest ?? '') : String(entry.vars.questEn ?? ''), days: Number(entry.vars.days ?? 0), objective: locale === 'vi' ? String(entry.vars.objective ?? '') : String(entry.vars.objectiveEn ?? '') }, locale)
   }
   if (entry.id === 'sys_reward') {
     return formatSystemMessage('sys_reward', { reward: locale === 'vi' ? String(entry.vars.reward ?? '') : String(entry.vars.rewardEn ?? '') }, locale)
@@ -910,6 +910,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 const questSystem = quest.requiredSystemId === undefined ? null : activeSystem({ systemId: quest.requiredSystemId })
                 return <li key={quest.id} className={`quest-${status}`}>
                   <div><strong>{localized(locale, quest)}</strong><span>{locale === 'vi' ? quest.descVi : quest.descEn}</span>{questSystem !== null && <small className="system-quest-tag">{locale === 'vi' ? questSystem.headerVi : questSystem.headerEn} · {t(locale, 'system.difficulty')} {quest.difficulty}</small>}</div>
+                  {status === 'active' && <p className="quest-step">{locale === 'vi' ? quest.steps[currentStepIndex(game, quest.id)]!.descVi : quest.steps[currentStepIndex(game, quest.id)]!.descEn}</p>}
                   {status === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: quest.requiredSystemId === undefined ? 'accept_quest' : 'system_accept_quest', questId: quest.id })} type="button">{quest.requiredSystemId === undefined ? word(locale, 'Nhận', 'Accept') : t(locale, 'system.acceptQuest')}</button>}
                   {status === 'active' && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: quest.requiredSystemId === undefined ? 'complete_quest' : 'system_turn_in_quest', questId: quest.id })} type="button">{quest.requiredSystemId === undefined ? word(locale, 'Nộp', 'Turn in') : t(locale, 'system.turnIn')}</button>}
                   {status === 'completed' && <em>{word(locale, 'Xong', 'Done')}</em>}
