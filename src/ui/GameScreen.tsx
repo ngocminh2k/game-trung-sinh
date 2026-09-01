@@ -187,6 +187,16 @@ function systemNotificationText(entry: { id: string; vars: Record<string, string
   return formatSystemMessage(entry.id, entry.vars, locale)
 }
 
+/** Glyph shown inside a node icon-slot when no authored artwork exists (placeholder per kind). */
+function mapNodeGlyph(kind: 'npc' | 'event' | 'exit' | 'danger'): string {
+  switch (kind) {
+    case 'npc': return '人'
+    case 'event': return '缘'
+    case 'danger': return '凶'
+    case 'exit': return '关'
+  }
+}
+
 export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, onAction, onLocaleChange, onRestart = () => {}, storyOpen = false, onStoryClose = () => {} }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
@@ -610,7 +620,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 const nodeLabel = cell.node === undefined ? undefined : word(locale, cell.node.nameVi, cell.node.nameEn)
                 return (
                   <div className={`map-cell terrain-${cell.terrain}`} key={`${cell.x}-${cell.y}`}>
-                    {cell.node !== undefined && <span className={`map-location-pin map-node node-${cell.node.kind} ${routeTarget?.nodeId === cell.node.id ? 'is-route-target' : ''}`} data-testid={routeTarget?.nodeId === cell.node.id ? 'route-event-node' : `event-node-${cell.node.id}`} title={word(locale, `${cell.node.kind === 'exit' ? 'Lối ra' : cell.node.kind === 'npc' ? 'Người' : cell.node.kind === 'danger' ? 'Hiểm họa' : 'Sự kiện'}: ${cell.node.nameVi}`, `${cell.node.kind === 'exit' ? 'Exit' : cell.node.kind === 'npc' ? 'NPC' : cell.node.kind === 'danger' ? 'Danger' : 'Event'}: ${cell.node.nameEn}`)}>{exitIcon !== undefined && <img alt="" aria-hidden="true" className="map-exit-icon" src={exitIcon} />}</span>}
+                    {cell.node !== undefined && <span className={`map-icon-slot map-node node-${cell.node.kind} ${routeTarget?.nodeId === cell.node.id ? 'is-route-target' : ''}`} data-testid={routeTarget?.nodeId === cell.node.id ? 'route-event-node' : `event-node-${cell.node.id}`} title={word(locale, `${cell.node.kind === 'exit' ? 'Lối ra' : cell.node.kind === 'npc' ? 'Người' : cell.node.kind === 'danger' ? 'Hiểm họa' : 'Sự kiện'}: ${cell.node.nameVi}`, `${cell.node.kind === 'exit' ? 'Exit' : cell.node.kind === 'npc' ? 'NPC' : cell.node.kind === 'danger' ? 'Danger' : 'Event'}: ${cell.node.nameEn}`)} tabIndex={0}
+                      ><span className="map-icon-placeholder" aria-hidden="true">{mapNodeGlyph(cell.node.kind)}</span>{cell.node.kind === 'exit' && exitIcon !== undefined && <img alt="" aria-hidden="true" className="map-exit-icon" src={exitIcon} loading="lazy" decoding="async" />}</span>}
                     {routeTarget?.nodeId === cell.node?.id && <span aria-hidden="true" className="route-node-seal">{word(locale, 'Dấu vết', 'Lead')}</span>}
                     {cell.node !== undefined && <span className="map-node-label">{nodeLabel}</span>}
                     {isPlayer && <span className={`player-map-marker action-${actionKind ?? 'idle'}`} data-testid="player-map-marker" key={`player-${actionNonce}`} title={word(locale, 'Nhân vật của bạn', 'Your character')} />}
@@ -628,10 +639,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </div>
           <div className="map-legend" aria-label={word(locale, 'Chú giải bản đồ', 'Map legend')}>
             <span><i className="legend-player" />{word(locale, 'Ngươi', 'You')}</span>
-            <span><i className="legend-npc" />{word(locale, 'Người — nói chuyện, nhận việc', 'People — talk, take quests')}</span>
-            <span><i className="legend-event" />{word(locale, 'Sự kiện — tương tác, vận mệnh', 'Event — interact, fortune')}</span>
-            <span><i className="legend-exit" />{word(locale, 'Lối ra — sang vùng khác', 'Exit — travel to another region')}</span>
-            <span><i className="legend-danger" />{word(locale, 'Hiểm họa — giao chiến, mất máu', 'Danger — combat, lose health')}</span>
+            <span><i className="legend-slot" aria-hidden="true">{mapNodeGlyph('npc')}</i>{word(locale, 'Người — nói chuyện, nhận việc', 'People — talk, take quests')}</span>
+            <span><i className="legend-slot" aria-hidden="true">{mapNodeGlyph('event')}</i>{word(locale, 'Sự kiện — tương tác, vận mệnh', 'Event — interact, fortune')}</span>
+            <span><i className="legend-slot" aria-hidden="true">{mapNodeGlyph('exit')}</i>{word(locale, 'Lối ra — sang vùng khác', 'Exit — travel to another region')}</span>
+            <span><i className="legend-slot" aria-hidden="true">{mapNodeGlyph('danger')}</i>{word(locale, 'Hiểm họa — giao chiến, mất máu', 'Danger — combat, lose health')}</span>
             <span>{word(locale, 'Đi đến chấm sáng để gặp người, gặp sự kiện, hoặc qua cổng. Nước và núi chặn lối. Chấm đỏ là hiểm họa — hãy nghỉ (Rest) hồi máu trước khi vào.', 'Walk to a glowing point to meet people, find events, or use an exit. Water and mountains block the way. Red points are danger — rest to heal before you enter.')}</span>
           </div>
           <aside className="map-context" aria-labelledby="map-context-title">

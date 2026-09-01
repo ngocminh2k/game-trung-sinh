@@ -34,10 +34,10 @@ describe('system-messages data', () => {
     }
   })
 
-  it('matches story-canon §5 wording exactly and opens rewards with Đinh!', () => {
+  it('matches story-canon §5/§8 wording exactly and opens rewards with Đinh!', () => {
     const quest = SYSTEM_MESSAGES.find((m) => m.id === 'sys_quest_loaded')!
-    expect(quest.templateVi).toBe('Nhiệm vụ chính tải xong: {quest}. Hạn: {days} ngày.')
-    expect(quest.templateEn).toBe('Main quest loaded: {quest}. Time limit: {days} days.')
+    expect(quest.templateVi).toBe('Nhiệm vụ chính tải xong: {quest}. Hạn: {days} ngày. {objective}')
+    expect(quest.templateEn).toBe('Main quest loaded: {quest}. Time limit: {days} days. {objective}')
     const reward = SYSTEM_MESSAGES.find((m) => m.id === 'sys_reward')!
     expect(reward.templateVi.startsWith('Đinh!')).toBe(true)
     expect(reward.templateEn.startsWith('Ding!')).toBe(true)
@@ -59,14 +59,14 @@ describe('system-messages data', () => {
 describe('formatSystemMessage', () => {
   it('formats quest message with Vi header and correct numbers', () => {
     expect(
-      formatSystemMessage('sys_quest_loaded', { quest: 'Chuộc danh dự', days: 4 }, 'vi'),
-    ).toBe('【Hệ Thống】 Nhiệm vụ chính tải xong: Chuộc danh dự. Hạn: 4 ngày.')
+      formatSystemMessage('sys_quest_loaded', { quest: 'Chuộc danh dự', days: 4, objective: 'Đánh bại Ma Thú Rừng Sương.' }, 'vi'),
+    ).toBe('【Hệ Thống】 Nhiệm vụ chính tải xong: Chuộc danh dự. Hạn: 4 ngày. Đánh bại Ma Thú Rừng Sương.')
   })
 
   it('formats with En header and correct numbers', () => {
     expect(
-      formatSystemMessage('sys_quest_loaded', { quest: 'Restore honor', days: 4 }, 'en'),
-    ).toBe('【System】 Main quest loaded: Restore honor. Time limit: 4 days.')
+      formatSystemMessage('sys_quest_loaded', { quest: 'Restore honor', days: 4, objective: 'Defeat the Mist Boar.' }, 'en'),
+    ).toBe('【System】 Main quest loaded: Restore honor. Time limit: 4 days. Defeat the Mist Boar.')
   })
 
   it('formats reward with Đinh! and reward token', () => {
@@ -79,7 +79,7 @@ describe('formatSystemMessage', () => {
     expect(formatSystemMessage('sys_warning', {}, 'vi')).toBe('【Hệ Thống】 Cảnh báo: {danger}.')
     expect(
       formatSystemMessage('sys_quest_loaded', { quest: 'Q' }, 'vi'),
-    ).toBe('【Hệ Thống】 Nhiệm vụ chính tải xong: Q. Hạn: {days} ngày.')
+    ).toBe('【Hệ Thống】 Nhiệm vụ chính tải xong: Q. Hạn: {days} ngày. {objective}')
   })
 
   it('never throws for unknown message id', () => {

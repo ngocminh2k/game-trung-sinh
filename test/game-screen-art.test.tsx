@@ -184,6 +184,46 @@ describe('illustrated RPG UI', () => {
     expect(document.querySelectorAll('.map-node-label').length).toBeGreaterThanOrEqual(exits.length)
   })
 
+  it('renders every map node inside a labelled icon slot with a placeholder glyph', () => {
+    renderScreen()
+
+    // Every authored node is a rounded icon slot styled ≥32px and bordered by its kind.
+    const slots = document.querySelectorAll('.map-icon-slot')
+    expect(slots.length).toBeGreaterThan(0)
+    for (const slot of slots) {
+      // The slot is styled with the icon-slot box (width/height set in CSS).
+      expect(slot.className).toContain('map-icon-slot')
+      // Each slot carries a placeholder glyph (all kinds have one).
+      expect(slot.querySelector('.map-icon-placeholder')).toBeTruthy()
+      // Non-exit nodes show only the glyph — never artwork.
+      if (!slot.classList.contains('node-exit')) {
+        expect(slot.querySelector('.map-exit-icon')).toBeNull()
+      }
+      // Focusable for keyboard (tabIndex 0).
+      expect(slot.getAttribute('tabindex')).toBe('0')
+    }
+  })
+
+  it('gives every rendered slot a title matching its node kind', () => {
+    renderScreen()
+
+    const slots = [...document.querySelectorAll('.map-icon-slot')]
+    expect(slots.length).toBeGreaterThan(0)
+    for (const slot of slots) {
+      const title = slot.getAttribute('title') ?? ''
+      const kind = [...slot.classList].find((cls) => cls.startsWith('node-'))
+      if (kind === 'node-exit') {
+        expect(title).toContain('Lối ra')
+      } else if (kind === 'node-npc') {
+        expect(title).toContain('Người')
+      } else if (kind === 'node-danger') {
+        expect(title).toContain('Hiểm họa')
+      } else if (kind === 'node-event') {
+        expect(title).toContain('Sự kiện')
+      }
+    }
+  })
+
   it('orients exploration around the player’s current cell', () => {
     renderScreen()
 

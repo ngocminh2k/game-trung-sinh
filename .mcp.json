@@ -6,6 +6,10 @@
       "env": {
         "CBM_INDEX_SUPERVISOR": "0"
       }
+    },
+    "funplay_cocos": {
+      "type": "http",
+      "url": "http://127.0.0.1:8765/"
     }
   }
 }
