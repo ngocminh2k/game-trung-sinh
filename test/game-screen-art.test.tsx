@@ -184,6 +184,32 @@ describe('illustrated RPG UI', () => {
     expect(document.querySelectorAll('.map-node-label').length).toBeGreaterThanOrEqual(exits.length)
   })
 
+  it('legend entries carry bilingual aria-labels', () => {
+    renderScreen()
+
+    const rows = document.querySelectorAll('.map-legend-row[role="img"]')
+    expect(rows.length).toBeGreaterThanOrEqual(4)
+    for (const row of rows) {
+      const label = row.getAttribute('aria-label') ?? ''
+      // The aria-label includes both Vietnamese and English text separated by " | ".
+      // Node-kind rows (people/event/exit/danger) start with their kind word;
+      // the fog row starts with "Vùng mờ".
+      expect(label).toMatch(/^(Người|Sự kiện|Lối ra|Hiểm họa|Vùng mờ) .+ \| (People|Event|Exit|Danger|Misted)/)
+    }
+  })
+
+  it('exit icon falls back to placeholder on error', () => {
+    renderScreen()
+
+    const icons = document.querySelectorAll('.map-exit-icon')
+    expect(icons.length).toBeGreaterThan(0)
+    // Simulate an onError event on each exit icon.
+    icons.forEach((icon) => {
+      fireEvent.error(icon)
+      expect((icon as HTMLImageElement).style.display).toBe('none')
+    })
+  })
+
   it('renders every map node inside a labelled icon slot with a placeholder glyph', () => {
     renderScreen()
 
@@ -268,5 +294,44 @@ describe('illustrated RPG UI', () => {
     expect(screen.getByRole('button', { name: /Vận.*2\/100/ })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Thân.*3\/100/ }))
     expect(onAction).toHaveBeenCalledWith({ kind: 'allocate_attribute', attribute: 'body' })
+  })
+
+  it('renders tooltip on focus with node name and kind', () => {
+    renderScreen()
+
+    const slots = [...document.querySelectorAll('.map-icon-slot')]
+    expect(slots.length).toBeGreaterThan(0)
+    const firstSlot = slots[0]! as HTMLElement
+    // The tooltip sibling exists in the DOM but is hidden by CSS until hover/focus.
+    const cell = firstSlot.closest('.map-cell') as HTMLElement
+    const tooltip = cell.querySelector('.map-node-tooltip') as HTMLElement
+    expect(tooltip).toBeTruthy()
+    expect(tooltip.getAttribute('role')).toBe('tooltip')
+    expect(tooltip.getAttribute('data-testid')).toBe('map-node-tooltip')
+    // Tooltip text includes the node name and kind label (from map.tooltip.*).
+    const text = tooltip.textContent ?? ''
+    expect(text.length).toBeGreaterThan(0)
+    // All authored tooltips carry one of the four kind labels (Nhan vat / Su kien / Loi ra / Hiem hoa).
+    const kindLabel = ['Nhân vật', 'Sự kiện', 'Lối ra', 'Hiểm họa'].some((label) => text.includes(label))
+    expect(kindLabel).toBe(true)
+    // Trigger focus to satisfy the keyboard-reachable contract.
+    firstSlot.focus()
+    expect(document.activeElement).toBe(firstSlot)
+  })
+
+  it('fogs cells other than the current location', () => {
+    renderScreen()
+
+    const cells = [...document.querySelectorAll('.regional-map .map-cell')]
+    expect(cells.length).toBeGreaterThan(1)
+    // The current cell carries data-visited="true"; all others do not.
+    const visitedCells = cells.filter((c) => c.getAttribute('data-visited') === 'true')
+    const foggedCells = cells.filter((c) => c.getAttribute('data-visited') !== 'true')
+    expect(visitedCells.length).toBe(1)
+    expect(foggedCells.length).toBe(cells.length - 1)
+    // The fogged cell carries the player's marker (since the player is the current cell's content).
+    const playerCell = cells.find((c) => c.querySelector('.player-map-marker') !== null)
+    expect(playerCell).toBeTruthy()
+    expect(playerCell?.getAttribute('data-visited')).toBe('true')
   })
 })

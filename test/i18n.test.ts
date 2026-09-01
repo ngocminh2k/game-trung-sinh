@@ -39,6 +39,30 @@ describe('i18n parity', () => {
     expect(flattenDict(VI).length).toBe(flattenDict(EN).length)
     expect(flattenDict(VI).every((k) => k.includes('.'))).toBe(true)
   })
+
+  it('map direction and tooltip keys are bilingual and non-empty', () => {
+    const directionKeys = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw', 'here'] as const
+    for (const k of directionKeys) {
+      const vi = t('vi', `map.direction.${k}`)
+      const en = t('en', `map.direction.${k}`)
+      expect(vi.length, `map.direction.${k} vi`).toBeGreaterThan(0)
+      expect(en.length, `map.direction.${k} en`).toBeGreaterThan(0)
+      expect(vi).not.toBe(`map.direction.${k}`)
+      expect(en).not.toBe(`map.direction.${k}`)
+    }
+    for (const k of ['npc', 'event', 'exit', 'danger'] as const) {
+      const vi = t('vi', `map.tooltip.${k}`)
+      const en = t('en', `map.tooltip.${k}`)
+      expect(vi.length, `map.tooltip.${k} vi`).toBeGreaterThan(0)
+      expect(en.length, `map.tooltip.${k} en`).toBeGreaterThan(0)
+    }
+    // The composite tooltip key renders every interpolation parameter.
+    const rendered = t('en', 'map.tooltip.dist', { name: 'Ngo', kind: 'Person', direction: 'North', n: 3 })
+    expect(rendered).toContain('Ngo')
+    expect(rendered).toContain('Person')
+    expect(rendered).toContain('North')
+    expect(rendered).toContain('3')
+  })
 })
 
 describe('bilingual content parity', () => {
