@@ -6,6 +6,14 @@ import mistyForest from '../assets/art/locations/misty-forest.png'
 import sealedCave from '../assets/art/locations/sealed-cave.png'
 import sect from '../assets/art/locations/sect.png'
 import village from '../assets/art/locations/village.png'
+import thousandHerbsValley from '../assets/art/locations/thousand-herbs-valley.png'
+import blackwindDunes from '../assets/art/locations/blackwind-dunes.png'
+import frozenPeak from '../assets/art/locations/frozen-peak.png'
+import wanderingMarket from '../assets/art/locations/wandering-market.png'
+import moonLake from '../assets/art/locations/moon-lake.png'
+import boneAshRuins from '../assets/art/locations/bone-ash-ruins.png'
+import spiritBeastRidge from '../assets/art/locations/spirit-beast-ridge.png'
+import azurePavilion from '../assets/art/locations/azure-pavilion.png'
 import azurePavilionIcon from '../assets/art/location-icons/azure-pavilion.png'
 import blackwindDunesIcon from '../assets/art/location-icons/blackwind-dunes.png'
 import boneAshRuinsIcon from '../assets/art/location-icons/bone-ash-ruins.png'
@@ -57,14 +65,14 @@ const LOCATION_BACKDROPS: Record<ScenarioOneLocationId, string> = {
   sealed_cave: sealedCave,
   cursed_rift: cursedRift,
   cloud_peak: cloudPeak,
-  thousand_herbs_valley: herbField,
-  blackwind_dunes: cursedRift,
-  frozen_peak: cloudPeak,
-  wandering_market: market,
-  moon_lake: herbField,
-  bone_ash_ruins: sealedCave,
-  spirit_beast_ridge: mistyForest,
-  azure_pavilion: sect,
+  thousand_herbs_valley: thousandHerbsValley,
+  blackwind_dunes: blackwindDunes,
+  frozen_peak: frozenPeak,
+  wandering_market: wanderingMarket,
+  moon_lake: moonLake,
+  bone_ash_ruins: boneAshRuins,
+  spirit_beast_ridge: spiritBeastRidge,
+  azure_pavilion: azurePavilion,
 }
 
 const LOCATION_ICONS: Record<ScenarioOneLocationId, string> = {

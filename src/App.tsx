@@ -24,6 +24,7 @@ import {
   type SessionStorage,
   type SlotId,
 } from './ui/session'
+import { soundEngine } from './ui/audio/soundEngine'
 import './ui/screens.css'
 
 function browserStorage(): SessionStorage {
@@ -164,6 +165,14 @@ function App() {
     if (session !== null && activeSlot !== null) saveSlot(browserStorage(), activeSlot, session)
   }, [session, activeSlot])
 
+  useEffect(() => {
+    if (phase === 'playing') {
+      soundEngine.setAmbientTheme('village')
+    } else {
+      soundEngine.setAmbientTheme('silence')
+    }
+  }, [phase])
+
   const updateSettings = useCallback((next: PlayerSettings) => {
     setSettings(next)
     setLocale(next.locale)
@@ -244,6 +253,27 @@ function App() {
     setStoryOpen((open) => !resolvesSystemBoot && !result.state.terminal && (open || opensStory) && storyRouteEncounter(result.state) === undefined)
     const visualAction = visualActionFor(action, result.events)
     setMotion((current) => ({ kind: visualAction, nonce: current.nonce + 1 }))
+
+    // Trigger Xianxia audio feedback
+    if (result.events.some((e) => e.type === 'ACHIEVEMENT_UNLOCKED' || e.type === 'ENDING')) {
+      soundEngine.play('stamp')
+    } else if (result.events.some((e) => e.type === 'MINOR_REALM_ADVANCED')) {
+      soundEngine.play('breakthrough')
+    } else if (result.events.some((e) => e.type === 'COMBAT_HIT')) {
+      soundEngine.play('sword_strike')
+    } else if (result.events.some((e) => e.type === 'COMBAT_GUARDED')) {
+      soundEngine.play('sword_defend')
+    } else if (result.events.some((e) => e.type === 'ITEM_USED' || e.type === 'WARD_USED')) {
+      soundEngine.play('pill')
+    } else if (action.kind === 'train') {
+      soundEngine.play('cultivate')
+    } else if (action.kind === 'move') {
+      soundEngine.play('step')
+    } else if (action.kind === 'story_choice') {
+      soundEngine.play('bell')
+    } else {
+      soundEngine.play('click')
+    }
 
     void requestNarration(result.state, result.events, previous.locale).then((line) => {
       if (line === null || sessionRef.current === null) return

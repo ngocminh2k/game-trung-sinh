@@ -143,19 +143,21 @@ describe('illustrated RPG UI', () => {
     expect(ids).toHaveLength(NPCS.length + ITEMS.length + TALENTS.length + TECHNIQUES.length + LOCATIONS.length)
 
     for (const item of ITEMS) {
+      const entry = document.querySelector(`[data-entry-id="${item.id}"]`)
       const artwork = itemArtFor(item.id)
       if (artwork === undefined) {
-        expect(screen.queryByAltText(item.nameVi)).toBeNull()
+        expect(entry?.querySelector('img')).toBeNull()
       } else {
-        expect(screen.getByAltText(item.nameVi)).toBeTruthy()
+        expect(entry?.querySelector('img')).toBeTruthy()
       }
     }
     for (const talent of TALENTS) expect(talentArtFor(talent.id)).toBeDefined()
     for (const technique of TECHNIQUES) {
+      const entry = document.querySelector(`[data-entry-id="${technique.id}"]`)
       if (techniqueArtFor(technique.id) === undefined) {
-        expect(screen.queryByAltText(technique.nameVi)).toBeNull()
+        expect(entry?.querySelector('img')).toBeNull()
       } else {
-        expect(screen.getByAltText(technique.nameVi)).toBeTruthy()
+        expect(entry?.querySelector('img')).toBeTruthy()
       }
     }
     for (const location of LOCATIONS) {

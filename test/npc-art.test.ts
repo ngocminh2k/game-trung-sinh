@@ -14,6 +14,7 @@ describe('NPC art registry', () => {
 
     // Every registered portrait key maps to a real NPC — no stale entries.
     const npcIds = new Set(NPCS.map((n) => n.id))
+    expect(Object.keys(INDIVIDUAL_NPC_PORTRAITS).length).toBe(60)
     for (const id of Object.keys(INDIVIDUAL_NPC_PORTRAITS)) {
       expect(npcIds.has(id)).toBe(true)
     }
