@@ -99,7 +99,7 @@ export function validateAllContent(): ContentValidationReport {
   check(z.array(CellDefSchema).length(MAP_WIDTH * MAP_HEIGHT), CELLS, 'CELLS')
   check(NpcDefSchema.array().min(60), NPCS, 'NPCS')
   check(z.array(ChapterDefSchema).length(8), CHAPTERS, 'CHAPTERS')
-  check(z.array(EndingDefSchema).length(12), ENDINGS, 'ENDINGS')
+  check(z.array(EndingDefSchema).length(22), ENDINGS, 'ENDINGS')
   check(z.array(QuestDefSchema).min(150), QUESTS, 'QUESTS')
   check(z.array(AchievementDefSchema).min(1), ACHIEVEMENTS, 'ACHIEVEMENTS')
   check(z.array(BeatDefSchema).min(1), BEATS, 'BEATS')

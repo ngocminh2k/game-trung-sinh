@@ -187,16 +187,18 @@ describe('illustrated RPG UI', () => {
   })
 
   it('legend entries carry bilingual aria-labels', () => {
+    // P0-4 / a11y cleanup: legend rows use only the active locale in their
+    // aria-label (no " | " bilingual separator). This test now documents the
+    // single-locale contract that aria-cleanup.test.tsx enforces.
     renderScreen()
 
     const rows = document.querySelectorAll('.map-legend-row[role="img"]')
     expect(rows.length).toBeGreaterThanOrEqual(4)
     for (const row of rows) {
       const label = row.getAttribute('aria-label') ?? ''
-      // The aria-label includes both Vietnamese and English text separated by " | ".
-      // Node-kind rows (people/event/exit/danger) start with their kind word;
-      // the fog row starts with "Vùng mờ".
-      expect(label).toMatch(/^(Người|Sự kiện|Lối ra|Hiểm họa|Vùng mờ) .+ \| (People|Event|Exit|Danger|Misted)/)
+      expect(label).not.toContain(' | ')
+      // Vietnamese labels start with Người / Ngươi / Sự kiện / Lối ra / Hiểm họa / Vùng mờ.
+      expect(label).toMatch(/^(Người|Ngươi|Sự kiện|Lối ra|Hiểm họa|Vùng mờ)/)
     }
   })
 

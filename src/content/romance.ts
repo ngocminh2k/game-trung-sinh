@@ -24,6 +24,10 @@ const meihua: readonly Beat[] = [
   ['Đèn trước hiên', 'Porch Lamp', 'Ngọn đèn được để lại sáng hơn thường lệ; không ai nói nó đang chờ ai.', 'The porch lamp is left brighter than usual; nobody says whom it awaits.'],
   ['Trăng tròn', 'Full Moon', 'Dưới trăng, Mai Hoa hỏi đường dài của ngươi có còn chỗ cho một người đi chậm.', 'Under the full moon, Meihua asks whether your long road has room for someone slow.'],
   ['Nút dây cuối', 'The Last Knot', 'Sợi chỉ đỏ chỉ còn một nút. Lần này, cả hai đều biết nó có nghĩa gì.', 'Only one knot remains in the red thread. This time you both know what it means.'],
+  // P1-Narrative #4 — one-line beat (cadence variation, NOT the final knot)
+  ['Một nắm lá', 'One Handful of Leaves', 'Mai Hoa đưa cho ngươi một nắm lá vừa hong.', 'Meihua hands you a handful of freshly aired leaves.'],
+  // P1-Narrative #4 — question beat (cadence variation)
+  ['Câu hỏi cuối cùng', 'The Last Question', 'Bà nhìn ngươi, không đòi lời đáp: "Ngươi có muốn ở lại đến sáng mai không?"', 'She looks at you, asking no answer: "Do you wish to stay until morning?"'],
 ]
 const ha: readonly Beat[] = [
   ['Đốm lửa lạnh', 'Cold Flame', 'Hà giữ một đốm lửa xanh trong lòng bàn tay không còn ấm.', 'Ha holds a blue flame in a palm no longer warm.'],
@@ -46,6 +50,10 @@ const ha: readonly Beat[] = [
   ['Hơi thở cuối', 'Final Breath', 'Hà mượn một hơi thở của ngươi để nói điều cô đã giấu.', 'Ha borrows one of your breaths to say what she hid.'],
   ['Bình minh lạ', 'Unfamiliar Dawn', 'Trời sáng trên hang phong ấn; cô vẫn ở đây, nhưng không còn thuộc về nơi này.', 'Dawn reaches the sealed cave; she remains, but belongs here no longer.'],
   ['Cánh cửa mở', 'Open Door', 'Hà không xin được giữ lại. Cô chỉ hỏi ngươi sẽ nhớ cô bằng cách nào.', 'Ha does not ask to be kept. She only asks how you will remember her.'],
+  // P1-Narrative #4 — one-line beat (cadence variation)
+  ['Một hơi thở', 'One Breath', 'Hà cười khẽ trong gương.', 'Ha smiles faintly inside the mirror.'],
+  // P1-Narrative #4 — question beat (cadence variation)
+  ['Lời hỏi vọng', 'Echoing Question', 'Trước khi mờ đi, cô hỏi: "Ngươi đã sẵn sàng để tôi đi chưa?"', 'Before fading, she asks: "Are you ready to let me go?"'],
 ]
 const sam: readonly Beat[] = [
   ['Lò đan nứt', 'Cracked Furnace', 'Sâm nhìn lò đan nứt và cười như vừa tìm được một bài toán khó.', 'Sam studies a cracked furnace and grins as if finding a difficult problem.'],

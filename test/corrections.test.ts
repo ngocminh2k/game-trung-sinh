@@ -60,7 +60,11 @@ describe('corrections and bounded forced convergence', () => {
     const state = newGame('corrections-parse')
     const r1 = applyAction(state, { kind: 'free_text', raw: 'luyện công' })
     expect(r1.events.some((e) => e.type === 'TRAINED')).toBe(true)
-    const r2 = applyAction(r1.state, { kind: 'free_text', raw: 'go west' })
+    // P1-3 halved row-0 thresholds: the first training breakthroughs into the
+    // next minor realm and grants two attribute points. Clear them before moving.
+    let allocated = applyAction(r1.state, { kind: 'allocate_attribute', attribute: 'body' }).state
+    allocated = applyAction(allocated, { kind: 'allocate_attribute', attribute: 'mind' }).state
+    const r2 = applyAction(allocated, { kind: 'free_text', raw: 'go west' })
     expect(r2.events.some((e) => e.type === 'MOVED')).toBe(true)
     const r2b = applyAction(r2.state, { kind: 'free_text', raw: 'go west' })
     expect(r2b.events.some((e) => e.type === 'MOVED')).toBe(true)

@@ -38,8 +38,8 @@ function validateEnemy(enemy: (typeof ENEMIES)[number]): string[] {
 // engine pass that is currently frozen; this file proves the data + helpers
 // are correct so the engine pass can be a pure wire-up.
 describe('W6 combat depth · enemy data', () => {
-  it('contains exactly 18 enemies (3 baseline + 15 new)', () => {
-    expect(ENEMIES).toHaveLength(18)
+  it('contains exactly 21 enemies (3 baseline + 18 new)', () => {
+    expect(ENEMIES).toHaveLength(21)
   })
 
   it('every enemy validates against the EnemyDef contract', () => {
@@ -51,7 +51,7 @@ describe('W6 combat depth · enemy data', () => {
 
   it('every new enemy has an element, a behavior, and a required stage', () => {
     const newEnemies = ENEMIES.filter((e) => !['mist_boar', 'seal_wraith', 'rift_hound'].includes(e.id))
-    expect(newEnemies).toHaveLength(15)
+    expect(newEnemies).toHaveLength(18)
     const behaviors: BehaviorPattern[] = ['aggressive', 'defensive', 'ranged', 'poison', 'flee', 'counter', 'summon', 'heal_self', 'drain_qi']
     for (const enemy of newEnemies) {
       expect(enemy.element, `element missing on ${enemy.id}`).toBeDefined()
