@@ -240,7 +240,7 @@ function App() {
     const previous = sessionRef.current
     if (previous === null) return
     const result = applyAction(previous.game, action)
-    const next = { ...previous, game: result.state, chronicle: [...previous.chronicle, ...narrate(result.events, previous.locale)].slice(-80) }
+    const next = { ...previous, game: result.state, chronicle: [...previous.chronicle, ...narrate(result.events, previous.locale)].slice(-80), chronicleKinds: [...(previous.chronicleKinds ?? []), ...result.events.map((event) => event.type.toLowerCase())].slice(-80) }
     sessionRef.current = next
     if (activeSlot !== null && shouldAutoSave(previous.game, result.state)) saveSlot(browserStorage(), activeSlot, next)
     setSession(next)
@@ -259,6 +259,9 @@ function App() {
       soundEngine.play('stamp')
     } else if (result.events.some((e) => e.type === 'MINOR_REALM_ADVANCED')) {
       soundEngine.play('breakthrough')
+    } else if (result.events.some((e) => e.type === 'COMBO_TRIGGERED')) {
+      // Rising sweep overlay rides on top of the combat BGM.
+      soundEngine.playCombo()
     } else if (result.events.some((e) => e.type === 'COMBAT_HIT')) {
       soundEngine.play('sword_strike')
     } else if (result.events.some((e) => e.type === 'COMBAT_GUARDED')) {

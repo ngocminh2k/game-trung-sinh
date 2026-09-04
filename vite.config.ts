@@ -2,7 +2,18 @@
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { z } from 'zod'
 import react from '@vitejs/plugin-react'
+
+// Proxy payload shapes: exported so tests can validate the same gates the
+// middleware enforces. The suggest shape is strict (caps choices at 20);
+// the narrate shape is a permissive record — the proxy only relays canon.
+export const SuggestPayloadSchema = z.object({
+  mode: z.literal('suggest'),
+  locale: z.enum(['en', 'vi']),
+  choices: z.array(z.object({ id: z.string().min(1) })).max(20),
+})
+export const NarratePayloadSchema = z.record(z.unknown())
 
 function isSuggestPayload(body: unknown): body is { mode: 'suggest', locale: string, choices: Array<{ id: string }> } {
   if (typeof body !== 'object' || body === null) return false

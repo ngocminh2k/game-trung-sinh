@@ -29,6 +29,7 @@ export const GameStateSchema = z.object({
     posY: z.number().int().min(0).max(MAP_HEIGHT - 1),
     locationId: z.string().min(1),
     alive: z.boolean(),
+    poison: z.number().int().min(0).max(5).default(0),
     status: z
       .array(
         z.object({
@@ -81,6 +82,11 @@ export const GameStateSchema = z.object({
       hp: z.number().int().min(1),
       maxHp: z.number().int().min(1),
       guard: z.number().int().min(0).max(99),
+      focusStacks: z.number().int().min(0).max(99).default(0),
+      focusDamage: z.number().int().min(0).max(99).default(0),
+      behaviorBonus: z.number().int().min(0).max(99).default(0),
+      behaviorHealUsed: z.boolean().default(false),
+      enemyTurns: z.number().int().min(0).max(99).default(0),
       statusEffects: z
         .array(
           z.object({
@@ -93,6 +99,8 @@ export const GameStateSchema = z.object({
     })
     .nullable()
     .default(null),
+  affection: z.record(z.number().int().min(0)).default({}),
+  critBonus: z.number().int().min(0).max(100).default(0),
   lastLotteryDay: z.number().int().min(1).nullable(),
   corrections: z.number().int().min(0),
   terminal: z.boolean(),
@@ -189,6 +197,7 @@ export const EnemyDefSchema = z.object({
   behaviorPattern: z
     .enum(['aggressive', 'defensive', 'ranged', 'poison', 'flee', 'counter', 'summon', 'heal_self', 'drain_qi'])
     .optional(),
+  behavior: z.enum(['aggressive', 'poison', 'phase2', 'boss']).optional(),
   defense: z.number().int().min(0).max(99).optional(),
   requiredStage: z.number().int().min(0).max(MAX_STAGE).optional(),
   exp: z.number().int().min(0).optional(),

@@ -13,6 +13,9 @@ export interface GameSession {
   game: GameState
   locale: Locale
   chronicle: string[]
+  /** Parallel to chronicle: source event kind (lowercased) so the UI can
+   *  color telegraph combat/defend/train lines. Optional for legacy saves. */
+  chronicleKinds?: string[]
 }
 
 export interface SaveSlot {

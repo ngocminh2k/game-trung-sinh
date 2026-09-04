@@ -85,4 +85,77 @@ export const ENDINGS: EndingDef[] = [
     epitaphVi: 'Ngươi xóa Hệ Thống trước khi bước lên đỉnh. Hai trăm cái tên trở về, gọi lần lượt nhau dưới trời, và không một ai biết người giải phóng chúng đã đi đâu.',
     epitaphEn: 'You erase the System before stepping onto the summit. Two hundred names return, calling one another under the sky, and no one knows where the one who freed them has gone.',
   },
+  // ── P1-1 system endings: each System completes with its own epilogue when
+  // the player maxes the realm ladder carrying that System's signature
+  // technique. Order matches SYSTEMS in system-defs.ts.
+  {
+    id: 'system_battle_end',
+    nameVi: 'Kết cục: Hệ Thống Chiến Đấu — Trận Cuối Cùng',
+    nameEn: 'Ending: Battle System — The Final Match',
+    epitaphVi: 'Dao khắc trên tay ngươi đã cùn. Hệ Thống ghi một dòng cuối rồi im — chờ người kế tiếp.',
+    epitaphEn: 'The blade carved into your palm has gone blunt. The System logs one last line, then waits in silence for whoever comes next.',
+  },
+  {
+    id: 'system_alchemy_end',
+    nameVi: 'Kết cục: Hệ Thống Luyện Đan — Lò Tắt',
+    nameEn: 'Ending: Alchemy System — The Hearth Goes Out',
+    epitaphVi: 'Lò cuối cùng trong xóm ngươi đã nguội. Mùi thuốc cũ bay đi, và không ai nhớ ai đã luyện viên đan cuối cùng.',
+    epitaphEn: 'The last hearth in the hamlet has gone cold. The old herb-scent drifts away, and no one remembers who refined the final pill.',
+  },
+  {
+    id: 'system_merchant_end',
+    nameVi: 'Kết cục: Hệ Thống Hội Thương — Sổ Đóng',
+    nameEn: 'Ending: Merchant System — Ledger Closed',
+    epitaphVi: 'Sổ tính sổ. Hệ Thống gạch một nét cuối cùng, rồi gấp lại — không ai mở ra đọc nữa.',
+    epitaphEn: 'The ledger balances. The System draws one final stroke, then folds the book shut — no one opens it to read again.',
+  },
+  {
+    id: 'system_lottery_end',
+    nameVi: 'Kết cục: Hệ Thống Cờ Bạc — Hạt Cuối',
+    nameEn: 'Ending: Lottery System — The Last Toss',
+    epitaphVi: 'Xúc xắc lăn một lần nữa rồi nằm yên. Số hiện lên: trống. Hệ Thống cười, lần đầu tiên không cần ngươi nghe.',
+    epitaphEn: 'The die rolls once more and lies still. The face shows: blank. The System laughs — for the first time, it does not need you to hear it.',
+  },
+  {
+    id: 'system_explorer_end',
+    nameVi: 'Kết cục: Hệ Thống Vạn Dặm — Bản Đồ Cuối',
+    nameEn: 'Ending: Explorer System — The Last Map',
+    epitaphVi: 'Bản đồ cuối cùng không còn chỗ trống. Hệ Thống tra bút vào tay ngươi — lần đầu không có đường nào để vẽ thêm.',
+    epitaphEn: 'The last map has no white space left. The System offers the brush to your hand — for the first time, there is no road left to draw.',
+  },
+  {
+    id: 'system_assassin_end',
+    nameVi: 'Kết cục: Hệ Thống Ám Sát — Bóng Tắt',
+    nameEn: 'Ending: Assassin System — The Shadow Goes Out',
+    epitaphVi: 'Kim đã gãy, nọc đã cùn. Bóng cuối cùng ngươi để lại tan đi mà không kịp nói tên ai.',
+    epitaphEn: 'The needle has broken, the venom dulled. The last shadow you left dissolves before it can name anyone.',
+  },
+  {
+    id: 'system_healer_end',
+    nameVi: 'Kết cục: Hệ Thống Dưỡng Sinh — Mạch Dừng',
+    nameEn: 'Ending: Healer System — The Pulse Stops',
+    epitaphVi: 'Ngươi đếm nhịp cuối cùng của mạch mình. Hệ Thống ghi "ổn" rồi tắt — không ai sửa lại.',
+    epitaphEn: 'You count the last beat of your own pulse. The System logs "stable" and powers down — no one corrects the entry.',
+  },
+  {
+    id: 'system_artisan_end',
+    nameVi: 'Kết cục: Hệ Thống Luyện Khí — Lò Nguội',
+    nameEn: 'Ending: Artisan System — The Forge Goes Cold',
+    epitaphVi: 'Búa cuối cùng rơi xuống đe không kêu. Hệ Thống đo lại lửa — lần đầu không đủ nhiệt để bắt đầu.',
+    epitaphEn: 'The final hammer falls on the anvil without a sound. The System measures the fire — for the first time, there is not enough heat to begin.',
+  },
+  {
+    id: 'system_scholar_end',
+    nameVi: 'Kết cục: Hệ Thống Tàng Thư — Trang Cuối',
+    nameEn: 'Ending: Scholar System — The Final Page',
+    epitaphVi: 'Trang cuối đã viết xong. Hệ Thống đóng sách lại và đặt bút xuống — lần đầu tiên không có trang nào để lật.',
+    epitaphEn: 'The final page is finished. The System closes the book and sets the brush down — for the first time, there is no page left to turn.',
+  },
+  {
+    id: 'system_void_end',
+    nameVi: 'Kết cục: Hệ Thống Hư Vô — Vệt Tắt',
+    nameEn: 'Ending: Void System — The Stroke Goes Dark',
+    epitaphVi: 'Vệt sáng cuối cùng tắt. Hệ Thống nhìn xuyên qua chính nó — và không thấy gì, kể cả ngươi.',
+    epitaphEn: 'The last bright stroke goes dark. The System looks through itself — and sees nothing, not even you.',
+  },
 ]

@@ -174,6 +174,12 @@
   background: rgba(255, 253, 241, .72);
   box-shadow: 0 18px 40px rgba(62, 54, 39, .12);
 }
+@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
+  .save-slots-panel { backdrop-filter: blur(8px) saturate(1.1); -webkit-backdrop-filter: blur(8px) saturate(1.1); }
+}
+@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
+  .save-slots-panel { backdrop-filter: blur(8px) saturate(1.1); -webkit-backdrop-filter: blur(8px) saturate(1.1); }
+}
 .save-slots-kicker {
   margin: 0;
   font-family: 'DM Mono', monospace;
@@ -237,13 +243,13 @@
 .save-slot-delete {
   border: 1px solid rgba(157, 62, 46, .5);
   padding: 6px 10px;
-  color: #9d3e2e;
+  color: var(--vermilion);
   background: transparent;
   font-family: 'DM Mono', monospace;
   font-size: 11px;
 }
-.save-slot-delete:hover { color: #fdf6e7; background: #9d3e2e; }
-.save-slot-delete[data-confirming='true'] { border-color: #9d3e2e; color: #fdf6e7; background: #9d3e2e; }
+.save-slot-delete:hover { color: #fdf6e7; background: var(--vermilion); }
+.save-slot-delete[data-confirming='true'] { border-color: var(--vermilion); color: #fdf6e7; background: var(--vermilion); }
 @media (prefers-reduced-motion: reduce) {
   .save-slot-main { transition: none; }
 }
@@ -253,7 +259,7 @@
   gap: 0;
   color: #e9e2d2;
   background:
-    radial-gradient(circle at 50% 46%, #16221b 0%, #0a110d 55%, #05080 100%);
+    radial-gradient(circle at 50% 46%, #16221b 0%, #0a110d 55%, #050808 100%);
 }
 .death-vignette {
   position: absolute;
@@ -315,7 +321,7 @@
 }
 .token-ring {
   fill: rgba(20, 30, 24, .6);
-  stroke: #9d3e2e;
+  stroke: var(--vermilion);
   stroke-width: 3;
 }
 .token-glyph {
@@ -424,6 +430,12 @@
   background: rgba(255, 253, 241, .72);
   box-shadow: 0 18px 40px rgba(62, 54, 39, .12);
 }
+@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
+  .menu-panel { backdrop-filter: blur(8px) saturate(1.1); -webkit-backdrop-filter: blur(8px) saturate(1.1); }
+}
+@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
+  .menu-panel { backdrop-filter: blur(8px) saturate(1.1); -webkit-backdrop-filter: blur(8px) saturate(1.1); }
+}
 .menu-kicker {
   margin: 0;
   font-family: 'DM Mono', monospace;
@@ -459,7 +471,7 @@
   color: #244c38;
   transition: color .13s ease, border-color .13s ease, transform .13s ease;
 }
-.menu-action:hover:not(:disabled) { color: #9d3e2e; border-bottom-color: #9d3e2e; transform: translateX(4px); }
+.menu-action:hover:not(:disabled) { color: var(--vermilion); border-bottom-color: var(--vermilion); transform: translateX(4px); }
 .menu-action:disabled { opacity: .45; cursor: not-allowed; }
 .menu-action:focus-visible,
 .menu-back:focus-visible,
@@ -540,7 +552,7 @@
   font-family: 'DM Mono', monospace;
   font-size: 10px;
   letter-spacing: .14em;
-  color: #9d3e2e;
+  color: var(--vermilion);
 }
 .system-tile-name {
   font-weight: 700;
