@@ -89,12 +89,14 @@ export const VI = {
   INSUFFICIENT_SILVER: 'Không đủ bạc.',
   INSUFFICIENT_SPIRIT_STONES: 'Không đủ linh thạch.',
     INSUFFICIENT_QI: 'Linh khí cạn rồi, hãy nghỉ trước.',
+    INSUFFICIENT_HP: 'Thân ngươi không gánh nổi một lần tu luyện nữa — hãy nghỉ hoặc chữa trước.',
     NO_ITEM: 'Trong túi không có món đó.',
     ITEM_NOT_USABLE: 'Món này không thể dùng trực tiếp.',
     ITEM_UNAVAILABLE: 'Việc này chưa hợp với tình thế hiện tại.',
     INVALID_QTY: 'Số lượng không hợp lệ.',
     STORAGE_FULL: 'Nhà kho đã đầy.',
     STORAGE_EMPTY: 'Trong kho không có món đó để lấy ra.',
+    STORAGE_LOCKED: 'Kho tông môn đã đóng theo mùa.',
     LOTTERY_ALREADY_DRAWN: 'Hôm nay đã rút vé số rồi, mai quay lại nhé.',
     LOTTERY_NEED_GOLD: 'Không đủ tiền mua vé số.',
     QUEST_UNKNOWN: 'Nhiệm vụ không tồn tại.',
@@ -105,10 +107,19 @@ export const VI = {
     ATTRIBUTE_ALLOCATION_REQUIRED: 'Hãy phân hết điểm thuộc tính vừa nhận trước khi tiếp tục.',
     NO_ATTRIBUTE_POINTS: 'Không còn điểm thuộc tính để phân.',
     ATTRIBUTE_MAXED: 'Thuộc tính này đã đạt mức tối đa.',
+    REGION_LOCKED: 'Đường đi đã bị phong ấn — hang không mở nữa.',
+    SYSTEM_LOCKED: 'Chiêu này chỉ dành cho Hệ Thống đã ký khế ước với ngươi.',
   },
   narrator: {
     logTitle: 'Dấu chân trên đường tu',
     emptyLog: 'Trang sử còn đợi ngươi viết tiếp.',
+  },
+  chronicle: {
+    kind: {
+      combat: 'Giao tranh',
+      defend: 'Phòng thủ',
+      train: 'Tu luyện',
+    },
   },
   ui: {
     loading: { aria: 'Màn hình tải — nhấn để bắt đầu', subtitle: 'Truyền kỳ trọng sinh · linh căn phế', begin: 'Nhấn để bước vào' },
@@ -123,10 +134,19 @@ export const VI = {
       narrationOff: 'Proxy: tắt',
     },
     death: { aria: 'Kết thúc', title: 'Kiếp này khép lại', restart: 'Trọng sinh lại', dismiss: 'Thu lại' },
-    codex: { title: 'Tu điển giang hồ', kicker: 'Nội dung & minh họa', progress: 'Tiến độ tải asset', registered: 'Asset đã đăng ký trong game', packsReady: 'gói sẵn sàng', packs: 'Gói asset', entries: 'Mục tu điển', open: 'Mở', view: 'Xem', kind: { npc: 'Nhân vật', item: 'Vật phẩm', talent: 'Thiên phú', technique: 'Công pháp', location: 'Địa điểm' }, status: { queued: 'Đang chờ', loading: 'Đang tải', ready: 'Sẵn sàng', failed: 'Cần tải lại' } },
+    codex: { title: 'Tu điển giang hồ', kicker: 'Nội dung & minh họa', progress: 'Tiến độ tải asset', registered: 'Asset đã đăng ký trong game', packsReady: 'gói sẵn sàng', packs: 'Gói asset', entries: 'Mục tu điển', open: 'Mở', view: 'Xem', endings: 'Phòng trưng bày kết cục', endingLocked: 'Kết cục chưa mở', endingTier: { main: 'Tầng kết cục chính', system: 'Tầng kết cục Hệ Thống' }, kind: { npc: 'Nhân vật', item: 'Vật phẩm', talent: 'Thiên phú', technique: 'Công pháp', location: 'Địa điểm' }, status: { queued: 'Đang chờ', loading: 'Đang tải', ready: 'Sẵn sàng', failed: 'Cần tải lại' } },
     objective: { title: 'Mục tiêu', battle: 'Giao chiến: xuất chiêu hoặc thủ thế', danger: 'Hiểm họa cận kề: đối mặt {{enemy}} tại {{location}}', progress: 'Tu luyện tích lũy tiến độ cảnh giới ({{progress}}/120)', breakthrough: 'Tiến độ đã đủ — tìm cơ duyên đột phá lên Cảnh {{stage}}', beats: { letter_at_dawn: 'Đọc lá thư và chọn cách đối diện Cụ Mai Hoa. Linh căn phế không hút linh khí nhanh, nhưng nhận ra vết nứt trong ký ức bị phong ấn.', market_rumor: 'Đến Chợ Vân Tập và quyết định ai đáng tin trước đêm thứ mười hai.', cave_witness: 'Tìm đường vào Hang Phong Ấn; lời chứng của Hà cần một người chịu lắng nghe.', sect_trial: 'Mang sự thật đến Vân Ẩn, rồi chọn xem ký ức nên thuộc về ai.', mirror_choice: 'Nhìn thẳng vào kiếp trước: kẻ ngươi truy đuổi có thể chính là ngươi.', last_page: 'Đưa ra quyết định cuối cùng về chiếc gương — không ai còn được chọn thay ngươi.' } },
   },
   system: { panelTitle: 'Hệ Thống', chatPlaceholder: 'Hỏi Hệ Thống...', acceptQuest: 'Nhận nhiệm vụ', turnIn: 'Nộp nhiệm vụ', difficulty: 'Độ khó', noSystem: 'Chưa có Hệ Thống', poolHeader: 'Nhiệm vụ bí mật', chatFallback: 'Hệ Thống im lặng.', chooseOne: 'Chọn một Hệ Thống', locked: 'Đã khóa', refused: 'Ngươi đã từ chối Hệ Thống.' },
+  // P1-1: NPC reactions to a player's System pick — keyed by `npcs.<id>.<systemId>`.
+  // Source of truth for these reactions also lives in src/content/npcs.ts (the
+  // `when.flag` lines on Meihua, Bao, Coc). This i18n block keeps the lines
+  // discoverable for translators and parity-tested.
+  npcs: {
+    meihua: { battle: 'Ngươi đã chọn con đường chiến đấu. Hãy cẩn thận.', alchemy: 'Ngươi đã chọn con đường luyện đan. Mùi thuốc sẽ theo ngươi cả đời.' },
+    bao: { merchant: 'Ngươi đã chọn con đường buôn bán. Đường nào cũng là đường — miễn là có lời.', lottery: 'Ngươi đã chọn con đường cờ bạc. Vận may không đợi người chờ.' },
+    coc: { explorer: 'Ngươi đã chọn con đường vạn dặm. Bước nào cũng in dấu — chọn bước đi cẩn thận.', scholar: 'Ngươi đã chọn con đường tàng thư. Mỗi trang đọc xong là một phần ngươi đã gử.' },
+  },
 }
 
 export type Dict = typeof VI

@@ -16,11 +16,11 @@ export const MINOR_REALM_MAX = 9
 export const ATTRIBUTE_MAX = 100
 export const ATTRIBUTE_POINTS_PER_BREAKTHROUGH = 2
 
-// Each row is one major realm. Nine small realms take roughly 2–3× the old
-// major-realm duration while keeping the early game readable.
+// Each row is one major realm. Rows 0–1 are halved (rounded up) so the early
+// game still advances without dead turns; rows 2+ keep the original cadence.
 export const MINOR_REALM_THRESHOLDS = [
-  [3, 3, 3, 3, 3, 4, 4, 4, 4],
-  [5, 6, 7, 8, 8, 9, 10, 11, 12],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2],
+  [3, 3, 4, 4, 4, 5, 5, 6, 6],
   [9, 10, 11, 12, 13, 14, 15, 16, 17],
   [17, 18, 19, 20, 21, 22, 23, 24, 25],
   [24, 25, 26, 27, 28, 29, 30, 31, 32],

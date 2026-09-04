@@ -58,6 +58,7 @@ import { applyRomanceChoice, findRomanceChoice, hasOtherCommitment } from './rom
 import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
+import { FLAG_AFF, FLAG_AFF_GATE, FLAG_DEFEATED, FLAG_KEYS, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
 import type {
   Action,
   ConcreteAction,
@@ -72,6 +73,28 @@ import type {
 type ROk = { ok: true; state: GameState; events: GameEvent[] }
 type RErr = { ok: false; code: ErrorCode }
 type R = ROk | RErr
+
+// Named handles for flag keys referenced as literals below; FLAG_KEYS stays the
+// canonical list for refactors / exhaustiveness checks. Template helpers
+// (FLAG_AFF, FLAG_DEFEATED, FLAG_RETREATED, FLAG_REACHED) live in flag-keys.ts.
+const [
+  FLAG_MOVED_ONCE,
+  ,
+  FLAG_NIGHT_DEADLINE,
+  FLAG_NIGHT_DEADLINE_CLEARED,
+  FLAG_NIGHT_FORGOTTEN,
+  FLAG_VILLAGE_SILENT,
+  FLAG_STORAGE_LOCKED,
+  FLAG_REGION_LOCKED,
+  FLAG_SEEN_CAVE,
+  FLAG_STORY_BAO_PAID,
+  FLAG_STORY_MEIHUA_BETRAYED,
+  ,
+  ,
+  FLAG_SYSTEM_REFUSED,
+  ,
+  FLAG_QUEST_DONE,
+] = FLAG_KEYS
 
 function err(code: ErrorCode): RErr {
   return { ok: false, code }
@@ -124,7 +147,7 @@ function spendDay(state: GameState, events: GameEvent[]): GameState {
 // Overshooting marks flags.night_forgotten — a content consequence that opens
 // branches, never a game over.
 function applyNightDeadline(state: GameState, out: GameEvent[]): GameState {
-  if (state.flags['night_deadline'] === undefined && currentBeat(state).chapter >= 2) {
+  if (state.flags[FLAG_NIGHT_DEADLINE] === undefined && currentBeat(state).chapter >= 2) {
     out.push({
       type: 'WARNING',
       level: 1,
@@ -132,7 +155,7 @@ function applyNightDeadline(state: GameState, out: GameEvent[]): GameState {
       messageVi: `Đêm thứ mười hai đã được định: còn ${DEADLINE_DAYS} ngày, làng chỉ nhớ được đến đó.`,
       messageEn: `The twelfth night is set: ${DEADLINE_DAYS} days remain — that is how long the village remembers.`,
     })
-    return { ...state, flags: { ...state.flags, night_deadline: state.day + DEADLINE_DAYS } }
+    return { ...state, flags: { ...state.flags, [FLAG_NIGHT_DEADLINE]: state.day + DEADLINE_DAYS } }
   }
   return state
 }
@@ -141,8 +164,8 @@ function applyNightDeadline(state: GameState, out: GameEvent[]): GameState {
 // the clock: the village remembers. Cleared in time is recorded as a survived
 // stake; overshooting is handled by the expiry pass below.
 function applyNightDeadlineResolution(state: GameState, out: GameEvent[]): GameState {
-  const deadline = state.flags['night_deadline']
-  if (typeof deadline !== 'number' || state.flags['night_deadline_cleared'] !== undefined) return state
+  const deadline = state.flags[FLAG_NIGHT_DEADLINE]
+  if (typeof deadline !== 'number' || state.flags[FLAG_NIGHT_DEADLINE_CLEARED] !== undefined) return state
   if (currentBeat(state).chapter < 3) return state
   const cleared = state.day <= deadline
   if (cleared) {
@@ -154,12 +177,12 @@ function applyNightDeadlineResolution(state: GameState, out: GameEvent[]): GameS
       messageEn: 'You made it back before the twelfth night — the village still remembers your name.',
     })
   }
-  return { ...state, flags: { ...state.flags, night_deadline_cleared: cleared } }
+  return { ...state, flags: { ...state.flags, [FLAG_NIGHT_DEADLINE_CLEARED]: cleared } }
 }
 
 function applyNightDeadlineExpiry(state: GameState, out: GameEvent[]): GameState {
-  const deadline = state.flags['night_deadline']
-  if (typeof deadline === 'number' && state.day > deadline && state.flags['night_forgotten'] !== true) {
+  const deadline = state.flags[FLAG_NIGHT_DEADLINE]
+  if (typeof deadline === 'number' && state.day > deadline && state.flags[FLAG_NIGHT_FORGOTTEN] !== true) {
     out.push({
       type: 'WARNING',
       level: 2,
@@ -170,7 +193,46 @@ function applyNightDeadlineExpiry(state: GameState, out: GameEvent[]): GameState
     // Phase 4 (design review 2026-08): WHO the village forgets depends on the
     // player's Hồi I choice — the failure is content, not a blank penalty.
     const forgottenName = forgottenNameFor(state)
-    return { ...state, flags: { ...state.flags, night_forgotten: true, night_forgotten_name: forgottenName } }
+    return { ...state, flags: { ...state.flags, [FLAG_NIGHT_FORGOTTEN]: true, night_forgotten_name: forgottenName } }
+  }
+  return state
+}
+
+// P1-2: late-game teeth. As the calendar runs long, world affordances fall off
+// — first the village goes silent (Meihua's blessings stop), then the sect
+// warehouse closes, finally the sealed cave is no longer navigable. Each gate
+// fires once and survives across saves.
+function applyDeadlineConsequences(state: GameState, out: GameEvent[]): GameState {
+  const flags = state.flags
+  if (state.day >= 18 && flags[FLAG_VILLAGE_SILENT] !== true) {
+    out.push({
+      type: 'WARNING',
+      level: 1,
+      locationId: state.player.locationId,
+      messageVi: 'Làng đã câm — không còn ai đứng ở cổng chờ ngươi trở về.',
+      messageEn: 'The village has gone silent — no one waits at the gate any longer.',
+    })
+    return { ...state, flags: { ...flags, [FLAG_VILLAGE_SILENT]: true } }
+  }
+  if (state.day >= 22 && flags[FLAG_STORAGE_LOCKED] !== true) {
+    out.push({
+      type: 'WARNING',
+      level: 2,
+      locationId: state.player.locationId,
+      messageVi: 'Nhà kho đã đóng — Cụ Mai Hoa không còn nhận gửi đồ.',
+      messageEn: 'The warehouse is closed — Elder Meihua no longer accepts deposits.',
+    })
+    return { ...state, flags: { ...flags, [FLAG_STORAGE_LOCKED]: true } }
+  }
+  if (state.day >= 24 && flags[FLAG_REGION_LOCKED] !== true) {
+    out.push({
+      type: 'WARNING',
+      level: 2,
+      locationId: state.player.locationId,
+      messageVi: 'Hang Phong Ấn đã bị niêm phong — đường vào không mở nữa.',
+      messageEn: 'The Sealed Cave has been sealed — the entrance no longer opens.',
+    })
+    return { ...state, flags: { ...flags, [FLAG_REGION_LOCKED]: true } }
   }
   return state
 }
@@ -179,8 +241,8 @@ function applyNightDeadlineExpiry(state: GameState, out: GameEvent[]): GameState
 // the one erased; selling the pin to Bao puts the debt on him; learning the
 // name from Ngo costs Ngo his place in the village's memory.
 function forgottenNameFor(state: GameState): string {
-  if (state.flags['story_meihua_betrayed'] === true) return 'meihua'
-  if (state.flags['story_bao_paid'] === true || state.flags['story_bao_has_map'] === true) return 'bao'
+  if (state.flags[FLAG_STORY_MEIHUA_BETRAYED] === true) return 'meihua'
+  if (state.flags[FLAG_STORY_BAO_PAID] === true || state.flags['story_bao_has_map'] === true) return 'bao'
   if (state.flags['story_name_known'] === true) return 'ngo'
   return 'village'
 }
@@ -198,6 +260,7 @@ function finalize(state: GameState, events: GameEvent[]): TransitionResult {
   s = applyNightDeadline(s, out)
   s = applyNightDeadlineResolution(s, out)
   s = applyNightDeadlineExpiry(s, out)
+  s = applyDeadlineConsequences(s, out)
   const endingId = evaluateEndingId(s)
   if (endingId !== null && s.endingId !== endingId) {
     s = { ...s, endingId, terminal: true }
@@ -218,6 +281,7 @@ function execAction(state: GameState, action: ConcreteAction): R {
     action.kind !== 'combat_attack' &&
     action.kind !== 'combat_defend' &&
     action.kind !== 'combat_retreat' &&
+    action.kind !== 'combat_focus' &&
     action.kind !== 'use_item'
   ) {
     return err('ITEM_UNAVAILABLE')
@@ -276,6 +340,8 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doCombatDefend(state)
     case 'combat_retreat':
       return doCombatRetreat(state)
+    case 'combat_focus':
+      return doCombatFocus(state)
     case 'resolve_route_event':
       return doResolveRouteEvent(state, action.approach)
     case 'story_choice':
@@ -291,15 +357,24 @@ function execAction(state: GameState, action: ConcreteAction): R {
 }
 
 function doMove(state: GameState, direction: Direction): R {
+  // P1-2: day 24+ seals the rift region. Moving into a sealed_cave cell is
+  // refused with REGION_LOCKED so the player keeps their day-trip cost but
+  // does not teleport into a closed area.
   const check = checkMoveFrom(state.player.locationId, state.player.posX, state.player.posY, direction)
   if (!check.ok || check.cell === undefined) return err('MOVE_BLOCKED')
+  if (
+    state.flags['region_locked'] === true &&
+    (check.cell.exitTo === 'sealed_cave' || check.destinationId === 'sealed_cave')
+  ) {
+    return err('REGION_LOCKED')
+  }
   const events: GameEvent[] = []
   const cell = check.cell
   const targetLocId = check.destinationId
   const arrival = targetLocId === undefined ? undefined : entryPositionFor(targetLocId, state.player.locationId)
   let s: GameState = {
     ...state,
-    flags: { ...state.flags, movedOnce: true },
+    flags: { ...state.flags, [FLAG_MOVED_ONCE]: true },
     player: {
       ...state.player,
       posX: arrival?.x ?? cell.x,
@@ -321,11 +396,11 @@ function doMove(state: GameState, direction: Direction): R {
       kind: cell.node.kind,
     })
     const arrived = applyStoryRouteArrival(s, cell.node.id)
-    s = { ...arrived, flags: { ...arrived.flags, [`reached_${cell.node.id}`]: true } }
+    s = { ...arrived, flags: { ...arrived.flags, [FLAG_REACHED(cell.node.id)]: true } }
   }
   const dangerLocationId = targetLocId ?? (cell.node?.kind === 'danger' ? state.player.locationId : undefined)
   if (dangerLocationId !== undefined) {
-    if (dangerLocationId === LOCATION_CAVE) s = { ...s, flags: { ...s.flags, seenCave: true } }
+    if (dangerLocationId === LOCATION_CAVE) s = { ...s, flags: { ...s.flags, [FLAG_SEEN_CAVE]: true } }
     const warning = dangerWarning(dangerLocationId)
     const danger = locationDanger(dangerLocationId)
     if (warning !== null) {
@@ -399,6 +474,9 @@ function doRest(state: GameState): R {
 
 function doTrain(state: GameState): R {
   if (state.player.qi < TRAIN_QI_COST) return err('INSUFFICIENT_QI')
+  // P0-6: training can kill (TRAIN_HP_COST + 0..2 variance). The death gate
+  // rejects the action when HP is too low to survive even the best variance.
+  if (state.player.hp <= TRAIN_HP_COST + 1) return err('INSUFFICIENT_HP')
   const events: GameEvent[] = []
   state = spendDay(state, events)
   const [hpLossVariance, rngAfter] = nextInt(state.rng, 0, 2)
@@ -406,6 +484,10 @@ function doTrain(state: GameState): R {
   const hp = state.player.hp - TRAIN_HP_COST - hpLossVariance
   const qi = state.player.qi - TRAIN_QI_COST
   const progress = applyProgress(state, gain)
+  // P1-Narrative #8: the trainer narrates with scene-aware flavor — the
+  // narrator branches on sceneId, so we stamp it on the event when the
+  // player is in the cave witness scene.
+  const sceneId = currentStoryScene(state).id
 
   if (hp <= 0) {
     const dead: GameState = {
@@ -422,7 +504,7 @@ function doTrain(state: GameState): R {
         alive: false,
       },
     }
-    events.push({ type: 'TRAINED', gain, stage: progress.stage })
+    events.push({ type: 'TRAINED', gain, stage: progress.stage, sceneId })
     events.push({ type: 'DEATH', cause: 'qi_deviation' })
     return { ok: true, state: dead, events }
   }
@@ -441,7 +523,7 @@ function doTrain(state: GameState): R {
       pendingAttributePoints: state.player.pendingAttributePoints + pointsGranted,
     },
   }
-  events.push({ type: 'TRAINED', gain, stage: progress.stage })
+  events.push({ type: 'TRAINED', gain, stage: progress.stage, sceneId })
   if (progress.breakthroughs > 0) {
     events.push({
       type: 'MINOR_REALM_ADVANCED',
@@ -555,7 +637,7 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
 
 /** The System produces notifications only while a protocol is active (canon §3: refusal silences it). */
 function systemIsActive(state: GameState): boolean {
-  return state.systemId != null && state.flags.system_refused !== true
+  return state.systemId != null && state.flags[FLAG_SYSTEM_REFUSED] !== true
 }
 
 /**
@@ -669,20 +751,31 @@ function doLearnTechnique(state: GameState, techniqueId: string): R {
   if (
     technique === undefined ||
     state.player.stage < technique.requiredStage ||
-    technique.sourceItemId === undefined ||
-    countOf(state.inventory, technique.sourceItemId) < 1
+    technique.sourceItemId === undefined
   ) {
     return err('ITEM_UNAVAILABLE')
   }
+  // P1-1 system divergence: each System has a signature technique whose id
+  // carries the system shortname. Only the matching system may learn it.
+  if (techniqueId.startsWith('system_')) {
+    if (technique.requiredSystem !== undefined && state.systemId !== technique.requiredSystem) {
+      return err('SYSTEM_LOCKED')
+    }
+  }
+  if (countOf(state.inventory, technique.sourceItemId) < 1) return err('NO_ITEM')
   const currentLevel = state.techniques[techniqueId] ?? 0
   if (currentLevel >= technique.maxLevel) return err('ITEM_UNAVAILABLE')
   const nextLevel = currentLevel + 1
+  // P1-1: signature techniques also stamp a `system_<id>_signature` flag so
+  // authored content (NPC lines, etc.) can gate on the player's pick.
+  const signatureFlag = techniqueId.startsWith('system_') ? { [techniqueId]: true } : {}
   return {
     ok: true,
     state: {
       ...state,
       inventory: bump(state.inventory, technique.sourceItemId, -1),
       techniques: { ...state.techniques, [techniqueId]: nextLevel },
+      flags: { ...state.flags, ...signatureFlag },
     },
     events: [{ type: 'TECHNIQUE_LEARNED', techniqueId, level: nextLevel }],
   }
@@ -714,14 +807,14 @@ function doEquipItem(state: GameState, itemId: string): R {
 function doStartEncounter(state: GameState): R {
   if (state.encounter !== null) return err('ITEM_UNAVAILABLE')
   const enemy = enemyAt(state.player.locationId)
-  if (enemy === undefined || state.flags[`defeated_${enemy.id}`] === true) return err('NOT_AT_LOCATION')
+  if (enemy === undefined || state.flags[FLAG_DEFEATED(enemy.id)] === true) return err('NOT_AT_LOCATION')
   const events: GameEvent[] = []
   state = spendDay(state, events)
   return {
     ok: true,
     state: {
       ...state,
-      encounter: { enemyId: enemy.id, hp: enemy.maxHp, maxHp: enemy.maxHp, guard: 0 },
+      encounter: { enemyId: enemy.id, hp: enemy.maxHp, maxHp: enemy.maxHp, guard: 0, focusStacks: 0, focusDamage: 0, behaviorBonus: 0, behaviorHealUsed: false, enemyTurns: 0, playerHits: 0 },
     },
     events: [...events, { type: 'ENCOUNTER_STARTED', enemyId: enemy.id }],
   }
@@ -747,34 +840,84 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
   const guard = technique === undefined ? 0 : techniqueGuard(technique.power, level)
   const powerTerm = technique === undefined ? 0 : technique.power * level
   const [variance, rng] = nextInt(state.rng, 0, 2)
-  const amount = Math.max(1, 5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state) + variance)
+  // P0-5: crit roll. critChance(luck) caps at 0.25; when the roll wins, the
+  // strike doubles its base (no variance band) and the focus stacks add to it.
+  // critBonus=0 never crits; critBonus=100 always doubles once the roll wins.
+  const luck = state.player.attrs.luck
+  const critChance = Math.min(0.25, Math.max(0, luck / 100))
+  // P0-5: luck controls crit chance (capped at 25%). When the roll wins the
+  // strike doubles its base and drops the variance band, so a crit strictly
+  // out-hits a non-crit strike. The skill-tree also grants critBonus which
+  // adds a flat +critChance, raising the effective cap.
+  const critBonus = typeof state.flags['critBonus'] === 'number' ? state.flags['critBonus'] : 0
+  const effectiveCritChance = Math.min(1.0, critChance + critBonus / 100)
+  const [critRoll, rngAfter] = nextInt(rng, 0, 99)
+  const critFires = critRoll < effectiveCritChance * 100
+  // Focus stacks (combat_focus) consume on the next strike — +FOCUS_STACK_DAMAGE
+  // per stack and reset. The base hit includes variance; a crit drops it and doubles.
+  const focus = (state.encounter.focusDamage ?? 0)
+  const baseHit = Math.max(1, 5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state) + variance)
+  const critHit = Math.max(1, (5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state)) * 2)
+  const rawAmount = critFires ? critHit : baseHit
+  const amount = rawAmount + focus
+  // Combat 9+: behavior hooks evaluated on the player turn BEFORE the strike
+  // resolves. The reducer keeps the change next-turn (phase2) or one-shot
+  // (boss heal) at the encounter level so resolveEnemyTurn picks them up.
+  let behaviorBonus = state.encounter.behaviorBonus ?? 0
+  let behaviorHealFlag = state.encounter.behaviorHealUsed ?? false
+  if (enemy.behavior === 'phase2' && state.encounter.hp / enemy.maxHp <= 0.5) behaviorBonus += 2
+  if (enemy.behavior === 'boss' && state.encounter.hp / enemy.maxHp <= 0.33 && !(state.encounter.behaviorHealUsed ?? false)) {
+    behaviorHealFlag = true
+  }
   const hp = Math.max(0, state.encounter.hp - amount)
+  // Combo counter: consecutive player hits without an enemy reply. Fires
+  // COMBO_TRIGGERED on odd counts (3, 5, 7, 9, …) for a more frequent payoff
+  // so the audio layer's bell-tree accent lands often enough to feel earned.
+  const playerHits = (state.encounter.playerHits ?? 0) + 1
+  const comboFires = playerHits >= 3 && playerHits % 2 === 1
   const s: GameState = {
     ...state,
-    rng,
+    rng: rngAfter,
     player: { ...state.player, qi: state.player.qi - qiCost },
-    encounter: { ...state.encounter, hp, guard },
+    encounter: { ...state.encounter, hp, guard, focusStacks: 0, focusDamage: 0, behaviorBonus, behaviorHealUsed: behaviorHealFlag, playerHits },
   }
   const events: GameEvent[] = [
     { type: 'QI_SPENT', amount: qiCost },
     { type: 'COMBAT_HIT', actor: 'player', amount, enemyId: enemy.id },
   ]
-  if (hp <= 0) {
+  if (comboFires) events.push({ type: 'COMBO_TRIGGERED', hits: playerHits })
+  // Combat 9+ boss heal: at ≤33% HP, one-shot full heal. If this strike would
+  // also kill the boss, the heal resolves first and the boss lives at maxHp.
+  let liveHp = hp
+  let sAfterStrike = s
+  if (enemy.behavior === 'boss' && state.encounter.hp / enemy.maxHp <= 0.33 && !(state.encounter.behaviorHealUsed ?? false)) {
+    liveHp = state.encounter.maxHp
+    sAfterStrike = { ...s, encounter: { ...state.encounter, hp: liveHp, behaviorHealUsed: true, enemyTurns: state.encounter.enemyTurns ?? 0, statusEffects: state.encounter.statusEffects ?? [], playerHits } }
+    events.push({ type: 'BOSS_HEAL', enemyId: enemy.id, hpRestored: liveHp })
+  }
+  if (liveHp <= 0) {
     let inventory = { ...s.inventory }
     for (const [itemId, qty] of Object.entries(enemy.rewardItems)) inventory = bump(inventory, itemId, qty)
+    // Combat 9+ poison behavior: on defeat the enemy seeds 2 poison stacks
+    // (next 2 enemy-reply turns each deal -3 — applied via player.poison).
+    let playerState = { ...s.player, gold: s.player.gold + enemy.rewardGold }
+    if (enemy.behavior === 'poison') {
+      playerState = applyPoison(playerState, 2)
+      events.push({ type: 'POISON_APPLIED', amount: 2 })
+    }
     return {
       ok: true,
       state: {
         ...s,
         encounter: null,
         inventory,
-        player: { ...s.player, gold: s.player.gold + enemy.rewardGold },
-        flags: { ...s.flags, [`defeated_${enemy.id}`]: true },
+        player: playerState,
+        flags: { ...s.flags, [FLAG_DEFEATED(enemy.id)]: true },
       },
       events: [...events, { type: 'COMBAT_WON', enemyId: enemy.id, rewardGold: enemy.rewardGold }],
     }
   }
-  return resolveEnemyTurn(s, events)
+  return resolveEnemyTurn(sAfterStrike, events)
 }
 
 function doCombatDefend(state: GameState): R {
@@ -792,8 +935,13 @@ function doCombatRetreat(state: GameState): R {
   if (state.encounter === null) return err('NOT_AT_LOCATION')
   const enemy = getEnemy(state.encounter.enemyId)
   if (enemy === undefined) return err('ITEM_UNAVAILABLE')
-  const hpCost = Math.min(RETREAT_HP_COST, Math.max(0, state.player.hp - 1))
-  const progressCost = Math.min(RETREAT_PROGRESS_COST, state.player.progress)
+  // P0-5: retreating twice from the same enemy in one outing doubles both
+  // costs — the first retreat is the panic button, the second is the cost
+  // of forcing the encounter to re-open. spendDay resets the repeat flag.
+  const repeat = state.flags[FLAG_RETREATED(enemy.id)] === true
+  const multiplier = repeat ? 2 : 1
+  const hpCost = Math.min(RETREAT_HP_COST * multiplier, Math.max(0, state.player.hp - 1))
+  const progressCost = Math.min(RETREAT_PROGRESS_COST * multiplier, state.player.progress)
   const s: GameState = {
     ...state,
     encounter: null,
@@ -802,7 +950,7 @@ function doCombatRetreat(state: GameState): R {
       hp: state.player.hp - hpCost,
       progress: state.player.progress - progressCost,
     },
-    flags: { ...state.flags, [`retreated_${enemy.id}`]: true },
+    flags: { ...state.flags, [FLAG_RETREATED(enemy.id)]: true },
   }
   return {
     ok: true,
@@ -811,25 +959,83 @@ function doCombatRetreat(state: GameState): R {
   }
 }
 
+// Combat 9+ focus: a 0-qi turn that grants +5 guard and stacks +2 damage on
+// the next strike. Stacks accumulate; the next attack consumes them.
+const FOCUS_GUARD = 5
+const FOCUS_STACK_DAMAGE = 2
+function doCombatFocus(state: GameState): R {
+  if (state.encounter === null) return err('NOT_AT_LOCATION')
+  const guardAmount = FOCUS_GUARD
+  const nextStacks = (state.encounter.focusStacks ?? 0) + 1
+  const s: GameState = {
+    ...state,
+    encounter: {
+      ...state.encounter,
+      guard: state.encounter.guard + guardAmount,
+      // Phase-2 (Combat 9+): focus stacks store damage bonus, not a flat +1.
+      focusDamage: (state.encounter.focusDamage ?? 0) + FOCUS_STACK_DAMAGE,
+      focusStacks: nextStacks,
+    },
+  }
+  return { ok: true, state: s, events: [{ type: 'COMBAT_GUARDED', amount: guardAmount }] }
+}
+
+// Combat 9+ qi regen: every 3rd enemy reply inside the same encounter, the
+// player draws +5 (capped at MAX_QI). The counter is per-encounter, so it
+// resets when a new encounter starts.
+const ENCOUNTER_QI_REGEN_TURN = 3
+const ENCOUNTER_QI_REGEN_AMOUNT = 5
 function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
   if (state.encounter === null) return { ok: true, state, events }
   const enemy = getEnemy(state.encounter.enemyId)
   if (enemy === undefined) return err('ITEM_UNAVAILABLE')
   const [variance, rng] = nextInt(state.rng, 0, 2)
+  // Combat 9+ behavior hooks on the enemy reply: phase2 adds a stored +2 to
+  // attack, boss adds +50% damage when its one-shot heal already fired.
+  const behaviorAtk = state.encounter.behaviorBonus ?? 0
+  const bossRage = enemy.behavior === 'boss' && state.encounter.behaviorHealUsed === true ? 1.5 : 1
   // Difficulty scales only what the enemy deals, after defences — one central
   // knob (damageMultiplier) for the whole combat path.
-  const raw = (enemy.attack + variance - equippedDefenseBonus(state) - talentDefenseBonus(state) - state.encounter.guard) * damageMultiplier(state.difficulty ?? 'balanced')
+  const raw = (enemy.attack + variance + behaviorAtk - equippedDefenseBonus(state) - talentDefenseBonus(state) - state.encounter.guard) * damageMultiplier(state.difficulty ?? 'balanced') * bossRage
   const amount = Math.max(1, Math.round(raw))
   const hp = Math.max(0, state.player.hp - amount)
+  // Combat 9+ poison stacks: each stack drains 3 HP on the player's next reply.
+  // The stack counter decrements here so the post-tick block can read it before
+  // it resets on encounter end.
+  const nextStacks = Math.max(0, (state.player.poison ?? 0) - 1)
+  const poisonDrain = state.player.poison && state.player.poison > 0 ? 3 : 0
+  const hpAfterPoison = Math.max(0, hp - poisonDrain)
+  // Per-encounter qi regen on every NTH reply.
+  const turn = (state.encounter.enemyTurns ?? 0) + 1
+  const qiRegen = turn % ENCOUNTER_QI_REGEN_TURN === 0
+    ? Math.min(ENCOUNTER_QI_REGEN_AMOUNT, MAX_QI - state.player.qi)
+    : 0
   const s: GameState = {
     ...state,
     rng,
-    player: { ...state.player, hp, alive: hp > 0 },
-    encounter: { ...state.encounter, guard: 0 },
+    player: {
+      ...state.player,
+      hp: hpAfterPoison,
+      alive: hpAfterPoison > 0,
+      poison: nextStacks,
+      qi: Math.min(MAX_QI, state.player.qi + qiRegen),
+    },
+    encounter: { ...state.encounter, guard: 0, behaviorBonus: 0, enemyTurns: turn, playerHits: 0 },
   }
   const out: GameEvent[] = [...events, { type: 'COMBAT_HIT', actor: 'enemy', amount, enemyId: enemy.id }]
-  if (hp <= 0) out.push({ type: 'DEATH', cause: `combat:${enemy.id}` })
+  if (poisonDrain > 0) out.push({ type: 'POISON_TICK', amount: poisonDrain, stacks: nextStacks })
+  if (qiRegen > 0) out.push({ type: 'QI_REGEN', amount: qiRegen, turn })
+  if (hpAfterPoison <= 0) out.push({ type: 'DEATH', cause: `combat:${enemy.id}` })
   return { ok: true, state: s, events: out }
+}
+
+// Combat 9+: stack N poison ticks on the player. Each tick drains 3 HP on the
+// enemy's next reply turn, up to MAX_POISON_STACKS (so a long poison chain
+// can't lock them into permanent -HP-per-turn).
+const MAX_POISON_STACKS = 5
+function applyPoison(player: GameState['player'], stacks: number): GameState['player'] {
+  const current = player.poison ?? 0
+  return { ...player, poison: Math.min(MAX_POISON_STACKS, current + stacks) }
 }
 
 function equippedAttackBonus(state: GameState): number {
@@ -866,6 +1072,8 @@ function techniqueSellPenalty(state: GameState): number {
 
 function doStore(state: GameState, itemId: string, qty: number): R {
   if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION')
+  // P1-2: day 22+ the sect warehouse closes — store/withdraw are refused.
+  if (state.flags['storage_locked'] === true) return err('STORAGE_LOCKED')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   if (isEquippedItem(state, itemId)) return err('ITEM_UNAVAILABLE')
   if (countOf(state.inventory, itemId) < qty) return err('NO_ITEM')
@@ -882,6 +1090,8 @@ function doStore(state: GameState, itemId: string, qty: number): R {
 
 function doWithdraw(state: GameState, itemId: string, qty: number): R {
   if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION')
+  // P1-2: day 22+ the sect warehouse closes — store/withdraw are refused.
+  if (state.flags['storage_locked'] === true) return err('STORAGE_LOCKED')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   if (countOf(state.storage, itemId) < qty) return err('STORAGE_EMPTY')
   const events: GameEvent[] = []
@@ -920,10 +1130,11 @@ function doTalk(state: GameState, npcId: string): R {
   const npc = getNpc(npcId)
   if (npc === undefined) return err('NPC_UNKNOWN')
   if (state.player.locationId !== npc.locationId) return err('NPC_NOT_HERE')
-  const affKey = `aff_${npcId}`
-  const talkKey = `talk_${npcId}`
+  const affKey = FLAG_AFF(npcId)
+  const talkKey = FLAG_TALK(npcId)
   const before = flagNum(state.flags, affKey)
   const after = before + 1
+  const npcTalkWarns = FLAG_TALK_WARN(npcId)
   const flags: Record<string, boolean | number | string> = {
     ...state.flags,
     talkCount: flagNum(state.flags, 'talkCount') + 1,
@@ -932,18 +1143,42 @@ function doTalk(state: GameState, npcId: string): R {
     [affKey]: after,
     [talkKey]: flagNum(state.flags, talkKey) + 1,
   }
+  // P1-4: also maintain the per-NPC affection map. The legacy aff_<id> flag
+  // remains authoritative for affinity gates; the map is the structured twin
+  // UI/export code reads from.
+  const affection = { ...(state.affection ?? {}) }
+  affection[npcId] = (affection[npcId] ?? 0) + 1
   // Affinity gates: reaching 3/6/9 unlocks the corresponding gate flag so
   // quest requiredFlags can reference it without duplicating the threshold.
   for (const gateLevel of [3, 6, 9]) {
     if (before < gateLevel && after >= gateLevel) {
-      flags[`aff_gate_${npcId}`] = true
+      flags[FLAG_AFF_GATE(npcId)] = true
     }
+  }
+  // Narrative diminishing returns: once affection crosses 9 with no romance or
+  // quest progress, surface a soft warning that the player has been heard but
+  // nothing new is happening. Fires once per NPC per life — checked against
+  // the local `flags` we are building (not the stale `state.flags`) so the
+  // decision stays consistent with the flag we are about to commit.
+  const fireWarn = after >= 9 && flags[npcTalkWarns] === undefined
+  if (fireWarn) {
+    flags[npcTalkWarns] = true
   }
   const s: GameState = {
     ...state,
     flags,
+    affection,
   }
   const events: GameEvent[] = []
+  if (fireWarn) {
+    events.push({
+      type: 'WARNING',
+      level: 0,
+      locationId: npc.locationId,
+      messageVi: `Ngươi đã đến với ${npc.nameVi} nhiều lần, nhưng vẫn chưa nói được điều gì mới — họ lặp lại chính câu cũ.`,
+      messageEn: `You have visited ${npc.nameEn} many times, yet said nothing new — they repeat the same words.`,
+    })
+  }
   // Affinity milestones surface as their own event so the UI can mark the
   // moment a relationship deepens, not just the words spoken.
   for (const level of [3, 6, 9]) {
@@ -1100,7 +1335,7 @@ function doCompleteQuest(state: GameState, questId: string): R {
   for (const [itemId, qty] of Object.entries(def.rewardItems)) {
     inventory = bump(inventory, itemId, qty)
   }
-  const flags = { ...state.flags, [`quest_${questId}_done`]: true }
+  const flags = { ...state.flags, [`quest_${questId}_${FLAG_QUEST_DONE}`]: true }
   if (def.storySceneNextId !== undefined) flags.story_scene = def.storySceneNextId
   // World completion is an inspectable regional outcome; callers can map this
   // flag to danger/content without mutating the location definition.

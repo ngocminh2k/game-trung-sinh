@@ -81,11 +81,28 @@ const TEMPLATES: Record<string, Handler> = {
     l === 'vi'
       ? 'Một giấc ngủ sâu, hơi thở đều như tiếng chuông chùa.'
       : 'Deep sleep; breath steady as a temple bell.',
+  // Three train flavors rotate by stage so the chronicle never rhymes twice in
+  // a row. Stage 0 is the "first circulation" beat (one line), stage 1-2 the
+  // "settled into the form" beat (two lines), stage 3+ the "old habit" beat
+  // (one line, drier). P1-Narrative #8: inside the sealed cave the breath
+  // follows a crack in the stone, so the cave scene overrides the rotation
+  // with its own one-line variant.
   TRAINED: (ev, l) => {
     if (ev.type !== 'TRAINED') return ''
-    return l === 'vi'
-      ? `Khép lại một chu thiên, tu vi tăng ${String(ev.gain)} điểm.`
-      : `One full circulation complete; insight +${String(ev.gain)}.`
+    const gain = String(ev.gain)
+    if (ev.sceneId === 'cave_witness') {
+      return l === 'vi'
+        ? `Trong hang, mỗi chu thiên theo một vết nứt khác; tu vi tăng ${gain} điểm.`
+        : `Inside the cave each circulation follows a different crack; insight +${gain}.`
+    }
+    if (l === 'vi') {
+      if (ev.stage === 0) return `Khép lại một chu thiên, tu vi tăng ${gain} điểm.`
+      if (ev.stage <= 2) return `Hơi thở đã quen đường khí. Một chu thiên nữa khép — tu vi tăng ${gain} điểm.`
+      return `Chu thiên thứ ${String(ev.stage + 1)} quen tay. Tu vi tăng ${gain} điểm.`
+    }
+    if (ev.stage === 0) return `One full circulation complete; insight +${gain}.`
+    if (ev.stage <= 2) return `The breath has learned this path. Another circulation closes — insight +${gain}.`
+    return `Circulation ${String(ev.stage + 1)}, the form now familiar. Insight +${gain}.`
   },
   MINOR_REALM_ADVANCED: (ev, l) => {
     if (ev.type !== 'MINOR_REALM_ADVANCED') return ''

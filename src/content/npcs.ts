@@ -23,6 +23,8 @@ export const NPCS: NpcDef[] = [
       { when: { dayMin: 15 }, vi: '“Mười lăm ngày rồi. Những cái tên kia vẫn còn đó, ngươi biết chứ?”', en: '“Fifteen days now. Those names are still out there — you know that, do you not?”' },
       { when: { questActive: 'q_herb_delivery' }, vi: '“Linh thảo tươi ấy à? Ba nhánh là đủ. Nhớ hái sáng sớm, khi sương còn đọng.”', en: '“The fresh spirit herbs? Three stalks will do. Pick them at dawn, while the dew still clings.”' },
       { when: { questDone: 'q_herb_delivery' }, vi: '“Thuốc của ta nấu xong rồi. Cả làng sẽ khỏe hơn mùa này — có công ngươi.”', en: '“My tonic is brewed. The village will weather this season better — that is in part your doing.”' },
+      { when: { flag: 'system_battle_signature' }, vi: '“Ngươi đã chọn con đường chiến đấu. Hãy cẩn thận.”', en: '“You have chosen the road of battle. Be careful.”' },
+      { when: { flag: 'system_alchemy_signature' }, vi: '“Ngươi đã chọn con đường luyện đan. Mùi thuốc sẽ theo ngươi cả đời.”', en: '“You have chosen the road of alchemy. The scent of herbs will follow you all your days.”' },
     ],
   },
   {
@@ -61,6 +63,8 @@ export const NPCS: NpcDef[] = [
       { when: { affMin: 9 }, vi: '“Nếu ngươi cần bản đồ hay phù hiệu — ta có. Giá tốt cho người không hỏi quá nhiều.”', en: '“If you need maps or wards — I have them. Fair price for someone who does not ask too many questions.”' },
       { when: { flag: 'story_bao_has_map' }, vi: '“Bản đồ kia à? Nó không dẫn đến kho báu. Nó dẫn đến một sự thật mà người ta muốn giấu.”', en: '“That map? It does not lead to treasure. It leads to a truth someone wanted hidden.”' },
       { when: { questActive: 'q_talisman_order' }, vi: '“Bùa trừ tà ấy à? Một cái thôi, và nó phải thật sự hoạt động — ta không bán đồ giả.”', en: '“The warding talisman? One, and it must actually work — I do not sell counterfeits.”' },
+      { when: { flag: 'system_merchant_signature' }, vi: '“Ngươi đã chọn con đường buôn bán. Đường nào cũng là đường — miễn là có lời."', en: '“You have chosen the road of trade. Any road is fine — as long as it profits.”' },
+      { when: { flag: 'system_lottery_signature' }, vi: '“Ngươi đã chọn con đường cờ bạc. Vận may không đợi người chờ."', en: '“You have chosen the road of chance. Luck does not wait for those who wait.”' },
     ],
   },
   {
@@ -81,6 +85,8 @@ export const NPCS: NpcDef[] = [
       { when: { dayMin: 20 }, vi: '“Hai mươi ngày. Khe nứt kia đã rộng hơn. Ngươi có cảm nhận được không?”', en: '“Twenty days. That rift has widened. Can you feel it?”' },
       { when: { flag: 'story_ha_bound' }, vi: '“Hà đã đồng ý giúp ngươi. Nhưng đừng gọi cô ấy là vũ khí — cô ấy là một người đã chọn.”', en: '“Ha agreed to help you. But do not call her a weapon — she is someone who chose.”' },
       { when: { flag: 'crooked_circulation' }, vi: '“Ngươi vận công theo sách của ta. Cong queo, sai sách vở — và đúng với ngươi hơn bất kỳ đường thẳng nào.”', en: '“You circulate by my book. Crooked, wrong by every rule — and truer to you than any straight meridian.”' },
+      { when: { flag: 'system_explorer_signature' }, vi: '“Ngươi đã chọn con đường vạn dặm. Bước nào cũng in dấu — chọn bước đi cẩn thận.”', en: '“You have chosen the road of ten thousand miles. Each step leaves a mark — choose your steps carefully.”' },
+      { when: { flag: 'system_scholar_signature' }, vi: '“Ngươi đã chọn con đường tàng thư. Mỗi trang đọc xong là một phần ngươi đã gử."', en: '“You have chosen the road of the archive. Each page read is a part of you committed.”' },
     ],
   },
   {

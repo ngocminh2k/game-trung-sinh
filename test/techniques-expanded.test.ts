@@ -28,10 +28,11 @@ const HIDDEN = TECHNIQUES.filter((t) => t.id.endsWith('_hidden'))
 const MAIN_9 = OLD_TECHNIQUES.map((t) => t.id)
 const HIDDEN_BY_BRANCH: Record<string, number> = { sword: 2, aura: 2, herbal: 2, shadow: 2, thunder: 1 }
 
-describe('TECHNIQUES — 18 total (9 old + 9 hidden)', () => {
-  it('has exactly 18 techniques with unique ids', () => {
-    expect(TECHNIQUES).toHaveLength(18)
-    expect(new Set(TECHNIQUES.map((t) => t.id)).size).toBe(18)
+describe('TECHNIQUES — 18 main + 10 system signatures', () => {
+  it('has the 18 main techniques (9 old + 9 hidden) plus 10 system signatures', () => {
+    // P1-1 system divergence adds 10 system_<id>_signature techniques.
+    expect(TECHNIQUES).toHaveLength(28)
+    expect(new Set(TECHNIQUES.map((t) => t.id)).size).toBe(28)
   })
 
   it('has exactly 9 hidden techniques (ids ending _hidden)', () => {
