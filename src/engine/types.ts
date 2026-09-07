@@ -30,6 +30,10 @@ export interface PlayerState {
   posY: number
   locationId: string
   alive: boolean
+  /** Combat 9+ poison stack counter. Each stack drains 3 HP on the next enemy
+   *  reply and decrements; capped at 5 so a single foe cannot lock permanent
+   *  drain. Optional so older saves stay valid. */
+  poison?: number
   /** Combat conditions (poison, paralysis…). Optional so older saves stay
    *  valid; the reducer treats a missing array as empty. */
   status?: import('./content-types').StatusEffect[]
@@ -63,9 +67,23 @@ export interface EncounterState {
   hp: number
   maxHp: number
   guard: number
+  /** Focus stacks from combat_focus (P0-5): next strike gains +1 per stack,
+   *  the stack resets on attack. Optional so older saves stay valid. */
+  focusStacks?: number
+  /** Combat 9+: stored +damage pending on the next strike (consumed by attack). */
+  focusDamage?: number
+  /** Combat 9+: behavior-driven next-turn attack bonus (phase2 = +2). */
+  behaviorBonus?: number
+  /** Combat 9+: true once the boss one-shot heal has fired. */
+  behaviorHealUsed?: boolean
+  /** Combat 9+: number of enemy replies in this encounter (drives qi regen). */
+  enemyTurns?: number
   /** Status effects on the enemy (poison, burn…). Optional so older saves
    *  stay valid; the reducer treats a missing array as empty. */
   statusEffects?: import('./content-types').StatusEffect[]
+  /** Combo counter: consecutive player hits without an enemy reply. Resets
+   *  to 0 in resolveEnemyTurn. Optional so older saves stay valid. */
+  playerHits?: number
 }
 
 export interface GameState {
@@ -97,6 +115,11 @@ export interface GameState {
   talents: string[]
   techniques: Record<string, number>
   equipment: EquipmentState
+  /** Per-NPC affection counter map (P1-4). Optional; legacy aff_<id> flags
+   *  are still read through getAffection as a fallback for old saves. */
+  affection?: Record<string, number>
+  /** Skill-tree crit bonus (P0-5). Optional; missing/0 means no crit path. */
+  critBonus?: number
   encounter: EncounterState | null
   lastLotteryDay: number | null
   corrections: number
@@ -135,6 +158,7 @@ export type Action =
   | { kind: 'combat_attack'; techniqueId?: string }
   | { kind: 'combat_defend' }
   | { kind: 'combat_retreat' }
+  | { kind: 'combat_focus' }
 
   | { kind: 'resolve_route_event'; approach: 'present' | 'withhold' }
   | { kind: 'story_choice'; choiceId: string }
@@ -155,12 +179,14 @@ export const ERROR_CODES = [
   'INSUFFICIENT_SILVER',
   'INSUFFICIENT_SPIRIT_STONES',
   'INSUFFICIENT_QI',
+  'INSUFFICIENT_HP',
   'NO_ITEM',
   'ITEM_NOT_USABLE',
   'ITEM_UNAVAILABLE',
   'INVALID_QTY',
   'STORAGE_FULL',
   'STORAGE_EMPTY',
+  'STORAGE_LOCKED',
   'LOTTERY_ALREADY_DRAWN',
   'LOTTERY_NEED_GOLD',
   'QUEST_UNKNOWN',
@@ -171,6 +197,8 @@ export const ERROR_CODES = [
   'ATTRIBUTE_ALLOCATION_REQUIRED',
   'NO_ATTRIBUTE_POINTS',
   'ATTRIBUTE_MAXED',
+  'REGION_LOCKED',
+  'SYSTEM_LOCKED',
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]
@@ -181,7 +209,7 @@ export type GameEvent =
   | { type: 'NODE_REACHED'; nodeId: string; nameVi: string; nameEn: string; kind: 'npc' | 'event' | 'exit' | 'danger' }
   | { type: 'DAY_PASSED'; day: number }
   | { type: 'RESTED'; hpHeal: number }
-  | { type: 'TRAINED'; gain: number; stage: number }
+  | { type: 'TRAINED'; gain: number; stage: number; sceneId?: string }
   | { type: 'MINOR_REALM_ADVANCED'; stage: number; realmLevel: number; pointsGranted: number }
   | { type: 'ATTRIBUTE_ALLOCATED'; attribute: AttributeName; value: number; pointsRemaining: number }
   | { type: 'GATHERED'; itemId: string; qty: number; qiDrain: number }
@@ -210,6 +238,11 @@ export type GameEvent =
   | { type: 'COMBAT_GUARDED'; amount: number }
   | { type: 'COMBAT_WON'; enemyId: string; rewardGold: number }
   | { type: 'COMBAT_RETREATED'; enemyId: string; hpCost: number; progressCost: number }
+  | { type: 'BOSS_HEAL'; enemyId: string; hpRestored: number }
+  | { type: 'POISON_APPLIED'; amount: number }
+  | { type: 'POISON_TICK'; amount: number; stacks: number }
+  | { type: 'QI_REGEN'; amount: number; turn: number }
+  | { type: 'COMBO_TRIGGERED'; hits: number }
   | { type: 'WARNING'; level: number; locationId: string; messageVi: string; messageEn: string }
   | { type: 'WARD_USED'; itemId: string }
   | { type: 'DAMAGED'; amount: number; source: string }

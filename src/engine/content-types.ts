@@ -91,6 +91,8 @@ export interface TechniqueDef {
   benefitEn?: string
   costVi?: string
   costEn?: string
+  /** System Layer: only the player who chose this System may learn it. */
+  requiredSystem?: string
 }
 
 /** A time-limited combat condition. `turns` decrements at the end of each
@@ -149,6 +151,13 @@ export interface EnemyDef {
   element?: Element
   /** How the enemy replies when its turn comes around. */
   behaviorPattern?: BehaviorPattern
+  /** Combat 9+ behavior hook the reducer checks on the player turn:
+   *  - poison: applies 2 poison stacks to player on enemy defeat
+   *  - phase2: at <=50% HP, enemy gets +2 attack next turn
+   *  - boss:   at <=33% HP, enemy fully heals once and gains +50% damage
+   *  - aggressive (default): no extra rules
+   */
+  behavior?: 'aggressive' | 'poison' | 'phase2' | 'boss'
   /** Optional defense score the reducer subtracts from the player's strike.
    *  Most beasts have none — they dodge with their hides, not armor. */
   defense?: number

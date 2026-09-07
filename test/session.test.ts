@@ -18,7 +18,7 @@ describe('browser game session', () => {
     // The schema parser fills migration-safe defaults (silver/spiritStones) that
     // newGame omits, so compare the authored fields plus the safe defaults.
     const p = loaded!.game.player
-    expect({ ...p, silver: undefined, spiritStones: undefined }).toEqual(game.player)
+    expect({ ...p, silver: undefined, spiritStones: undefined, poison: undefined }).toEqual(game.player)
     expect(p.silver).toBe(0)
     expect(p.spiritStones).toBe(0)
     expect(loaded!.game.rng).toBe(game.rng)

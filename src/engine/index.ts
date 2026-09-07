@@ -33,6 +33,15 @@ export { parseFreeText, normalizeText } from './corrections'
 import type { GameState } from './types'
 import { parseGameState } from './schema'
 export { ERROR_CODES } from './types'
+
+// P1-4: affection read helper. Prefers the structured map; falls back to the
+// legacy aff_<npcId> flag so old saves stay queryable through the same API.
+export function getAffection(state: GameState, npcId: string): number {
+  const mapped = state.affection?.[npcId]
+  if (typeof mapped === 'number') return mapped
+  const legacy = state.flags[`aff_${npcId}`]
+  return typeof legacy === 'number' ? legacy : 0
+}
 export { LOW_HP_WARNING, damageRoll, dangerWarning } from './danger'
 export { evaluateEndingId } from './endings'
 export { checkLottery, rollLottery } from './lottery'

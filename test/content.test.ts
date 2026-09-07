@@ -55,10 +55,13 @@ describe('content integrity', () => {
     }
   })
 
-  it('has eleven narrative endings plus a separate death failure', () => {
-    expect(ENDINGS).toHaveLength(12)
-    expect(new Set(ENDINGS.map((e) => e.id)).size).toBe(12)
-    expect(ENDINGS.filter((e) => e.id !== 'tragic_death')).toHaveLength(11)
+  it('has narrative endings plus a separate death failure', () => {
+    // P1-1 system divergence adds 10 system_<id>_end endings on top of the
+    // 11 narrative endings + tragic_death, so the total is 22.
+    expect(ENDINGS).toHaveLength(22)
+    expect(new Set(ENDINGS.map((e) => e.id)).size).toBe(22)
+    expect(ENDINGS.filter((e) => e.id === 'tragic_death')).toHaveLength(1)
+    expect(ENDINGS.filter((e) => e.id !== 'tragic_death').length).toBeGreaterThanOrEqual(11)
     for (const e of ENDINGS) {
       expect(e.epitaphVi.length).toBeGreaterThan(0)
       expect(e.epitaphEn.length).toBeGreaterThan(0)
