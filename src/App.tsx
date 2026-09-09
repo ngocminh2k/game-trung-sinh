@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { PrototypeApp } from './ui/prototype/PrototypeApp'
 import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, storyRouteEncounter } from './engine'
 import type { Action, GameDifficulty, GameEvent, Locale } from './engine'
 import { ENDINGS } from './content'
@@ -17,7 +18,6 @@ import {
   saveSettings,
   saveSlot,
   setActiveSlot,
-  shouldAutoSave,
   type GameSession,
   type PlayerSettings,
   type SaveSlot,
@@ -146,6 +146,12 @@ function firstFreeSlot(slots: Partial<Record<SlotId, SaveSlot>>): SlotId {
 const NEED_SLOT = 0 as unknown as SlotId
 
 function App() {
+  // Prototype short-circuit: visiting ?prototype=1 mounts the hand-authored
+  // HTML prototype ported to React, side-stepping the full game flow.
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('prototype') === '1') {
+    return <PrototypeApp />
+  }
+
   const storage = typeof window === 'undefined' ? undefined : browserStorage()
   const [settings, setSettings] = useState<PlayerSettings>(() => storage === undefined ? { ...DEFAULT_SETTINGS } : loadSettings(storage))
   const [locale, setLocale] = useState<Locale>(settings.locale)
@@ -159,9 +165,11 @@ function App() {
   const [pendingSlot, setPendingSlot] = useState<SlotId | null>(null)
   const [runDifficulty, setRunDifficulty] = useState<GameDifficulty>(settings.difficulty)
   const sessionRef = useRef<GameSession | null>(null)
+  const activeSlotRef = useRef<SlotId | null>(activeSlot)
 
   useEffect(() => {
     sessionRef.current = session
+    activeSlotRef.current = activeSlot
     if (session !== null && activeSlot !== null) saveSlot(browserStorage(), activeSlot, session)
   }, [session, activeSlot])
 
@@ -242,9 +250,14 @@ function App() {
     const result = applyAction(previous.game, action)
     const next = { ...previous, game: result.state, chronicle: [...previous.chronicle, ...narrate(result.events, previous.locale)].slice(-80), chronicleKinds: [...(previous.chronicleKinds ?? []), ...result.events.map((event) => event.type.toLowerCase())].slice(-80) }
     sessionRef.current = next
-    if (activeSlot !== null && shouldAutoSave(previous.game, result.state)) saveSlot(browserStorage(), activeSlot, next)
+    // Persisting happens via the useEffect on [session, activeSlot] below —
+    // writing here would double-serialize every move.
     setSession(next)
-    const opensStory = result.events.some((event) => event.type === 'TALKED' || (event.type === 'NODE_REACHED' && event.kind === 'event'))
+    // Story advances through NPC talk + quest turn-ins, not by stepping onto
+    // any event pin — that made every pin pop the same global scene (2026-09-08).
+    // Route-target nodes keep their own full-screen encounter via
+    // storyRouteEncounter, which renders independently of storyOpen.
+    const opensStory = result.events.some((event) => event.type === 'TALKED')
     const bootScene = currentStoryScene(previous.game).id
     const resolvesSystemBoot = action.kind === 'story_choice'
       && (bootScene === 'scene_transmigration' || bootScene === 'scene_system_selection')
@@ -281,14 +294,19 @@ function App() {
     void requestNarration(result.state, result.events, previous.locale).then((line) => {
       if (line === null || sessionRef.current === null) return
       const current = sessionRef.current
-      const narrated = { ...current, chronicle: [...current.chronicle, line].slice(-80) }
+      // Mirror the same slice(-80) bookkeeping used by `act` so chronicleKinds
+      // stays in lockstep with chronicle; without this the kind index drifts
+      // by one entry per AI narration, eventually mismapping the highlight.
+      const nextChronicle = [...current.chronicle, line].slice(-80)
+      const narrated = { ...current, chronicle: nextChronicle, chronicleKinds: [...(current.chronicleKinds ?? []), 'narration'].slice(-80) }
       sessionRef.current = narrated
       setSession(narrated)
     })
-  }, [activeSlot])
+  }, [])
 
   useEffect(() => {
-    const movement: Record<string, Action> = { ArrowUp: { kind: 'move', direction: 'north' }, w: { kind: 'move', direction: 'north' }, ArrowDown: { kind: 'move', direction: 'south' }, s: { kind: 'move', direction: 'south' }, ArrowLeft: { kind: 'move', direction: 'west' }, a: { kind: 'move', direction: 'west' }, ArrowRight: { kind: 'move', direction: 'east' }, d: { kind: 'move', direction: 'east' } }
+    // Movement is pin-click only (2026-09-08): WASD/arrows no longer dispatch
+    // moves. This handler keeps Escape (close story) and 1-3 (story choices).
     const handler = (event: KeyboardEvent) => {
       const target = event.target
       if (sessionRef.current === null) return
@@ -297,9 +315,7 @@ function App() {
         return
       }
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return
-      const move = movement[event.key]
-      if (storyRouteEncounter(sessionRef.current.game) !== undefined && (move !== undefined || /^[1-3]$/.test(event.key))) { event.preventDefault(); return }
-      if (move !== undefined) { event.preventDefault(); act(move); return }
+      if (storyRouteEncounter(sessionRef.current.game) !== undefined && /^[1-3]$/.test(event.key)) { event.preventDefault(); return }
       const choice = Number(event.key)
       if (choice >= 1 && choice <= 3) {
         const storyChoice = currentStoryScene(sessionRef.current.game).choices[choice - 1]

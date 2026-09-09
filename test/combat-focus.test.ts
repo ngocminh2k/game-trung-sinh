@@ -22,7 +22,7 @@ describe('P0-5: combat focus action', () => {
 
   it('rejects focus outside an encounter', () => {
     const result = applyAction(newGame('focus-outside'), { kind: 'combat_focus' })
-    expect(result.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION' }])
+    expect(result.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION', context: 'combat_focus' }])
   })
 
   it('adds +2 damage to the next strike and resets the stack', () => {

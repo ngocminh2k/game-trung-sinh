@@ -29,8 +29,10 @@ function patched(base: GameState, patch: Partial<GameState['player']>): GameStat
 describe('previously-uncovered error paths surface ERROR events with codes', () => {
   it('moving into impassable terrain is MOVE_BLOCKED', () => {
     let state = newGame('err-blocked')
-    state = navTo(state, 'sect') // south of the sect is mountain
-    const result = applyAction(state, { kind: 'move', direction: 'south' })
+    state = navTo(state, 'sect') // the sect rim is mountain
+    state = applyAction(state, { kind: 'move', direction: 'west' }).state
+    state = applyAction(state, { kind: 'move', direction: 'west' }).state
+    const result = applyAction(state, { kind: 'move', direction: 'west' })
     expect(hasError(result.events, 'MOVE_BLOCKED')).toBe(true)
   })
 
@@ -118,10 +120,12 @@ describe('previously-uncovered error paths surface ERROR events with codes', () 
 
   it('rejected actions leave the game state untouched', () => {
     let state = newGame('err-nochange')
-    state = navTo(state, 'sect')
+    state = navTo(state, 'sect') // step onto (1,3) so west hits the mountain rim
+    state = applyAction(state, { kind: 'move', direction: 'west' }).state
+    state = applyAction(state, { kind: 'move', direction: 'west' }).state
     const snapshot = JSON.stringify(state)
     const attempts: Action[] = [
-      { kind: 'move', direction: 'south' },
+      { kind: 'move', direction: 'west' },
       { kind: 'withdraw', itemId: 'pill_hp', qty: 1 },
       { kind: 'talk', npcId: 'n_merchant_bao' },
     ]

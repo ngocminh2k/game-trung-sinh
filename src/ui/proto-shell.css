@@ -1,0 +1,148 @@
+/* ProtoShell-only overrides, kept out of screens.css / index.css.
+   Selectors are one level more specific than screens.css so the load order
+   (App.tsx imports screens.css last) cannot beat them. */
+
+/* Portrait: show the full character art, crop nothing. */
+.proto-righthud .proto-portrait .face {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 38%, oklch(82% 0.06 70) 0 30%, oklch(34% 0.10 25) 32% 100%);
+}
+.proto-righthud .proto-portrait .face .proto-portrait-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center top;
+  animation: proto-pose-in 0.32s ease-out both;
+}
+@keyframes proto-pose-in {
+  from { opacity: 0.35; transform: translateY(4px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .proto-righthud .proto-portrait .face .proto-portrait-art { animation: none; }
+}
+
+/* Map pins: an unconnected cell reads as dead instead of silently dead.
+   aria-disabled (not [disabled]) so the hover tooltip still works. */
+.proto-map .pin-unreachable {
+  cursor: not-allowed;
+  opacity: 0.42;
+  filter: grayscale(0.7);
+  border-style: dashed;
+}
+.proto-map .pin-unreachable:hover {
+  background: oklch(96% 0.02 80 / 0.92);
+  border-color: var(--border);
+}
+
+/* Pin glyph + rich hover tooltip. */
+.proto-map .pin .g {
+  display: inline-block;
+  margin-right: 5px;
+  font-family: var(--display);
+  font-size: 12px;
+  line-height: 1;
+  vertical-align: -1px;
+}
+/* Pin icon images (128px source, rendered small). */
+.proto-map .pin img.g {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: -3px;
+}
+
+/* LeftRail tab icon image (replaces glyph char). */
+.proto-leftrail .tabs img.glyph {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Tetragrammaton attribute icon image (replaces seal char). */
+.proto-righthud .proto-tg img.k {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+}
+
+/* HUD bar label icon. */
+.proto-bar .lbl img.bar-ico {
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+.proto-map .pin .pin-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(2px);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: max-content;
+  max-width: 240px;
+  padding: 8px 10px;
+  background: oklch(20% 0.03 60 / 0.96);
+  color: oklch(94% 0.02 80);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--body);
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 40;
+}
+.proto-map .pin:hover .pin-tip,
+.proto-map .pin:focus-visible .pin-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.proto-map .pin .pin-tip strong { font-family: var(--display); font-size: 13px; color: var(--gold, oklch(78% 0.13 85)); }
+.proto-map .pin .pin-tip .kind { color: oklch(78% 0.13 85 / 0.85); letter-spacing: 0.06em; }
+.proto-map .pin .pin-tip .d { color: oklch(94% 0.02 80 / 0.8); }
+.proto-map .pin .pin-tip .steps { margin-top: 2px; color: oklch(70% 0.10 175); }
+/* Pins near the map top flip the tip below so overflow:hidden cannot clip it. */
+.proto-map .pin.pin-flip .pin-tip { bottom: auto; top: calc(100% + 8px); transform: translateX(-50%) translateY(-2px); }
+.proto-map .pin.pin-flip:hover .pin-tip,
+.proto-map .pin.pin-flip:focus-visible .pin-tip { transform: translateX(-50%) translateY(0); }
+
+/* Tetragrammaton: + point buttons when the engine grants attribute points. */
+.proto-righthud .proto-tetragrammaton { position: relative; }
+.proto-righthud .proto-tg { position: relative; }
+.proto-righthud .tg-add {
+  margin-top: 4px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--wine);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.proto-righthud .tg-add:hover:not(:disabled) { border-color: var(--wine); background: oklch(96% 0.02 80); }
+.proto-righthud .tg-add:disabled { opacity: 0.35; cursor: default; }
+.proto-righthud .tg-points {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--wine);
+}

@@ -65,7 +65,11 @@ export function loadSettings(storage: SessionStorage): PlayerSettings {
 }
 
 export function saveSettings(storage: SessionStorage, settings: PlayerSettings): void {
-  storage.set(SETTINGS_KEY, JSON.stringify(settings))
+  try {
+    storage.set(SETTINGS_KEY, JSON.stringify(settings))
+  } catch (error) {
+    console.warn('[session] save failed:', error)
+  }
 }
 
 function isSlotId(value: unknown): value is SlotId {
@@ -84,7 +88,11 @@ function parseSession(raw: string): GameSession | null {
 }
 
 export function saveSession(storage: SessionStorage, session: GameSession): void {
-  storage.set(SESSION_KEY, JSON.stringify(session))
+  try {
+    storage.set(SESSION_KEY, JSON.stringify(session))
+  } catch (error) {
+    console.warn('[session] save failed:', error)
+  }
 }
 
 export function loadSession(storage: SessionStorage): GameSession | null {
@@ -93,7 +101,11 @@ export function loadSession(storage: SessionStorage): GameSession | null {
 }
 
 function writeSlots(storage: SessionStorage, slots: Partial<Record<SlotId, SaveSlot>>): void {
-  storage.set(SLOTS_KEY, JSON.stringify(slots))
+  try {
+    storage.set(SLOTS_KEY, JSON.stringify(slots))
+  } catch (error) {
+    console.warn('[session] save failed:', error)
+  }
 }
 
 function parseSlots(raw: string): Partial<Record<SlotId, SaveSlot>> {

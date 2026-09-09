@@ -5,9 +5,10 @@ import {
   TRAIN_BASE_PROGRESS,
 } from './constants'
 import { ITEM_MANUAL } from './constants'
+import { TIME_MODS, currentTimeOfDay } from './time'
 import { countOf } from './utils'
 import { getTalent, getTechnique } from '../content/rpg'
-import type { GameState } from './types'
+import type { GameState, TimeOfDay } from './types'
 
 export function trainingEffectiveness(state: GameState): number {
   return countOf(state.inventory, ITEM_MANUAL) > 0 || countOf(state.storage, ITEM_MANUAL) > 0
@@ -31,15 +32,19 @@ export function luckGatherBonus(luck: number): number {
   return Math.floor(luck / 20)
 }
 
-export function trainProgressGain(state: GameState): number {
+export function trainProgressGain(state: GameState, timeOfDay?: TimeOfDay): number {
   const talentBonus = state.talents.reduce((sum, id) => sum + (getTalent(id)?.trainingBonus ?? 0), 0)
   const techniqueBonus = Object.entries(state.techniques).reduce(
     (sum, [id, level]) => sum + (getTechnique(id)?.trainingBonus ?? 0) * level,
     0,
   )
+  // The time-of-day modifier folds into the pre-floor product so a night
+  // session can actually cross a step boundary instead of being swallowed by
+  // the floor.
+  const mod = TIME_MODS[timeOfDay ?? currentTimeOfDay(state)].trainProgress
   return Math.max(1, Math.floor((
     TRAIN_BASE_PROGRESS + attributeTrainingBonus(state.player.attrs.mind) + talentBonus + techniqueBonus
-  ) * trainingEffectiveness(state)))
+  ) * trainingEffectiveness(state) * mod))
 }
 
 export function minorRealmThreshold(stage: number, realmLevel: number): number | null {

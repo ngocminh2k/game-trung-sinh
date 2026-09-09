@@ -1,0 +1,10 @@
+import { chromium } from 'playwright'
+const browser = await chromium.launch({ headless: true })
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+await page.goto('http://127.0.0.1:5177/')
+await page.waitForTimeout(2000)
+await page.screenshot({ path: 'screenshots/proto-shell-boot.png' })
+console.log('boot ok, title:', await page.title())
+const main = await page.evaluate(() => document.querySelector('main')?.className)
+console.log('main on boot:', main)
+await browser.close()

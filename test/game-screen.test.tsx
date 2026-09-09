@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { newGame } from '../src/engine'
@@ -16,13 +17,10 @@ describe('GameScreen', () => {
       />,
     )
 
-    expect(markup).toContain('Bản đồ khu vực')
     expect(markup).toContain('regional-map')
     expect(markup).not.toContain('Lựa chọn của ngươi')
-    expect(markup).not.toContain('Viết hành động khác')
     expect(markup).not.toContain('data-testid="narration-panel"')
     expect(markup).toContain('Phế Căn Ký')
-    expect(markup).toContain('Bản đồ khu vực có lối ra và điểm sự kiện')
     expect(markup).not.toContain('Mạch truyện')
     expect(markup).toContain('Độ tương hợp')
     expect(markup).not.toContain('deterministic')

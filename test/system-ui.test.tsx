@@ -28,7 +28,8 @@ describe('S07 System UI', () => {
       />,
     )
 
-    expect(screen.getByTestId('system-panel').textContent).toContain('【Battle System】')
+    fireEvent.click(screen.getByTestId('rail-tab-system'))
+    expect(screen.getByTestId('system-panel').textContent).toContain('Battle System')
     expect(screen.getAllByText(/Difficulty/)).toHaveLength(6)
     fireEvent.click(screen.getAllByRole('button', { name: 'Accept quest' })[0]!)
     expect(onAction).toHaveBeenCalledWith({ kind: 'system_accept_quest', questId: 'q_sys_battle_01' })
@@ -48,10 +49,10 @@ describe('S07 System UI', () => {
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Battle System' }), { target: { value: 'offer' } })
     fireEvent.click(screen.getByRole('button', { name: 'Talk' }))
-    await waitFor(() => expect(screen.getByText('Quest offer')).toBeTruthy())
-    fireEvent.click(screen.getByText('Quest offer').querySelector('button')!)
+    await waitFor(() => expect(screen.getByTestId('system-reply-bubble').textContent).toContain('Quest offer'))
+    fireEvent.click(screen.getByTestId('system-reply-accept'))
     expect(onAction).toHaveBeenCalledWith({ kind: 'system_accept_quest', questId: 'q_sys_battle_01' })
-    expect(screen.queryByText('Quest offer')).toBeNull()
+    expect(screen.queryByTestId('system-reply-bubble')).toBeNull()
   })
 
   it('does not render System UI for the rootless branch', () => {

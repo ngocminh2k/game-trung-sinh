@@ -1,0 +1,107 @@
+
+> game-trung-sinh@0.1.0 dev
+> vite --host 127.0.0.1
+
+Port 5173 is in use, trying another one...
+Port 5174 is in use, trying another one...
+Port 5175 is in use, trying another one...
+Port 5176 is in use, trying another one...
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m447[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5177[22m/[39m
+[2m8:24:44 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:26:05 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/screens.css[22m
+[2m8:26:10 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/GameScreen.tsx[22m
+[2m8:29:52 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:30:34 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:31:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:31:52 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:32:07 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:34:49 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:35:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:35:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:36:05 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:36:46 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:37:15 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:37:24 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:37:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:37:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:39:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:41:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:41:33 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:41:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:44:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:45:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/NpcChatModal.tsx[22m
+[2m8:45:54 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:47:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:47:09 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:48:08 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:48:27 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m9:10:29 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/screens.css[22m
+[2m9:18:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m9:19:21 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m9:19:53 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/NpcChatModal.tsx[22m
+[2m9:20:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/NpcChatModal.tsx[22m
+[2m9:21:20 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/NpcChatModal.tsx[22m
+[2m9:21:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m9:51:54 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/screens.css[22m
+[2m9:52:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/screens.css[22m
+[2m10:23:12 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/screens.css[22m
+[2m10:23:47 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m10:23:59 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m10:24:06 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m10:24:35 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+m
+[2m8:36:05 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:36:05 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:36:46 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:36:46 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:36:46 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:37:15 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:37:24 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:37:24 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:37:24 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:37:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:37:39 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:37:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:37:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:37:48 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:37:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:39:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:39:43 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:39:43 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:41:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:41:33 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:41:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:41:42 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:41:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:44:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:45:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/NpcChatModal.tsx[22m
+[2m8:45:54 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:47:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:47:03 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:47:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:47:09 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:47:09 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:47:09 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:48:08 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:48:08 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:48:08 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m8:48:27 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/LeftRailTabContent.tsx[22m
+[2m8:48:27 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/ui/LeftRailTabContent.tsx[22m Could not Fast Refresh ("LEFT_TAB_LABELS" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m8:48:27 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m9:10:29 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/screens.css[22m
+[2m9:18:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m9:19:21 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m9:19:53 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/NpcChatModal.tsx[22m
+[2m9:20:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/NpcChatModal.tsx[22m
+[2m9:21:20 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/NpcChatModal.tsx[22m
+[2m9:21:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m9:51:54 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/screens.css[22m
+[2m9:52:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/screens.css[22m
+[2m10:23:12 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/screens.css[22m
+[2m10:23:47 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m10:23:59 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m10:24:06 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m
+[2m10:24:35 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ui/ProtoShell.tsx[22m

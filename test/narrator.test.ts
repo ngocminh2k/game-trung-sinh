@@ -97,6 +97,21 @@ describe('narrator', () => {
     expect(lines.join(' ')).not.toMatch(/market|q_herb_delivery|iron_bones|crooked_circulation|mist_boar|cursed_rift|convergence/i)
   })
 
+  it('says WHERE to go instead of a generic "wrong place" shrug', () => {
+    const gather = narrateLine({ type: 'ERROR', code: 'NOT_AT_LOCATION', at: 'herb_field', context: 'gather' }, 'vi')
+    const sell = narrateLine({ type: 'ERROR', code: 'NOT_AT_LOCATION', at: 'market', context: 'sell' }, 'vi')
+    const fight = narrateLine({ type: 'ERROR', code: 'NOT_AT_LOCATION', context: 'combat_defend' }, 'vi')
+
+    expect(gather).toContain('Điền Linh Thảo')
+    expect(gather).toContain('hái linh thảo')
+    expect(sell).toContain('Chợ Vân Tập')
+    expect(sell).toContain('bán hàng')
+    // Combat refusals have no destination — they must not invent one.
+    expect(fight).toContain('đánh nhau')
+    expect(fight).not.toMatch(/Bản đồ|map/i)
+    expect(narrateLine({ type: 'ERROR', code: 'NOT_AT_LOCATION', at: 'market', context: 'buy' }, 'en')).toContain('Cloudgather Market')
+  })
+
   it('narration never mutates game state', () => {
     const before = newGame('narrator-pure')
     const snapshot = JSON.stringify(before)

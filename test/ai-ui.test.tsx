@@ -26,7 +26,7 @@ function renderScreen(onAction: (action: Action) => void) {
 }
 
 function submitButton(): HTMLButtonElement {
-  return screen.getByRole('button', { name: /Thử vận|Đang lắng nghe…/ }) as HTMLButtonElement
+  return screen.getByRole('button', { name: /Làm|Đang lắng nghe…/ }) as HTMLButtonElement
 }
 
 function typeAndSubmit(utterance: string): void {
@@ -55,7 +55,7 @@ describe('AI suggestion UI states', () => {
     expect(actions[0]).toEqual({ kind: 'story_choice', choiceId: 'return_pin' })
     expect(await screen.findByText('Ngươi cầm chặt cây trâm.')).toBeTruthy()
     // The form returns to idle and accepts a new command.
-    expect(submitButton().textContent).toBe('Thử vận')
+    expect(submitButton().textContent).toBe('Làm')
   })
 
   it('never stays stuck: an AI failure falls back to free text and clears the busy state', async () => {
@@ -68,7 +68,7 @@ describe('AI suggestion UI states', () => {
     typeAndSubmit('đi về hướng bắc')
     await waitFor(() => expect(actions).toHaveLength(1))
     expect(actions[0]).toEqual({ kind: 'free_text', raw: 'đi về hướng bắc' })
-    await waitFor(() => expect(submitButton().textContent).toBe('Thử vận'))
+    await waitFor(() => expect(submitButton().textContent).toBe('Làm'))
     expect(submitButton().disabled).toBe(true) // only because the input is empty again, not busy
     // The form accepts a new command right away.
     fireEvent.change(screen.getByLabelText('Viết hành động khác'), { target: { value: 'nghỉ ngơi' } })
@@ -85,7 +85,7 @@ describe('AI suggestion UI states', () => {
     typeAndSubmit('ngồi với Ngô')
     await waitFor(() => expect(actions).toHaveLength(1))
     expect(actions[0]).toEqual({ kind: 'free_text', raw: 'ngồi với Ngô' })
-    await waitFor(() => expect(submitButton().textContent).toBe('Thử vận'))
+    await waitFor(() => expect(submitButton().textContent).toBe('Làm'))
   })
 
   it('skips the AI entirely when narration is disabled and acts immediately', async () => {
@@ -101,6 +101,6 @@ describe('AI suggestion UI states', () => {
     })
     expect(actions).toEqual([{ kind: 'free_text', raw: 'tu luyện' }])
     expect(fetchMock).not.toHaveBeenCalled()
-    expect(submitButton().textContent).toBe('Thử vận')
+    expect(submitButton().textContent).toBe('Làm')
   })
 })

@@ -62,7 +62,7 @@ export const EN: Dict = {
       dist: '{{name}} · {{kind}} · {{direction}} {{n}} cells',
     },
     legend: { player: 'You', people: 'People — talk, take quests', event: 'Event — interact, fortune', exit: 'Exit — travel to another region', danger: 'Danger — combat, lose health', fog: 'Misted — unexplored', hint: 'Walk to a glowing point to meet people, find events, or use an exit. Water and mountains block the way. Red points are danger — rest to heal before you enter.' },
-    iconPlaceholder: { exit: '关' },
+    iconPlaceholder: { exit: '關' },
     ui: { landmark: 'Local area map', loading: 'Loading map…', error: 'Map failed to load — use movement keys.', placeholder: 'No illustration for this landmark.' },
   },
   actions: {

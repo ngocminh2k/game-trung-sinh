@@ -1,11 +1,30 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { newGame } from '../src/engine'
 import type { Action } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
+import App from '../src/App'
 
 afterEach(() => cleanup())
+beforeEach(() => window.localStorage.clear())
+
+// After the duplicate-listener cleanup the window keydown handler lives only
+// in App.tsx. Tests that need to fire keys through that path boot the full
+// App and click through the menu → new-game → system → confirm flow before
+// dispatching. The P0-2 tabindex/role assertions still mount <GameScreen>
+// directly because they only inspect the rendered DOM.
+const beginGame = () => {
+  fireEvent.click(screen.getByTestId('menu-new-game'))
+  fireEvent.click(screen.getByTestId('system-tile-sys_battle'))
+  fireEvent.click(screen.getByTestId('newgame-confirm'))
+  fireEvent.click(screen.getByRole('button', { name: /nhấn|press/i }))
+}
+
+function renderApp() {
+  render(<App />)
+  beginGame()
+}
 
 function renderWithSpy(spy: (action: Action) => void) {
   return render(
@@ -72,34 +91,34 @@ describe('P0-2: map keyboard navigation', () => {
   })
 
   it('dispatches move actions on arrow-key press at the window level', () => {
-    const onAction = vi.fn()
-    renderWithSpy(onAction)
-
-    fireEvent.keyDown(window, { key: 'ArrowUp' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'north' })
-
-    fireEvent.keyDown(window, { key: 'ArrowDown' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'south' })
+    // After dropping the duplicate GameScreen listener, the only window keydown
+    // handler for arrow/WASD lives in App.tsx. Boot App, observe the player's
+    // location update after each arrow press.
+    renderApp()
+    const start = screen.getByTestId('location-label').textContent
+    expect(start).toBe('Làng Thanh Mộc')
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'west' })
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(screen.getByTestId('location-label').textContent).toBe('Chợ Vân Tập')
 
     fireEvent.keyDown(window, { key: 'ArrowRight' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'east' })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(screen.getByTestId('location-label').textContent).toBe('Làng Thanh Mộc')
   })
 
   it('dispatches move actions on WASD keys', () => {
-    const onAction = vi.fn()
-    renderWithSpy(onAction)
+    renderApp()
+    const start = screen.getByTestId('location-label').textContent
+    expect(start).toBe('Làng Thanh Mộc')
 
-    fireEvent.keyDown(window, { key: 'w' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'north' })
     fireEvent.keyDown(window, { key: 'a' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'west' })
-    fireEvent.keyDown(window, { key: 's' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'south' })
+    fireEvent.keyDown(window, { key: 'a' })
+    expect(screen.getByTestId('location-label').textContent).toBe('Chợ Vân Tập')
+
     fireEvent.keyDown(window, { key: 'd' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'east' })
+    fireEvent.keyDown(window, { key: 'd' })
+    expect(screen.getByTestId('location-label').textContent).toBe('Làng Thanh Mộc')
   })
 
   it('skips arrow-key movement while typing in the free-text input', () => {

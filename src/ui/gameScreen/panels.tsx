@@ -43,16 +43,19 @@ interface DockTabBarProps {
   locale: Locale
   onSelect: (panel: DockPanel) => void
   localNpcsCount: number
+  chronicleLength: number
 }
 
-export function DockTabBar({ activeDock, game, locale, onSelect, localNpcsCount }: DockTabBarProps): JSX.Element {
+export function DockTabBar({ activeDock, game, locale, onSelect, localNpcsCount, chronicleLength }: DockTabBarProps): JSX.Element {
   const completedQuests = QUESTS.filter((quest) => game.quests[quest.id]?.status === 'completed').length
+  const chronicleCount = chronicleLength
   const tabs: ReadonlyArray<readonly [DockPanel, string, string | number]> = [
     ['people', word(locale, 'Người ở đây', 'People here'), localNpcsCount],
     ['quests', word(locale, 'Nhiệm vụ', 'Quests'), `${completedQuests}/${QUESTS.length}`],
     ['inventory', word(locale, 'Túi đồ & kho', 'Bag & storage'), 0 /* filled by parent */],
     ['market', word(locale, 'Chợ & thành tựu', 'Market & deeds'), `${game.achievements.length}/${ACHIEVEMENTS.length}`],
     ['path', word(locale, 'Đạo đồ & trang bị', 'Path & equipment'), word(locale, 'tu vi', 'cultivation')],
+    ['chronicle', word(locale, 'Biên niên', 'Chronicle'), chronicleCount],
   ]
   void completedQuests
   return (
@@ -183,6 +186,7 @@ export function DockPanelInventory({
           )}
         </div>
         <aside className="inventory-inspector" data-testid="inventory-inspector">
+          <h3 className="inventory-inspector-title">{word(locale, 'Chi tiết vật phẩm', 'Item details')}</h3>
           {!selected
             ? <p className="muted">{word(locale, 'Chọn một vật phẩm để xem chi tiết.', 'Choose an item to inspect it.')}</p>
             : (() => {
@@ -595,7 +599,7 @@ export function ChronicleFeed({
   const visible = chronicle.slice(-8)
   const visibleStartIndex = chronicle.length - visible.length
   return (
-    <div className="chronicle" aria-live="polite" aria-label={word(locale, 'Biên niên ký', 'Chronicle')} id="story-chronicle" ref={chronicleRef} tabIndex={-1}>
+    <div className="chronicle" aria-live="polite" id="story-chronicle" ref={chronicleRef} tabIndex={-1}>
       <p className="section-kicker">{word(locale, 'Biên niên ký', 'Chronicle')}</p>
       <ol>
         {visible.map((line, index) => {
@@ -612,7 +616,7 @@ export function ChronicleFeed({
               aria-label={ariaLabel}
               className={`${index === chronicle.length - 1 && chronicle.length === chronicleNewAt ? 'is-new ' : ''}${colorClass ?? ''}`.trim()}
               data-kind={kind}
-              key={`${line}-${index}`}
+              key={absoluteIndex}
               ref={index === chronicle.length - 1 ? chronicleEndRef : undefined}
             >
               {line}

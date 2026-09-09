@@ -1,0 +1,105 @@
+{
+  "chat": {
+    "greeting": {
+      "left": {
+        "visible": false,
+        "text": "Ồ, tiểu đạo hữu sáng sớm đã dậy sớm nhỉ. Có muốn xem qua mấy bình Tụ Khí Đan ta mới lấy từ trấn trên không? Hôm nay giảm giá cho người quen, chỉ 8 bạc thôi."
+      },
+      "right": {
+        "visible": true,
+        "text": "Ồ, tiểu đạo hữu sáng sớm đã dậy sớm nhỉ. Có muốn xem qua mấy bình Tụ Khí Đan ta mới lấy từ trấn trên không? Hôm nay giảm giá cho người quen, chỉ 8 bạc thôi."
+      },
+      "lastLog": "Ồ, tiểu đạo hữu sáng sớm đã dậy sớm nhỉ. Có muốn xem qua mấy bình Tụ Khí Đan ta mới lấy từ trấn trên không? Hôm nay giảm giá cho người quen, chỉ 8 bạc thôi."
+    },
+    "playerTurn": {
+      "left": {
+        "visible": true,
+        "text": "Mua một bình — đang cần để tu luyện."
+      },
+      "right": {
+        "visible": false,
+        "text": "Mua một bình — đang cần để tu luyện."
+      },
+      "lastLog": "Ồ, tiểu đạo hữu sáng sớm đã dậy sớm nhỉ. Có muốn xem qua mấy bình Tụ Khí Đan ta mới lấy từ trấn trên không? Hôm nay giảm giá cho người quen, chỉ 8 bạc thôi."
+    },
+    "reply": {
+      "left": {
+        "visible": false,
+        "text": "Khôn ngoan đó. Đan này tuy hạ phẩm, nhưng với người mới nhập đạo thì vừa đủ. À, tiện thể ta kể ngươi nghe — sáng nay có thương đội ngoài Bắc đi qua, nghe nói trong đoàn có một bình Hỗn Nguyên Đan trân quý lắm…"
+      },
+      "right": {
+        "visible": true,
+        "text": "Khôn ngoan đó. Đan này tuy hạ phẩm, nhưng với người mới nhập đạo thì vừa đủ. À, tiện thể ta kể ngươi nghe — sáng nay có thương đội ngoài Bắc đi qua, nghe nói trong đoàn có một bình Hỗn Nguyên Đan trân quý lắm…"
+      },
+      "lastLog": "Khôn ngoan đó. Đan này tuy hạ phẩm, nhưng với người mới nhập đạo thì vừa đủ. À, tiện thể ta kể ngươi nghe — sáng nay có thương đội ngoài Bắc đi qua, nghe nói trong đoàn có một bình Hỗn Nguyên Đan trân quý lắm…"
+    }
+  },
+  "combat": {
+    "map": {
+      "x": 280,
+      "y": 52,
+      "w": 880,
+      "h": 748,
+      "bottom": 800,
+      "right": 1160
+    },
+    "overlay": {
+      "x": 280,
+      "y": 52,
+      "w": 880,
+      "h": 748,
+      "bottom": 800,
+      "right": 1160
+    },
+    "cmd": {
+      "x": 280,
+      "y": 800,
+      "w": 880,
+      "h": 68,
+      "bottom": 868,
+      "right": 1160
+    },
+    "stage": {
+      "x": 430,
+      "y": 214,
+      "w": 580,
+      "h": 329,
+      "bottom": 543,
+      "right": 1010
+    },
+    "acts": {
+      "x": 360,
+      "y": 588,
+      "w": 719,
+      "h": 50,
+      "bottom": 638,
+      "right": 1080
+    },
+    "playerBar": {
+      "bg": "oklch(0.56 0.1 175)",
+      "trackWidth": 220,
+      "fillWidth": 201
+    },
+    "enemyBar": {
+      "bg": "oklch(0.48 0.18 25)",
+      "trackWidth": 220,
+      "fillWidth": 218
+    },
+    "enemyName": "Trư Nha Sương"
+  },
+  "checks": {
+    "chat.greeting: NPC bubble visible, player bubble hidden": "pass",
+    "chat.greeting: NPC bubble text matches last log line": "pass",
+    "chat.playerTurn: player bubble visible, NPC bubble hidden": "pass",
+    "chat.playerTurn: player bubble shows the chosen line": "pass",
+    "chat.reply: NPC bubble visible, player bubble hidden": "pass",
+    "chat.reply: NPC bubble text matches last log line": "pass",
+    "combat.enemyBar fill is danger-red oklch(0.48 0.18 25)": "pass",
+    "combat.enemyBar fill width > 0": "pass",
+    "combat.playerBar fill is accent oklch(0.56 0.1 175)": "pass",
+    "combat.overlay sits inside .proto-map": "pass",
+    "combat.command bar below overlay (chips row not covered)": "pass",
+    "combat.acts row below fighters (enemy HUD above actions)": "pass"
+  },
+  "errors": []
+}

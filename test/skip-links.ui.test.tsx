@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { GameScreen } from '../src/ui/GameScreen'
@@ -33,7 +34,7 @@ describe('skip-to-content links', () => {
     bootScreen()
     const link = screen.getByRole('link', { name: 'Skip to inventory' })
     expect(link).toBeTruthy()
-    expect(link.getAttribute('href')).toBe('#dock-panel-inventory')
+    expect(link.getAttribute('href')).toBe('#rail-body-items')
     expect(link.className).toContain('skip-link')
   })
 
@@ -45,7 +46,7 @@ describe('skip-to-content links', () => {
     const mapLink = skipLinks[0] as HTMLAnchorElement
     const inventoryLink = skipLinks[1] as HTMLAnchorElement
     expect(mapLink.getAttribute('href')).toBe('#world-map')
-    expect(inventoryLink.getAttribute('href')).toBe('#dock-panel-inventory')
+    expect(inventoryLink.getAttribute('href')).toBe('#rail-body-items')
   })
 
   it('sets document.documentElement.lang to the active locale', () => {

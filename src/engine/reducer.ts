@@ -1,5 +1,4 @@
 import {
-  enemyAt,
   entryPositionFor,
   getEnemy,
   getEquipmentByItem,
@@ -11,6 +10,8 @@ import {
   getTechnique,
   locationDanger,
 } from '../content'
+import { eligibleEnemiesAt, enemiesAtLocation } from '../content/rpg'
+import type { EnemyDef } from './content-types'
 import { newlyQualifiedAchievements } from './achievements'
 import {
   ATTRIBUTE_MAX,
@@ -51,6 +52,7 @@ import {
   luckGatherBonus,
   trainProgressGain,
 } from './stats'
+import { TIME_MODS, advanceTime, currentTimeOfDay, restToDawn } from './time'
 import { canAcceptQuest, canCompleteQuest, tickQuestSteps } from './quests'
 import { queuePush } from './system'
 import { applyStoryEffects, applyStoryRouteArrival, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding, storyRouteEncounter } from './story'
@@ -71,7 +73,7 @@ import type {
 } from './types'
 
 type ROk = { ok: true; state: GameState; events: GameEvent[] }
-type RErr = { ok: false; code: ErrorCode }
+type RErr = { ok: false; code: ErrorCode; at?: string | undefined }
 type R = ROk | RErr
 
 // Named handles for flag keys referenced as literals below; FLAG_KEYS stays the
@@ -96,8 +98,16 @@ const [
   FLAG_QUEST_DONE,
 ] = FLAG_KEYS
 
-function err(code: ErrorCode): RErr {
-  return { ok: false, code }
+function err(code: ErrorCode, at?: string): RErr {
+  return at === undefined ? { ok: false, code } : { ok: false, code, at }
+}
+
+// Only NOT_AT_LOCATION needs the destination + attempted action for the
+// narrator; every other error stays a bare { type, code } so existing
+// exact-shape assertions are untouched.
+function errorEvent(result: RErr, context: ConcreteAction['kind']): GameEvent {
+  if (result.code !== 'NOT_AT_LOCATION') return { type: 'ERROR', code: result.code }
+  return { type: 'ERROR', code: result.code, at: result.at, context }
 }
 
 export function applyAction(state: GameState, action: Action): TransitionResult {
@@ -109,7 +119,7 @@ export function applyAction(state: GameState, action: Action): TransitionResult 
   if (safeState.terminal) return { state: safeState, events: [{ type: 'ERROR', code: 'TERMINAL' }] }
   if (action.kind === 'free_text') return applyFreeText(safeState, action.raw)
   const result = execAction(safeState, action)
-  if (!result.ok) return { state: safeState, events: [{ type: 'ERROR', code: result.code }] }
+  if (!result.ok) return { state: safeState, events: [errorEvent(result, action.kind)] }
   return finalize(result.state, result.events)
 }
 
@@ -128,18 +138,17 @@ function applyFreeText(state: GameState, raw: string): TransitionResult {
   }
   const staged: GameState = { ...state, corrections: 0 }
   const result = execAction(staged, parsed.action)
-  if (!result.ok) return { state: staged, events: [{ type: 'ERROR', code: result.code }] }
+  if (!result.ok) return { state: staged, events: [errorEvent(result, parsed.action.kind)] }
   return finalize(result.state, result.events)
 }
 
-// Phase 2 (design review 2026-08): time is a resource. Every "outing" action
-// costs a day; only rest has its own accounting. Turn-level combat choices
-// (strike/defend/retreat/consume mid-fight) are exempt — an encounter is one
-// day-trip whose price is paid at start_encounter.
-function spendDay(state: GameState, events: GameEvent[]): GameState {
-  const day = state.day + 1
-  events.push({ type: 'DAY_PASSED', day })
-  return { ...state, day }
+// 2026-09 clock: time is a resource, measured in four slots per day
+// (Sáng / Trưa / Chiều / Tối). A deliberate outing spends 1 slot; a heavier
+// task (rèn dược) spends 2; story choices are a whole-day montage (4 slots).
+// Turn-level combat choices (strike/defend/retreat/consume mid-fight) are
+// exempt — an encounter is one trip whose price is paid at start_encounter.
+function spendSlots(state: GameState, events: GameEvent[], slots = 1): GameState {
+  return advanceTime(state, slots, events)
 }
 
 // Phase 2: the story talks about "the twelfth night"; now the calendar enforces
@@ -357,6 +366,12 @@ function execAction(state: GameState, action: ConcreteAction): R {
 }
 
 function doMove(state: GameState, direction: Direction): R {
+  // Defense-in-depth gates so a stale pin click can never drag a corpse or
+  // a mid-fight player off the combat loop. execAction already enforces
+  // these for normal actions; doMove guards against any future caller that
+  // reaches in directly.
+  if (state.encounter !== null) return err('MOVE_BLOCKED')
+  if (!state.player.alive) return err('MOVE_BLOCKED')
   // P1-2: day 24+ seals the rift region. Moving into a sealed_cave cell is
   // refused with REGION_LOCKED so the player keeps their day-trip cost but
   // does not teleport into a closed area.
@@ -398,21 +413,31 @@ function doMove(state: GameState, direction: Direction): R {
     const arrived = applyStoryRouteArrival(s, cell.node.id)
     s = { ...arrived, flags: { ...arrived.flags, [FLAG_REACHED(cell.node.id)]: true } }
   }
+  // The misty woods and the mountain ridges roll damage when you CROSS INTO a
+  // danger zone, throttled to once per day per zone — a repeated
+  // village→forest→village errand no longer bleeds the player on every border
+  // crossing (the tick resets when the day rolls over). Authored DANGER NODES
+  // inside a region (claw-stone, bone altar…) stay hazardous on every visit:
+  // the player can see and avoid them.
   const dangerLocationId = targetLocId ?? (cell.node?.kind === 'danger' ? state.player.locationId : undefined)
   if (dangerLocationId !== undefined) {
     if (dangerLocationId === LOCATION_CAVE) s = { ...s, flags: { ...s.flags, [FLAG_SEEN_CAVE]: true } }
-    const warning = dangerWarning(dangerLocationId)
+    const enteringZone = targetLocId !== undefined
     const danger = locationDanger(dangerLocationId)
-    if (warning !== null) {
-      events.push({
-        type: 'WARNING',
-        level: warning.level,
-        locationId: warning.locationId,
-        messageVi: warning.messageVi,
-        messageEn: warning.messageEn,
-      })
-    }
-    if (danger > 0) {
+    const dangerTickKey = `danger_tick_${dangerLocationId}`
+    const alreadyEnteredToday = flagNum(s.flags, dangerTickKey) === s.day
+    const rollsDamage = danger > 0 && (!enteringZone || !alreadyEnteredToday)
+    if (rollsDamage) {
+      const warning = dangerWarning(dangerLocationId)
+      if (warning !== null) {
+        events.push({
+          type: 'WARNING',
+          level: warning.level,
+          locationId: warning.locationId,
+          messageVi: warning.messageVi,
+          messageEn: warning.messageEn,
+        })
+      }
       const highDanger = danger >= HIGH_DANGER_LEVEL
       if (highDanger && countOf(s.inventory, ITEM_TALISMAN) > 0) {
         s = {
@@ -425,8 +450,9 @@ function doMove(state: GameState, direction: Direction): R {
         }
         events.push({ type: 'WARD_USED', itemId: ITEM_TALISMAN })
       } else {
+        const timeDamageMod = TIME_MODS[currentTimeOfDay(s)].dangerDamage
         const [rolled, nextRng] = damageRoll(s.rng, danger)
-        const damage = Math.max(1, Math.round(rolled * damageMultiplier(s.difficulty ?? 'balanced')))
+        const damage = Math.max(1, Math.round(rolled * damageMultiplier(s.difficulty ?? 'balanced') * timeDamageMod))
         s = { ...s, rng: nextRng }
         const newHp = Math.max(0, s.player.hp - damage)
         s = { ...s, player: { ...s.player, hp: newHp } }
@@ -446,6 +472,7 @@ function doMove(state: GameState, direction: Direction): R {
           })
         }
       }
+      if (enteringZone) s = { ...s, flags: { ...s.flags, [dangerTickKey]: s.day } }
     }
   }
   return { ok: true, state: s, events }
@@ -453,9 +480,9 @@ function doMove(state: GameState, direction: Direction): R {
 
 function doRest(state: GameState): R {
   const hpHeal = Math.min(REST_HEAL_HP, MAX_HP - state.player.hp)
+  const events: GameEvent[] = []
   const s: GameState = {
-    ...state,
-    day: state.day + 1,
+    ...restToDawn(state, events),
     player: {
       ...state.player,
       hp: clamp(state.player.hp + REST_HEAL_HP, 0, MAX_HP),
@@ -465,23 +492,25 @@ function doRest(state: GameState): R {
   return {
     ok: true,
     state: s,
-    events: [
-      { type: 'RESTED', hpHeal },
-      { type: 'DAY_PASSED', day: s.day },
-    ],
+    events: [{ type: 'RESTED', hpHeal }, ...events],
   }
 }
 
 function doTrain(state: GameState): R {
   if (state.player.qi < TRAIN_QI_COST) return err('INSUFFICIENT_QI')
-  // P0-6: training can kill (TRAIN_HP_COST + 0..2 variance). The death gate
-  // rejects the action when HP is too low to survive even the best variance.
-  if (state.player.hp <= TRAIN_HP_COST + 1) return err('INSUFFICIENT_HP')
+  // P0-6: training can kill (hpCost + oscillation variance). The death gate
+  // rejects the action when HP is too low to survive even a quiet session.
+  // The night doubles the edge: stronger progress, heavier tax.
+  const timeOfDay = currentTimeOfDay(state)
+  const mods = TIME_MODS[timeOfDay]
+  const hpCost = Math.max(1, Math.round(TRAIN_HP_COST * mods.trainHpCost))
+  const oscillationRange = Math.max(0, Math.round(2 * mods.trainRisk))
+  if (state.player.hp <= hpCost + 1) return err('INSUFFICIENT_HP')
   const events: GameEvent[] = []
-  state = spendDay(state, events)
-  const [hpLossVariance, rngAfter] = nextInt(state.rng, 0, 2)
-  const gain = trainProgressGain(state)
-  const hp = state.player.hp - TRAIN_HP_COST - hpLossVariance
+  state = spendSlots(state, events)
+  const [hpLossVariance, rngAfter] = nextInt(state.rng, 0, oscillationRange)
+  const gain = trainProgressGain(state, timeOfDay)
+  const hp = state.player.hp - hpCost - hpLossVariance
   const qi = state.player.qi - TRAIN_QI_COST
   const progress = applyProgress(state, gain)
   // P1-Narrative #8: the trainer narrates with scene-aware flavor — the
@@ -555,10 +584,14 @@ function doAllocateAttribute(state: GameState, attribute: AttributeName): R {
 }
 
 function doGather(state: GameState): R {
-  if (state.player.locationId !== 'herb_field') return err('NOT_AT_LOCATION')
+  if (state.player.locationId !== 'herb_field') return err('NOT_AT_LOCATION', 'herb_field')
   const events: GameEvent[] = []
-  state = spendDay(state, events)
-  const [qty, nextRng] = nextInt(state.rng, 1, 2)
+  // Morning dew (Sáng) and the night's glow (Tối) fatten the harvest; high
+  // noon thins it — a real schedule for the gatherer's day.
+  const yieldMod = TIME_MODS[currentTimeOfDay(state)].gatherYield
+  state = spendSlots(state, events)
+  const [baseYield, nextRng] = nextInt(state.rng, 1, 2)
+  const qty = Math.max(1, Math.round(baseYield * yieldMod))
   // Phase 3 (design review 2026-08): aggressive footwork has two faces — the
   // same techniques that hit harder drain qi while gathering. Clamped at 0 so
   // gathering never kills; the drain is a pace tax, not a death sentence.
@@ -580,12 +613,12 @@ function doGather(state: GameState): R {
 function doRefine(state: GameState, recipeId: string): R {
   const recipe = getRecipe(recipeId)
   if (recipe === undefined) return err('ITEM_UNAVAILABLE')
-  if (state.player.locationId !== recipe.locationId) return err('NOT_AT_LOCATION')
+  if (state.player.locationId !== recipe.locationId) return err('NOT_AT_LOCATION', recipe.locationId)
   if (Object.entries(recipe.ingredients).some(([itemId, qty]) => countOf(state.inventory, itemId) < qty)) {
     return err('NO_ITEM')
   }
   const events: GameEvent[] = []
-  state = spendDay(state, events)
+  state = spendSlots(state, events, 2)
 
   let inventory = { ...state.inventory }
   for (const [itemId, qty] of Object.entries(recipe.ingredients)) inventory = bump(inventory, itemId, -qty)
@@ -598,12 +631,14 @@ function doRefine(state: GameState, recipeId: string): R {
 }
 
 function doBuy(state: GameState, itemId: string, qty: number): R {
-  if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION')
+  if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION', LOCATION_MARKET)
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   const def = getItem(itemId)
   const price = def?.buyPrice ?? null
   if (price === null || state.player.stage < (def?.requiredStage ?? 0)) return err('ITEM_UNAVAILABLE')
-  const totalCost = Math.max(0, price - charmPriceDiscount(state.player.attrs.charm)) * qty
+  // Chiều is the chợ's lively hour: goods loosen and prices dip (Sáng is quiet).
+  const priceMod = TIME_MODS[currentTimeOfDay(state)].shopPrice
+  const totalCost = Math.max(0, Math.round((price - charmPriceDiscount(state.player.attrs.charm)) * qty * priceMod))
   // Silver fallback (T02 economy): gold is spent first; any shortfall is
   // covered from silver at the authored 10-per-gold rate.
   let goldSpent = 0
@@ -617,7 +652,7 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
     silverSpent = shortfallSilver
   }
   const events: GameEvent[] = []
-  state = spendDay(state, events)
+  state = spendSlots(state, events)
   const s: GameState = {
     ...state,
     player: {
@@ -645,7 +680,7 @@ function systemIsActive(state: GameState): boolean {
  * Authored rates: 1 spirit stone = 10 gold = 100 silver.
  */
 function doConvertCurrency(state: GameState, from: 'spiritStone' | 'silver', qty: number): R {
-  if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION')
+  if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION', LOCATION_MARKET)
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   if (from === 'spiritStone') {
     const have = state.player.spiritStones ?? 0
@@ -674,7 +709,7 @@ function doConvertCurrency(state: GameState, from: 'spiritStone' | 'silver', qty
 }
 
 function doSell(state: GameState, itemId: string, qty: number): R {
-  if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION')
+  if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION', LOCATION_MARKET)
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   if (isEquippedItem(state, itemId)) return err('ITEM_UNAVAILABLE')
   const def = getItem(itemId)
@@ -687,7 +722,7 @@ function doSell(state: GameState, itemId: string, qty: number): R {
   const baoFavour = state.flags['story_bao_paid'] === true ? 2 : 0
   const totalGain = Math.max(0, price * qty - Math.max(0, sellPenalty - baoFavour))
   const events: GameEvent[] = []
-  state = spendDay(state, events)
+  state = spendSlots(state, events)
   const s: GameState = {
     ...state,
     player: { ...state.player, gold: state.player.gold + totalGain },
@@ -714,7 +749,7 @@ function doUseItem(state: GameState, itemId: string, qty: number): R {
   // Out of combat, consuming an item is a day's outing; mid-fight it is just
   // a turn of the encounter loop (the trip's day was paid at start_encounter).
   const events: GameEvent[] = []
-  if (state.encounter === null) state = spendDay(state, events)
+  if (state.encounter === null) state = spendSlots(state, events)
   const s: GameState = {
     ...state,
     player: {
@@ -806,10 +841,16 @@ function doEquipItem(state: GameState, itemId: string): R {
 
 function doStartEncounter(state: GameState): R {
   if (state.encounter !== null) return err('ITEM_UNAVAILABLE')
-  const enemy = enemyAt(state.player.locationId)
-  if (enemy === undefined || state.flags[FLAG_DEFEATED(enemy.id)] === true) return err('NOT_AT_LOCATION')
+  const undefeated = (list: EnemyDef[]) =>
+    list.filter((enemy) => state.flags[FLAG_DEFEATED(enemy.id)] !== true)
+  // ponytail: stage gate is a preference, not a hard wall — core path must always have a
+  // fightable enemy; upgrade when content guarantees stage-appropriate coverage per region.
+  let pool = undefeated(eligibleEnemiesAt(state.player.locationId, state.player.stage))
+  if (pool.length === 0) pool = undefeated(enemiesAtLocation(state.player.locationId))
+  const enemy = pool[0]
+  if (enemy === undefined) return err('NOT_AT_LOCATION')
   const events: GameEvent[] = []
-  state = spendDay(state, events)
+  state = spendSlots(state, events)
   return {
     ok: true,
     state: {
@@ -937,7 +978,8 @@ function doCombatRetreat(state: GameState): R {
   if (enemy === undefined) return err('ITEM_UNAVAILABLE')
   // P0-5: retreating twice from the same enemy in one outing doubles both
   // costs — the first retreat is the panic button, the second is the cost
-  // of forcing the encounter to re-open. spendDay resets the repeat flag.
+  // of forcing the encounter to re-open. The next day rollover (any
+  // day-advancing action) resets the repeat flag.
   const repeat = state.flags[FLAG_RETREATED(enemy.id)] === true
   const multiplier = repeat ? 2 : 1
   const hpCost = Math.min(RETREAT_HP_COST * multiplier, Math.max(0, state.player.hp - 1))
@@ -1071,7 +1113,7 @@ function techniqueSellPenalty(state: GameState): number {
 }
 
 function doStore(state: GameState, itemId: string, qty: number): R {
-  if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION')
+  if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION', LOCATION_SECT)
   // P1-2: day 22+ the sect warehouse closes — store/withdraw are refused.
   if (state.flags['storage_locked'] === true) return err('STORAGE_LOCKED')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
@@ -1079,7 +1121,7 @@ function doStore(state: GameState, itemId: string, qty: number): R {
   if (countOf(state.inventory, itemId) < qty) return err('NO_ITEM')
   if (storageUnitsUsed(state) + qty > STORAGE_CAPACITY) return err('STORAGE_FULL')
   const events: GameEvent[] = []
-  state = spendDay(state, events)
+  state = spendSlots(state, events)
   const s: GameState = {
     ...state,
     inventory: bump(state.inventory, itemId, -qty),
@@ -1089,13 +1131,13 @@ function doStore(state: GameState, itemId: string, qty: number): R {
 }
 
 function doWithdraw(state: GameState, itemId: string, qty: number): R {
-  if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION')
+  if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION', LOCATION_SECT)
   // P1-2: day 22+ the sect warehouse closes — store/withdraw are refused.
   if (state.flags['storage_locked'] === true) return err('STORAGE_LOCKED')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   if (countOf(state.storage, itemId) < qty) return err('STORAGE_EMPTY')
   const events: GameEvent[] = []
-  state = spendDay(state, events)
+  state = spendSlots(state, events)
   const s: GameState = {
     ...state,
     storage: bump(state.storage, itemId, -qty),
@@ -1106,9 +1148,9 @@ function doWithdraw(state: GameState, itemId: string, qty: number): R {
 
 function doDraw(state: GameState): R {
   const check = checkLottery(state, LOCATION_MARKET)
-  if (!check.ok) return err(check.code)
+  if (!check.ok) return err(check.code, check.at)
   const events: GameEvent[] = []
-  state = spendDay(state, events)
+  state = spendSlots(state, events)
   const outcome = rollLottery(state.rng)
   let s: GameState = {
     ...state,
@@ -1193,7 +1235,7 @@ function doResolveRouteEvent(state: GameState, approach: 'present' | 'withhold')
   const choice = encounter?.choices.find((entry) => entry.approach === approach)
   if (encounter === undefined || choice === undefined) return err('STORY_CHOICE_UNAVAILABLE')
   const events: GameEvent[] = []
-  state = spendDay(state, events)
+  state = spendSlots(state, events, 4)
   const delta = choice.playerDelta
   const progressDelta = delta.progress ?? 0
   const qiDelta = delta.qi ?? 0
@@ -1240,7 +1282,7 @@ function doStoryChoice(state: GameState, choiceId: string): R {
     return err('STORY_CHOICE_UNAVAILABLE')
   }
   const events: GameEvent[] = []
-  state = spendDay(state, events)
+  state = spendSlots(state, events, 4)
   let s = applyStoryEffects(state, choice)
   const chosen = choice.effects?.systemId
   if (typeof chosen === 'string') {
@@ -1284,7 +1326,7 @@ function doAdvanceRomance(state: GameState, npcId: string, choiceId: string): R 
 function doAcceptQuest(state: GameState, questId: string): R {
   if (getQuest(questId) === undefined) return err('QUEST_UNKNOWN')
   const check = canAcceptQuest(state, questId)
-  if (!check.ok) return err(check.code)
+  if (!check.ok) return err(check.code, check.at)
   const def = getQuest(questId)!
   // World quest: record the start day so we can expire after deadlineDays.
   const flags = { ...state.flags }
@@ -1317,7 +1359,7 @@ function doCompleteQuest(state: GameState, questId: string): R {
   const def = getQuest(questId)
   if (def === undefined) return err('QUEST_UNKNOWN')
   const check = canCompleteQuest(state, questId)
-  if (!check.ok) return err(check.code)
+  if (!check.ok) return err(check.code, check.at)
   // For multi-step quests, consume the items required by the FINAL step
   // (the turn-in step) before rewarding.
   let inventory = { ...state.inventory }

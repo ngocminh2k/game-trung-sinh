@@ -34,6 +34,7 @@ export interface LotteryCheckOk {
 export interface LotteryCheckErr {
   ok: false
   code: 'LOTTERY_ALREADY_DRAWN' | 'LOTTERY_NEED_GOLD' | 'NOT_AT_LOCATION'
+  at?: string | undefined
 }
 
 export function checkLottery(state: {
@@ -41,7 +42,7 @@ export function checkLottery(state: {
   lastLotteryDay: number | null
   player: { gold: number; locationId: string }
 }, atLocationId: string): LotteryCheckOk | LotteryCheckErr {
-  if (state.player.locationId !== atLocationId) return { ok: false, code: 'NOT_AT_LOCATION' }
+  if (state.player.locationId !== atLocationId) return { ok: false, code: 'NOT_AT_LOCATION', at: atLocationId }
   if (state.lastLotteryDay === state.day) return { ok: false, code: 'LOTTERY_ALREADY_DRAWN' }
   if (state.player.gold < LOTTERY_COST) return { ok: false, code: 'LOTTERY_NEED_GOLD' }
   return { ok: true }

@@ -1156,6 +1156,10 @@ export function enemyAt(locationId: string): EnemyDef | undefined {
   return ENEMIES.find((enemy) => enemy.locationId === locationId)
 }
 
+export function enemiesAtLocation(locationId: string): EnemyDef[] {
+  return ENEMIES.filter((enemy) => enemy.locationId === locationId)
+}
+
 // W6 combat depth: a location may hold several enemies. Only ones the player's
 // stage can survive may spawn (requiredStage filter). The reducer picks a
 // deterministic index from this pool; the UI reads the same pool. Boss

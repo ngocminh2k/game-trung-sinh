@@ -3,15 +3,17 @@ import { applyAction, newGame } from '../src/engine'
 import type { GameState } from '../src/engine'
 import { navTo } from './test-utils'
 
-function walkIntoRift(state: GameState): GameState {
-  state = navTo(state, 'cursed_rift')
+function exposeToDangerNode(state: GameState): GameState {
+  state = navTo(state, 'spirit_beast_ridge')
   let guard = 0
-  while (state.player.alive && guard < 20) {
-    const out = applyAction(state, { kind: 'move', direction: 'west' })
+  // 2026-09 clock: the once-per-day throttle only protects repeated REGION
+  // border crossings. Authored DANGER NODES stay hazardous on every visit, so
+  // stepping onto the claw-stone and back is a deterministic death vector.
+  while (state.player.alive && guard < 30) {
+    const out = applyAction(state, { kind: 'move', direction: 'north' })
     state = out.state
     if (!state.player.alive) break
-    const back = applyAction(state, { kind: 'move', direction: 'east' })
-    state = back.state
+    state = applyAction(state, { kind: 'move', direction: 'south' }).state
     guard += 1
   }
   return state
@@ -22,7 +24,7 @@ describe('one-life terminal condition', () => {
     let state = newGame('terminal-death')
     state = navTo(state, 'market')
     expect(state.player.alive).toBe(true)
-    state = walkIntoRift(state)
+    state = exposeToDangerNode(state)
     expect(state.player.alive).toBe(false)
     expect(state.player.hp).toBe(0)
     expect(state.terminal).toBe(true)
@@ -31,7 +33,7 @@ describe('one-life terminal condition', () => {
 
   it('every action after death returns TERMINAL and leaves state untouched', () => {
     let state = newGame('terminal-lock')
-    state = walkIntoRift(state)
+    state = exposeToDangerNode(state)
     expect(state.terminal).toBe(true)
     const snapshot = JSON.stringify(state)
     for (const action of [
@@ -51,7 +53,7 @@ describe('one-life terminal condition', () => {
 
   it('restart from death begins a fresh life', () => {
     let state = newGame('terminal-restart')
-    state = walkIntoRift(state)
+    state = exposeToDangerNode(state)
     expect(state.terminal).toBe(true)
     const result = applyAction(state, { kind: 'restart', seed: 'fresh-life' })
     expect(result.events.some((e) => e.type === 'GAME_STARTED')).toBe(true)

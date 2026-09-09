@@ -60,7 +60,7 @@ export const VI = {
       dist: '{{name}} · {{kind}} · {{direction}} {{n}} ô',
     },
     legend: { player: 'Ngươi', people: 'Người — nói chuyện, nhận việc', event: 'Sự kiện — tương tác, vận mệnh', exit: 'Lối ra — sang vùng khác', danger: 'Hiểm họa — giao chiến, mất máu', fog: 'Vùng mờ — chưa khám phá', hint: 'Đi đến chấm sáng để gặp người, gặp sự kiện, hoặc qua cổng. Nước và núi chặn lối. Chấm đỏ là hiểm họa — hãy nghỉ (Rest) hồi máu trước khi vào.' },
-    iconPlaceholder: { exit: '关' },
+    iconPlaceholder: { exit: '關' },
     ui: { landmark: 'Bản đồ khu vực', loading: 'Đang tải bản đồ...', error: 'Không tải được bản đồ — dùng phím di chuyển.', placeholder: 'Không có minh họa cho mục tiêu này.' },
   },
   actions: {

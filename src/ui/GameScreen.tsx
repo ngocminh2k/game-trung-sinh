@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { ProtoShell } from './ProtoShell'
 import {
   CHAPTERS,
   ENEMIES,
@@ -15,8 +16,25 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, nextStageThreshold, queueDrain, RETREAT_HP_COST, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
-import type { Action, Direction, GameState, Locale } from '../engine'
+import { BASIC_STRIKE_QI_COST,
+  activeSystem,
+  canCompleteQuest,
+  currentStoryScene,
+  dangerWarning,
+  findStoryChoice,
+  formatSystemMessage,
+  nextStageThreshold,
+  queueDrain,
+  RETREAT_HP_COST,
+  storyRouteEncounter,
+  storyRouteProof,
+  storyRouteTarget,
+  systemQuestsFor,
+  techniqueQiCost,
+  TIME_OF_DAY_EN,
+  TIME_OF_DAY_VI,
+} from '../engine'
+import type { Action, GameState, Locale } from '../engine'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
 import { locationBackdropFor, locationIconFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
@@ -152,20 +170,10 @@ function systemNotificationText(entry: { id: string; vars: Record<string, string
 function mapNodeGlyph(kind: 'npc' | 'event' | 'exit' | 'danger'): string {
   switch (kind) {
     case 'npc': return '人'
-    case 'event': return '缘'
+    case 'event': return '變'
     case 'danger': return '凶'
-    case 'exit': return '关'
+    case 'exit': return '關'
   }
-}
-
-/** Compass direction key from the player to a cell, for tooltip/i18n. */
-function cellDirection(px: number, py: number, x: number, y: number): 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | 'here' {
-  if (x === px && y === py) return 'here'
-  const dy = y - py
-  const dx = x - px
-  const ns = dy < 0 ? 'n' : dy > 0 ? 's' : ''
-  const ew = dx > 0 ? 'e' : dx < 0 ? 'w' : ''
-  return `${ns}${ew}` as 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | 'here'
 }
 
 export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, chronicleKinds, onAction, onLocaleChange, onRestart = () => {}, storyOpen = false, onStoryClose = () => {} }: GameScreenProps) {
@@ -295,30 +303,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     const handleJournalShortcut = (event: globalThis.KeyboardEvent) => {
       const target = event.target
       const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement
-      // P0-2: arrow keys / WASD dispatch a move at the window level. The
-      // typing guard short-circuits the free-text input; a focused map cell
-      // handles its own arrow keys to rove focus without dispatching.
-      const focusOnMapCell = target instanceof HTMLElement && target.classList?.contains('map-cell')
-      if (
-        !isTyping &&
-        !focusOnMapCell &&
-        game.encounter === null &&
-        !journalOpen &&
-        !storyOpen
-      ) {
-        const key = event.key.toLowerCase()
-        const directionByKey: Record<string, Direction | undefined> = {
-          arrowup: 'north', arrowdown: 'south', arrowleft: 'west', arrowright: 'east',
-          w: 'north', s: 'south', a: 'west', d: 'east',
-        }
-        const dir = directionByKey[key]
-        if (dir !== undefined) {
-          event.preventDefault()
-          onAction({ kind: 'move', direction: dir })
-          return
-        }
-      }
-
+      // Movement is pin-click only now — WASD/arrow travel was removed by request
+      // (2026-09-08): travelTo replays whole paths against per-action engine
+      // gates and silently stopped mid-route; clicking a reachable pin is exact.
       if (event.key === 'Escape' && journalOpen) {
         event.preventDefault()
         setJournalOpen(false)
@@ -334,19 +321,19 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 
     window.addEventListener('keydown', handleJournalShortcut)
     return () => window.removeEventListener('keydown', handleJournalShortcut)
-  }, [journalOpen, routeEncounter, storyOpen, game.encounter, onAction])
+  }, [journalOpen, routeEncounter, onAction])
 
-  // P0-2: arrow keys on a focused map cell move focus to the neighbour
-  // without dispatching a move action. This is the roving-focus half of the
-  // contract; the window-level listener above handles the dispatch path.
-  function handleCellKeyDown(event: React.KeyboardEvent<HTMLDivElement>, x: number, y: number) {
+  // P0-2 (R11): arrow keys on a focused map pin move focus to the adjacent
+  // pin without dispatching a move action. The grid cell selector is gone
+  // with the grid; pins use data-pin-id keyed on the cell coordinate.
+  function handleCellKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, x: number, y: number) {
     const dx = (event.key === 'ArrowRight') ? 1 : (event.key === 'ArrowLeft') ? -1 : 0
     const dy = (event.key === 'ArrowDown') ? 1 : (event.key === 'ArrowUp') ? -1 : 0
     if (dx === 0 && dy === 0) return
     event.preventDefault()
     event.stopPropagation()
-    const next = document.querySelector<HTMLDivElement>(
-      `.map-cell[data-cell-x="${String(x + dx)}"][data-cell-y="${String(y + dy)}"]`,
+    const next = document.querySelector<HTMLButtonElement>(
+      `.map-pin[data-pin-id="${String(x)},${String(y)}"]`,
     )
     next?.focus()
   }
@@ -554,6 +541,17 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           {word(locale, `Phân bố ${String(game.player.pendingAttributePoints)} điểm trước khi tiếp tục`, `Allocate ${String(game.player.pendingAttributePoints)} points before continuing`)}
         </div>
       )}
+      <div className="proto-shell-wrap">
+        <ProtoShell
+          game={game}
+          locale={locale}
+          chronicle={chronicle}
+          onAction={onAction}
+          onLocaleChange={onLocaleChange}
+          journalOpen={journalOpen}
+          onJournalToggle={() => setJournalOpen((j) => !j)}
+        />
+      </div>
       <header className="topbar" ref={backgroundRegion}>
         <div className="brand">
           <span className="brand-seal" aria-hidden="true">{HAN_SEALS.mystery}</span>
@@ -563,7 +561,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </div>
         </div>
         <div className="topbar-actions">
-          <span className="day-chip">{word(locale, 'Ngày', 'Day')} {game.day}</span>
+          <span className="day-chip">{word(locale, 'Ngày', 'Day')} {game.day} · {(locale === 'vi' ? TIME_OF_DAY_VI : TIME_OF_DAY_EN)[game.timeOfDay ?? 'sang']}</span>
           {dayStamp !== null && <span className="day-stamp" data-testid="day-stamp" role="status">{word(locale, 'Ngày', 'Day')} {dayStamp}</span>}
           {deadlineRemaining !== null && (
             <span className="day-chip deadline-chip" data-testid="night-deadline-chip">
@@ -582,7 +580,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             ref={journalLauncher}
             type="button"
           >
-            <span>{word(locale, 'Hành trang', 'Journal')}</span>
+            <span>{word(locale, 'Sổ tay', 'Journal')}</span>
             <em>{entries.reduce((sum, [, qty]) => sum + qty, 0)}</em>
             <kbd aria-hidden="true">I</kbd>
           </button>}
@@ -661,60 +659,64 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <InkCorner corner="top-left" />
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">{word(locale, 'WASD / phím mũi tên', 'WASD / arrow keys')}</p>
+              <p className="eyebrow">{word(locale, 'Bấm ghim trên bản đồ để đi', 'Click map pins to travel')}</p>
               <h2 id="map-title">{word(locale, 'Bản đồ khu vực', 'Local area map')}</h2>
             </div>
             <span className="location-label" data-testid="location-label">{location === undefined ? game.player.locationId : localized(locale, location)}</span>
           </div>
           <div
-            className="world-map illustrated-map regional-map"
+            className="world-map world-map-frame illustrated-map"
             id="world-map"
             aria-label={word(locale, 'Bản đồ khu vực có lối ra và điểm sự kiện', 'Local area map with exits and event nodes')}
-            style={{ '--map-columns': MAP_WIDTH, '--map-rows': MAP_HEIGHT } as CSSProperties}
           >
             <img alt="" aria-hidden="true" className="world-map-art" src={sceneBackdrop} />
-            <div className="map-current-overlay" data-testid="map-current-cell">
+            <div className="world-map-pins">
+              {(regionMap?.cells ?? []).map((cell) => {
+                const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
+                const nodeLabel = cell.node === undefined ? undefined : word(locale, cell.node.nameVi, cell.node.nameEn)
+                const nodeKindLabel = cell.node === undefined ? undefined : t(locale, `map.tooltip.${cell.node.kind}`)
+                const cellLabel = cell.node === undefined
+                  ? `${word(locale, 'Ô bản đồ', 'Map cell')} (${String(cell.x)},${String(cell.y)})`
+                  : `${nodeKindLabel ?? ''}: ${nodeLabel ?? ''}`
+                const leftPct = ((cell.x + 0.5) / MAP_WIDTH) * 100
+                const topPct = ((cell.y + 0.5) / MAP_HEIGHT) * 100
+                const exitIcon = cell.node?.kind === 'exit' && cell.exitTo !== undefined ? locationIconFor(cell.exitTo) : undefined
+                return (
+                  <button
+                    aria-label={cellLabel}
+                    className={`map-pin map-pin--${cell.node?.kind ?? 'plain'} ${routeTarget?.nodeId === cell.node?.id ? 'is-route-target' : ''}`}
+                    data-pin-id={`${String(cell.x)},${String(cell.y)}`}
+                    data-testid={cell.node !== undefined
+                      ? (routeTarget?.nodeId === cell.node.id ? 'route-event-node' : `event-node-${cell.node.id}`)
+                      : `map-pin-${String(cell.x)}-${String(cell.y)}`}
+                    data-visited={isPlayer ? 'true' : undefined}
+                    key={`${String(cell.x)}-${String(cell.y)}`}
+                    onKeyDown={(event) => handleCellKeyDown(event, cell.x, cell.y)}
+                    style={{ left: `${leftPct}%`, top: `${topPct}%` }}
+                    title={cell.node === undefined ? '' : word(locale, `${cell.node.kind === 'exit' ? 'Lối ra' : cell.node.kind === 'npc' ? 'Người' : cell.node.kind === 'danger' ? 'Hiểm họa' : 'Sự kiện'}: ${cell.node.nameVi}`, `${cell.node.kind === 'exit' ? 'Exit' : cell.node.kind === 'npc' ? 'NPC' : cell.node.kind === 'danger' ? 'Danger' : 'Event'}: ${cell.node.nameEn}`)}
+                    type="button"
+                  >
+                    <span className="map-pin-glyph" aria-hidden="true">{cell.node === undefined ? '' : mapNodeGlyph(cell.node.kind)}</span>
+                    {cell.node?.kind === 'exit' && exitIcon !== undefined && <img alt="" aria-hidden="true" className="map-exit-icon" src={exitIcon} onError={(event) => { const img = event.currentTarget; img.style.display = 'none'; img.src = ''; }} />}
+                  </button>
+                )
+              })}
+              {regionMap != null && (
+                <span
+                  aria-hidden="true"
+                  className={`player-pin action-${actionKind ?? 'idle'}`}
+                  data-testid="player-marker"
+                  style={{ left: `${((game.player.posX + 0.5) / MAP_WIDTH) * 100}%`, top: `${((game.player.posY + 0.5) / MAP_HEIGHT) * 100}%` }}
+                />
+              )}
+            </div>
+            <div className="world-map-overlay" data-testid="map-current-cell">
               <span>{word(locale, 'Ngươi đang ở đây', 'You are here')}</span>
               <strong>{currentCellLabel}</strong>
               <small>{word(locale, `Ô ${game.player.posX + 1} · ${game.player.posY + 1}`, `Cell ${game.player.posX + 1} · ${game.player.posY + 1}`)}</small>
             </div>
-            <div className="map-compass" role="img" aria-label={word(locale, 'La bàn: Bắc ở phía trên', 'Compass: north is up')}>
-              <span>N</span><i aria-hidden="true" />
-            </div>
-            <div className="map-grid-overlay" aria-hidden="true">
-              {(regionMap?.cells ?? []).map((cell) => {
-                const isPlayer = cell.x === game.player.posX && cell.y === game.player.posY
-                const exitIcon = cell.node?.kind === 'exit' && cell.exitTo !== undefined ? locationIconFor(cell.exitTo) : undefined
-                const nodeLabel = cell.node === undefined ? undefined : word(locale, cell.node.nameVi, cell.node.nameEn)
-                const nodeKindLabel = cell.node === undefined ? undefined : t(locale, `map.tooltip.${cell.node.kind}`)
-                // P0-2: every cell carries a localized label so screen readers
-                // can announce it during roving focus.
-                const cellLabel = cell.node === undefined
-                  ? `${word(locale, 'Ô bản đồ', 'Map cell')} (${String(cell.x)},${String(cell.y)})`
-                  : `${nodeKindLabel ?? ''}: ${nodeLabel ?? ''}`
-                const nodeDir = cell.node === undefined
-                  ? undefined as string | undefined
-                  : (isPlayer ? t(locale, 'map.direction.here') : t(locale, `map.direction.${cellDirection(game.player.posX, game.player.posY, cell.x, cell.y)}`))
-                const nodeDist = cell.node === undefined
-                  ? null
-                  : Math.abs(cell.x - game.player.posX) + Math.abs(cell.y - game.player.posY)
-                return (
-                  <div aria-label={cellLabel} className={`map-cell terrain-${cell.terrain}`} data-cell-x={cell.x} data-cell-y={cell.y} data-visited={isPlayer ? 'true' : undefined} key={`${cell.x}-${cell.y}`} onKeyDown={(event) => handleCellKeyDown(event, cell.x, cell.y)} role="gridcell" tabIndex={0}>
-                    {cell.node !== undefined && <span className={`map-icon-slot map-node node-${cell.node.kind} ${routeTarget?.nodeId === cell.node.id ? 'is-route-target' : ''}`} data-testid={routeTarget?.nodeId === cell.node.id ? 'route-event-node' : `event-node-${cell.node.id}`} title={word(locale, `${cell.node.kind === 'exit' ? 'Lối ra' : cell.node.kind === 'npc' ? 'Người' : cell.node.kind === 'danger' ? 'Hiểm họa' : 'Sự kiện'}: ${cell.node.nameVi}`, `${cell.node.kind === 'exit' ? 'Exit' : cell.node.kind === 'npc' ? 'NPC' : cell.node.kind === 'danger' ? 'Danger' : 'Event'}: ${cell.node.nameEn}`)} tabIndex={0}
-                      ><span className="map-icon-placeholder" aria-hidden="true">{mapNodeGlyph(cell.node.kind)}</span>{cell.node.kind === 'exit' && exitIcon !== undefined && <img alt="" aria-hidden="true" className="map-exit-icon" src={exitIcon} loading="lazy" decoding="async" onError={(event) => { const img = event.currentTarget; img.style.display = 'none'; img.src = ''; }} />}</span>}
-                    {cell.node !== undefined && (
-                      <span className="map-node-tooltip" data-testid="map-node-tooltip" role="tooltip">
-                        {t(locale, 'map.tooltip.dist', { name: nodeLabel ?? '', kind: nodeKindLabel ?? '', direction: nodeDir ?? '', n: String(nodeDist) })}
-                      </span>
-                    )}
-                    {routeTarget?.nodeId === cell.node?.id && <span aria-hidden="true" className="route-node-seal">{word(locale, 'Dấu vết', 'Lead')}</span>}
-                    {cell.node !== undefined && <span className="map-node-label">{nodeLabel}</span>}
-                    {isPlayer && <span className={`player-map-marker action-${actionKind ?? 'idle'}`} data-testid="player-map-marker" key={`player-${actionNonce}`} title={word(locale, 'Nhân vật của bạn', 'Your character')}>
-                      {actionKind === 'move' && <i className="player-map-arrow" aria-hidden="true" data-direction="move" />}
-                    </span>}
-                  </div>
-                )
-              })}
+            <div className="world-map-compass" role="img" aria-label={word(locale, 'La bàn: Bắc ở phía trên', 'Compass: north is up')}>
+              <span className="compass-n">N</span><i aria-hidden="true" /><span /><span />
             </div>
             <ul className="map-node-summary" aria-label={word(locale, 'Các điểm trên bản đồ', 'Points on the map')}>
               {(regionMap?.cells ?? []).flatMap((cell) => cell.node === undefined ? [] : [
@@ -754,6 +756,80 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             )}
           </aside>
         </section>
+
+
+
+        <aside className="hud-panel" ref={backgroundRegion}>
+          {system !== null && game.flags.system_refused !== true && <section className="system-panel ink-card" aria-labelledby="system-panel-title" data-testid="system-panel">
+            <div className="panel-heading compact"><h2 id="system-panel-title">{locale === 'vi' ? system.headerVi : system.headerEn}</h2><span>{t(locale, 'system.poolHeader')}</span></div>
+            {systemFeed.length > 0 && <ul className="system-feed" data-testid="system-feed">
+              {systemFeed.map((entry, index) => <li key={`${entry.id}-${index}`}>{systemNotificationText(entry, locale)}</li>)}
+            </ul>}
+            <p className="system-personality">{locale === 'vi' ? system.personalityVi : system.personalityEn}</p>
+            <ul className="system-quest-list">
+              {systemQuests.map((quest) => {
+                const status = game.quests[quest.id]?.status ?? 'available'
+                const turnInReady = status === 'active' && canCompleteQuest(game, quest.id).ok
+                return <li key={quest.id}>
+                  <div><strong>{localized(locale, quest)}</strong><small>{t(locale, 'system.difficulty')} {quest.difficulty}</small></div>
+                  {status === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'system_accept_quest', questId: quest.id })} type="button">{t(locale, 'system.acceptQuest')}</button>}
+                  {status === 'active' && <button disabled={game.terminal || encounterLocked || !turnInReady} onClick={() => onAction({ kind: 'system_turn_in_quest', questId: quest.id })} type="button">{t(locale, 'system.turnIn')}</button>}
+                  {status === 'completed' && <em>{t(locale, 'system.locked')}</em>}
+                </li>
+              })}
+            </ul>
+            <form className="system-chat" onSubmit={submitSystemMessage}>
+              <label htmlFor="system-chat">{locale === 'vi' ? system.nameVi : system.nameEn}</label>
+              <div><input disabled={game.terminal || systemReplying} id="system-chat" maxLength={300} onChange={(event) => setSystemMessage(event.target.value)} placeholder={t(locale, 'system.chatPlaceholder')} value={systemMessage} /><button disabled={game.terminal || systemReplying || systemMessage.trim().length === 0} type="submit">{word(locale, 'Hỏi', 'Talk')}</button></div>
+              {systemReply !== null ? <p role="status">{locale === 'vi' ? systemReply.textVi : systemReply.textEn}{systemReply.questId !== undefined && (game.quests[systemReply.questId]?.status ?? 'available') === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => { onAction({ kind: 'system_accept_quest', questId: systemReply.questId! }); setSystemReply(null) }} type="button">{t(locale, 'system.acceptQuest')}</button>}</p> : <small>{t(locale, 'system.chatFallback')}</small>}
+            </form>
+          </section>}
+          <section className="stats-card ink-card" aria-labelledby="stats-title">
+            <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2>
+              <StageProgress locale={locale} realmLevel={game.player.realmLevel} stage={game.player.stage} progress={game.player.progress} />
+            </div>
+            <RealmLadder locale={locale} stage={game.player.stage} />
+            <figure className={`protagonist-portrait player-action-art pose-${playerPose}`} data-pose={playerPose} data-testid="player-action-art">
+              <img
+                alt={word(locale, `Tư thế nhân vật: ${playerPose}`, `Player action pose: ${playerPose}`)}
+                key={`player-pose-${playerPose}-${actionNonce}`}
+                src={playerArtFor(playerPose)}
+              />
+            </figure>
+            <Meter label="HP" value={game.player.hp} max={100} tone="red" delta={statDeltas.nonce === 0 ? 0 : statDeltas.hp} deltaTestid="hp-delta" />
+            <Meter label="Qi" value={game.player.qi} max={60} tone="jade" delta={statDeltas.nonce === 0 ? 0 : statDeltas.qi} deltaTestid="qi-delta" />
+            <Meter className="meter-progress" label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={nextStageThreshold(game.player.stage, game.player.realmLevel) ?? Math.max(1, game.player.progress)} tone="gold" />
+            <div className="stat-strip">
+              <span data-testid="currency-gold"><span aria-hidden="true">◎</span> {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
+              <span data-testid="currency-silver"><span aria-hidden="true">◉</span> {game.player.silver ?? 0} {word(locale, 'bạc', 'silver')}</span>
+              <span data-testid="currency-spirit-stones"><span aria-hidden="true">✦</span> {game.player.spiritStones ?? 0} {word(locale, 'linh thạch', 'spirit stones')}</span>
+              <span>{word(locale, 'Độ tương hợp', 'root rate')} {Math.round(game.spiritRoot.efficiency * 100)}%</span>
+            </div>
+            <dl className="attributes">
+              <div><dt>{word(locale, 'Thân', 'Body')}</dt><dd>{game.player.attrs.body}</dd></div>
+              <div><dt>{word(locale, 'Tâm', 'Mind')}</dt><dd>{game.player.attrs.mind}</dd></div>
+              <div><dt>{word(locale, 'Mị', 'Charm')}</dt><dd>{game.player.attrs.charm}</dd></div>
+              <div><dt>{word(locale, 'Vận', 'Luck')}</dt><dd>{game.player.attrs.luck}</dd></div>
+            </dl>
+            {game.player.pendingAttributePoints > 0 && <AttributeAllocation
+              attrs={game.player.attrs}
+              headingRef={allocationHeading}
+              locale={locale}
+              points={game.player.pendingAttributePoints}
+              onAllocate={(attribute) => onAction({ kind: 'allocate_attribute', attribute })}
+            />}
+            <EquipmentSummary equipment={game.equipment} locale={locale} />
+          </section>
+
+          <section className="quick-actions ink-card" aria-label={word(locale, 'Thao tác nhanh', 'Quick actions')}>
+            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'rest' })} type="button">{word(locale, 'Nghỉ', 'Rest')}</button>
+            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'train' })} type="button">{word(locale, 'Tu luyện', 'Cultivate')}</button>
+            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'gather' })} type="button">{word(locale, 'Hái thảo', 'Gather')}</button>
+            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">{word(locale, 'Quay', 'Draw')}</button>
+          </section>
+        </aside>
+      </div>
+      </div>
 
         {storyOpen && <section aria-labelledby="story-title" aria-modal="true" className="story-panel parchment-panel" data-testid="narration-panel" onKeyDown={trapStoryFocus} role="dialog">
           <InkCorner corner="top-right" />
@@ -841,89 +917,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             </span>
           </aside>}
 
-          <ChronicleFeed
-            chronicle={chronicle}
-            chronicleEndRef={chronicleEndRef}
-            chronicleKinds={chronicleKinds}
-            chronicleNewAt={chronicleNewAt}
-            chronicleRef={chronicleRef}
-            locale={locale}
-          />
-      </section>}
-
-        <aside className="hud-panel" ref={backgroundRegion}>
-          {system !== null && game.flags.system_refused !== true && <section className="system-panel ink-card" aria-labelledby="system-panel-title" data-testid="system-panel">
-            <div className="panel-heading compact"><h2 id="system-panel-title">{locale === 'vi' ? system.headerVi : system.headerEn}</h2><span>{t(locale, 'system.poolHeader')}</span></div>
-            {systemFeed.length > 0 && <ul className="system-feed" data-testid="system-feed">
-              {systemFeed.map((entry, index) => <li key={`${entry.id}-${index}`}>{systemNotificationText(entry, locale)}</li>)}
-            </ul>}
-            <p className="system-personality">{locale === 'vi' ? system.personalityVi : system.personalityEn}</p>
-            <ul className="system-quest-list">
-              {systemQuests.map((quest) => {
-                const status = game.quests[quest.id]?.status ?? 'available'
-                const turnInReady = status === 'active' && canCompleteQuest(game, quest.id).ok
-                return <li key={quest.id}>
-                  <div><strong>{localized(locale, quest)}</strong><small>{t(locale, 'system.difficulty')} {quest.difficulty}</small></div>
-                  {status === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => onAction({ kind: 'system_accept_quest', questId: quest.id })} type="button">{t(locale, 'system.acceptQuest')}</button>}
-                  {status === 'active' && <button disabled={game.terminal || encounterLocked || !turnInReady} onClick={() => onAction({ kind: 'system_turn_in_quest', questId: quest.id })} type="button">{t(locale, 'system.turnIn')}</button>}
-                  {status === 'completed' && <em>{t(locale, 'system.locked')}</em>}
-                </li>
-              })}
-            </ul>
-            <form className="system-chat" onSubmit={submitSystemMessage}>
-              <label htmlFor="system-chat">{locale === 'vi' ? system.nameVi : system.nameEn}</label>
-              <div><input disabled={game.terminal || systemReplying} id="system-chat" maxLength={300} onChange={(event) => setSystemMessage(event.target.value)} placeholder={t(locale, 'system.chatPlaceholder')} value={systemMessage} /><button disabled={game.terminal || systemReplying || systemMessage.trim().length === 0} type="submit">{word(locale, 'Hỏi', 'Talk')}</button></div>
-              {systemReply !== null ? <p role="status">{locale === 'vi' ? systemReply.textVi : systemReply.textEn}{systemReply.questId !== undefined && (game.quests[systemReply.questId]?.status ?? 'available') === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => { onAction({ kind: 'system_accept_quest', questId: systemReply.questId! }); setSystemReply(null) }} type="button">{t(locale, 'system.acceptQuest')}</button>}</p> : <small>{t(locale, 'system.chatFallback')}</small>}
-            </form>
-          </section>}
-          <section className="stats-card ink-card" aria-labelledby="stats-title">
-            <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2>
-              <StageProgress locale={locale} realmLevel={game.player.realmLevel} stage={game.player.stage} progress={game.player.progress} />
-            </div>
-            <RealmLadder locale={locale} stage={game.player.stage} />
-            <figure className={`protagonist-portrait player-action-art pose-${playerPose}`} data-pose={playerPose} data-testid="player-action-art">
-              <img
-                alt={word(locale, `Tư thế nhân vật: ${playerPose}`, `Player action pose: ${playerPose}`)}
-                key={`player-pose-${playerPose}-${actionNonce}`}
-                src={playerArtFor(playerPose)}
-              />
-            </figure>
-            <Meter label="HP" value={game.player.hp} max={100} tone="red" delta={statDeltas.nonce === 0 ? 0 : statDeltas.hp} deltaTestid="hp-delta" />
-            <Meter label="Qi" value={game.player.qi} max={60} tone="jade" delta={statDeltas.nonce === 0 ? 0 : statDeltas.qi} deltaTestid="qi-delta" />
-            <Meter className="meter-progress" label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={nextStageThreshold(game.player.stage, game.player.realmLevel) ?? Math.max(1, game.player.progress)} tone="gold" />
-            <div className="stat-strip">
-              <span data-testid="currency-gold"><span aria-hidden="true">◎</span> {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
-              <span data-testid="currency-silver"><span aria-hidden="true">◉</span> {game.player.silver ?? 0} {word(locale, 'bạc', 'silver')}</span>
-              <span data-testid="currency-spirit-stones"><span aria-hidden="true">✦</span> {game.player.spiritStones ?? 0} {word(locale, 'linh thạch', 'spirit stones')}</span>
-              <span>{word(locale, 'Độ tương hợp', 'root rate')} {Math.round(game.spiritRoot.efficiency * 100)}%</span>
-            </div>
-            <dl className="attributes">
-              <div><dt>{word(locale, 'Thân', 'Body')}</dt><dd>{game.player.attrs.body}</dd></div>
-              <div><dt>{word(locale, 'Tâm', 'Mind')}</dt><dd>{game.player.attrs.mind}</dd></div>
-              <div><dt>{word(locale, 'Mị', 'Charm')}</dt><dd>{game.player.attrs.charm}</dd></div>
-              <div><dt>{word(locale, 'Vận', 'Luck')}</dt><dd>{game.player.attrs.luck}</dd></div>
-            </dl>
-            {game.player.pendingAttributePoints > 0 && <AttributeAllocation
-              attrs={game.player.attrs}
-              headingRef={allocationHeading}
-              locale={locale}
-              points={game.player.pendingAttributePoints}
-              onAllocate={(attribute) => onAction({ kind: 'allocate_attribute', attribute })}
-            />}
-            <EquipmentSummary equipment={game.equipment} locale={locale} />
-          </section>
-
-          <section className="quick-actions ink-card" aria-label={word(locale, 'Thao tác nhanh', 'Quick actions')}>
-            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'rest' })} type="button">{word(locale, 'Nghỉ', 'Rest')}</button>
-            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'train' })} type="button">{word(locale, 'Tu luyện', 'Cultivate')}</button>
-            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'gather' })} type="button">{word(locale, 'Hái thảo', 'Gather')}</button>
-            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">{word(locale, 'Quay', 'Draw')}</button>
-          </section>
-        </aside>
-      </div>
-      </div>
-
-      {routeEncounter !== undefined && <section className="route-encounter-screen parchment-panel" ref={backgroundRegion} aria-labelledby="route-encounter-title" data-testid="route-encounter-screen">
+      </section>}      {routeEncounter !== undefined && <section className="route-encounter-screen parchment-panel" ref={backgroundRegion} aria-labelledby="route-encounter-title" data-testid="route-encounter-screen">
         <InkCorner corner="top-left" />
         <div className="route-encounter-copy">
           <p className="eyebrow">{word(locale, 'Sự kiện tuyến truyện · tại chỗ', 'Story route encounter · on site')}</p>
@@ -947,7 +941,27 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
       </section>}
 
-      <section className="journal-screen system-dock parchment-panel" ref={backgroundRegion} aria-labelledby="system-dock-title" data-testid="journal-screen" hidden={!journalOpen || routeEncounter !== undefined} id="journal-screen">
+      {journalOpen && routeEncounter === undefined && (
+        <div
+          aria-hidden="true"
+          className="drawer-backdrop"
+          data-testid="drawer-backdrop"
+          onClick={() => {
+            setJournalOpen(false)
+            window.requestAnimationFrame(() => journalLauncher.current?.focus())
+          }}
+        />
+      )}
+      <section
+        aria-labelledby="system-dock-title"
+        aria-modal="true"
+        className="drawer-panel system-dock parchment-panel"
+        data-testid="journal-screen"
+        hidden={!journalOpen || routeEncounter !== undefined}
+        id="journal-screen"
+        ref={backgroundRegion}
+        role="dialog"
+      >
         <InkCorner corner="bottom-left" />
         <div className="journal-heading dock-heading">
           <div>
@@ -963,6 +977,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         </div>
         <DockTabBar
           activeDock={activeDock}
+          chronicleLength={chronicle.length}
           entriesCount={entries.reduce((sum, [, qty]) => sum + qty, 0)}
           game={game}
           locale={locale}
@@ -1012,6 +1027,21 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             locale={locale}
             onAction={onAction}
           />,
+          chronicle: <section aria-labelledby="chronicle-title" data-testid="chronicle-panel">
+            <div className="panel-heading compact">
+              <h2 id="chronicle-title">{word(locale, 'Biên niên', 'Chronicle')}</h2>
+              <span>{chronicle.length} {word(locale, 'bản ghi', 'entries')}</span>
+            </div>
+            <p className="dock-context">{word(locale, 'Mỗi bước đi, mỗi quyết định đều được ghi vào sổ. Kéo xuống để xem cũ hơn.', 'Each step and each decision is recorded. Scroll down to see older entries.')}</p>
+            <ChronicleFeed
+              chronicle={chronicle}
+              chronicleEndRef={chronicleEndRef}
+              chronicleKinds={chronicleKinds}
+              chronicleNewAt={chronicleNewAt}
+              chronicleRef={chronicleRef}
+              locale={locale}
+            />
+          </section>,
         }} />
             <details className="codex-drawer" data-testid="codex-drawer" onToggle={(event) => setCodexOpen(event.currentTarget.open)} open={codexOpen}>
               <summary>{word(locale, 'Mở tu điển: nhân vật, vật phẩm, thiên phú & gói minh họa', 'Open codex: NPCs, items, talents & asset packs')}</summary>
