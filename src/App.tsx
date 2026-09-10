@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, storyRouteEncounter } from './engine'
-import type { Action, GameDifficulty, GameEvent, Locale } from './engine'
+import type { Action, GameDifficulty, GameEvent, GameState, Locale } from './engine'
 import { ENDINGS } from './content'
 import { requestNarration } from './ai/narration'
 import { t } from './i18n'
@@ -141,6 +141,13 @@ function firstFreeSlot(slots: Partial<Record<SlotId, SaveSlot>>): SlotId {
   return SLOT_IDS.find((slotId) => slots[slotId] === undefined) ?? 1
 }
 
+/** True while a save still sits in the boot story (transmigration / system
+ *  choice) and the player never refused the System — resume must reopen it. */
+function opensOnBootScene(game: GameState): boolean {
+  const scene = currentStoryScene(game).id
+  return game.flags.system_refused !== true && (scene === 'scene_transmigration' || scene === 'scene_system_selection')
+}
+
 /** New Game with every slot occupied: 0 is not a real slot — it means "ask
  *  the player which save to overwrite" and routes through the slots screen. */
 const NEED_SLOT = 0 as unknown as SlotId
@@ -148,13 +155,15 @@ const NEED_SLOT = 0 as unknown as SlotId
 function App() {
   const storage = typeof window === 'undefined' ? undefined : browserStorage()
   const [settings, setSettings] = useState<PlayerSettings>(() => storage === undefined ? { ...DEFAULT_SETTINGS } : loadSettings(storage))
-  const [locale, setLocale] = useState<Locale>(settings.locale)
   const [slots, setSlots] = useState<Partial<Record<SlotId, SaveSlot>>>(() => storage === undefined ? {} : loadSaveSlots(storage))
-  const [session, setSession] = useState<GameSession | null>(null)
   const [activeSlot, setActiveSlotState] = useState<SlotId | null>(() => storage === undefined ? null : getActiveSlot(storage))
+  // Issue #17: F5 resumes the active run instead of dropping to the menu —
+  // mirrors the occupied-slot branch of selectSlot (loading beat included).
+  const [session, setSession] = useState<GameSession | null>(() => activeSlot === null ? null : slots[activeSlot]?.session ?? null)
+  const [locale, setLocale] = useState<Locale>(() => session?.locale ?? settings.locale)
   const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
-  const [storyOpen, setStoryOpen] = useState(false)
-  const [phase, setPhase] = useState<'menu' | 'slots' | 'newgame' | 'settings' | 'loading' | 'playing'>('menu')
+  const [storyOpen, setStoryOpen] = useState(() => session !== null && opensOnBootScene(session.game))
+  const [phase, setPhase] = useState<'menu' | 'slots' | 'newgame' | 'settings' | 'loading' | 'playing'>(() => session === null ? 'menu' : 'loading')
   // New Game intent: slot chosen on the slots screen, awaiting its System pick.
   const [pendingSlot, setPendingSlot] = useState<SlotId | null>(null)
   const [runDifficulty, setRunDifficulty] = useState<GameDifficulty>(settings.difficulty)
@@ -197,10 +206,7 @@ function App() {
       sessionRef.current = next
       setSession(next)
       setLocale(next.locale)
-      setStoryOpen(
-        next.game.flags.system_refused !== true
-        && (currentStoryScene(next.game).id === 'scene_transmigration' || currentStoryScene(next.game).id === 'scene_system_selection'),
-      )
+      setStoryOpen(opensOnBootScene(next.game))
       setPhase('loading')
       return
     }
@@ -325,6 +331,14 @@ function App() {
     setPhase('loading')
   }, [])
 
+  // Leaving a run clears the resume marker (F5 lands on the menu again) but
+  // keeps the slot itself — Load Game can pick the run back up.
+  const exitToMenu = useCallback(() => {
+    if (typeof window !== 'undefined') setActiveSlot(browserStorage(), null)
+    setActiveSlotState(null)
+    setPhase('menu')
+  }, [])
+
   const hasSave = Object.keys(slots).length > 0
 
   if (phase === 'menu') return <MainMenu
@@ -348,7 +362,7 @@ function App() {
   if (phase === 'loading') return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
   return <>
     {storyOpen && <div className="story-backdrop" onClick={() => setStoryOpen(false)} aria-hidden="true" />}
-    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} />
+    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} onExitToMenu={exitToMenu} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} />
   </>
 }
 

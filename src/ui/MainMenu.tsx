@@ -83,6 +83,7 @@ export function NewGameScreen({ locale, difficulty, onDifficulty, onPick, onBack
       <button className="menu-back" data-testid="newgame-back" onClick={onBack}>{t(locale, 'common.back')}</button>
       <h1 id="newgame-title">{t(locale, 'ui.newGame.title')}</h1>
       <p className="menu-tagline">{t(locale, 'ui.newGame.subtitle')}</p>
+      <p className="newgame-reveal-hint">{t(locale, 'ui.newGame.revealHint')}</p>
 
       <div className="system-grid" ref={gridRef} role="listbox" aria-label={t(locale, 'system.chooseOne')} data-testid="system-grid">
         {SYSTEMS.map((system) => {

@@ -565,6 +565,18 @@
   line-height: 1.45;
   color: #5d6358;
 }
+/* Issue #17: ten italic voices at once is a wall of jargon — reveal each
+   System's persona only when it is hovered, focused, or selected. */
+.system-tile-persona { display: none; }
+.system-tile:hover .system-tile-persona,
+.system-tile:focus-visible .system-tile-persona,
+.system-tile[data-selected='true'] .system-tile-persona { display: block; }
+.newgame-reveal-hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-style: italic;
+  color: #6a6f63;
+}
 .newgame-footer {
   display: flex;
   flex-wrap: wrap;
