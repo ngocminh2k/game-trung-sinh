@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { describeDeath } from '../content/death-legacy'
 import type { Locale } from '../engine'
 import type { EndingDef } from '../engine/content-types'
 import { t } from '../i18n'
@@ -28,13 +29,18 @@ const PETALS = [
 interface DeathScreenProps {
   locale: Locale
   ending: EndingDef
+  /** Raw cause code from the dying run (e.g. 'combat:mist_boar'). Empty when
+   *  the life closed without a recorded death (non-tragic endings). */
+  cause: string
   onRestart: () => void
   onDismiss: () => void
 }
 
 // Game-over: the ensō shatters, the soul-token cracks and fades, ashes fall.
-// Shows the authored death epitaph and offers rebirth (restart) or stepping back.
-export function DeathScreen({ locale, ending, onRestart, onDismiss }: DeathScreenProps) {
+// Shows the authored death epitaph, what killed this life and one tactical
+// lesson, plus the legacy trait the next run inherits — Positive Failure.
+export function DeathScreen({ locale, ending, cause, onRestart, onDismiss }: DeathScreenProps) {
+  const report = cause === '' ? null : describeDeath(cause, locale)
   const epitaph = locale === 'vi' ? ending.epitaphVi : ending.epitaphEn
 
   return (
@@ -71,6 +77,26 @@ export function DeathScreen({ locale, ending, onRestart, onDismiss }: DeathScree
 
         <h2 className="death-title">{t(locale, 'ui.death.title')}</h2>
         <p className="death-epitaph">{epitaph}</p>
+
+        {report !== null && (
+          <div className="death-lesson">
+            <p className="death-cause">
+              <span className="death-lesson-label">{t(locale, 'ui.death.cause')}</span>
+              {report.subject !== '' ? `${report.subject} — ` : ''}
+              {locale === 'vi' ? report.epitaphVi : report.epitaphEn}
+            </p>
+            <p className="death-hint">
+              <span className="death-lesson-label">{t(locale, 'ui.death.hint')}</span>
+              {locale === 'vi' ? report.hintVi : report.hintEn}
+            </p>
+            <p className="death-legacy">
+              <span className="death-lesson-label">{t(locale, 'ui.death.legacy')}</span>
+              {locale === 'vi' ? report.trait.nameVi : report.trait.nameEn}
+              {' — '}
+              {t(locale, 'ui.death.legacyPoints', { count: report.trait.attributePoints })}
+            </p>
+          </div>
+        )}
 
         <div className="death-actions">
           <button type="button" className="death-restart" onClick={onRestart}>

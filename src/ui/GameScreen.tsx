@@ -15,7 +15,7 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, nextStageThreshold, queueDrain, RETREAT_HP_COST, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
+import { BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, nextStageThreshold, queueDrain, readDeathCause, RETREAT_HP_COST, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
 import type { Action, Direction, GameState, Locale } from '../engine'
 import worldMapArt from '../assets/art/world-map-inkwash.webp'
 import { locationBackdropFor, locationIconFor } from './locationArt'
@@ -612,6 +612,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <DeathScreen
             locale={locale}
             ending={ending}
+            cause={readDeathCause(game) ?? ''}
             onRestart={onRestart}
             onDismiss={() => setDeathDismissed(true)}
           />

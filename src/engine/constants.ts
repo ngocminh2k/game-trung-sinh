@@ -1,3 +1,4 @@
+import { legacyPointsFor } from '../content/death-legacy'
 import type { GameDifficulty, GameState } from './types'
 
 export const GAME_STATE_VERSION = 1 as const
@@ -73,9 +74,14 @@ export interface NewGameOptions {
    *  Pre-menu new games start at 'letter_at_dawn' — the boot scenes are a
    *  one-time System contract and the menu picks the System before day 1. */
   storyScene?: string
+  /** Cause code from a fallen life, when this run is a rebirth ('combat:…',
+   *  'danger:…', 'qi_deviation'). The life inherits one attribute point of
+   *  hard-won experience — Positive Failure: death teaches, it does not erase. */
+  legacyCause?: string | null
 }
 
 export function newGame(seed: string, options: NewGameOptions = {}): GameState {
+  const pendingAttributePoints = legacyPointsFor(options.legacyCause)
   return {
     version: GAME_STATE_VERSION,
     seed,
@@ -89,7 +95,7 @@ export function newGame(seed: string, options: NewGameOptions = {}): GameState {
       stage: 0,
       realmLevel: 1,
       progress: 0,
-      pendingAttributePoints: 0,
+      pendingAttributePoints,
       posX: 3,
       posY: 3,
       locationId: LOCATION_VILLAGE,

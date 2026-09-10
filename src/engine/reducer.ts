@@ -100,9 +100,30 @@ function err(code: ErrorCode): RErr {
   return { ok: false, code }
 }
 
+// Positive Failure: the cause of death is stamped on the dying state, not just
+// pushed onto the event stream. The DeathScreen reads it after a save/reload —
+// the event list is not persisted with the run. The flags record is untyped, so
+// readDeathCause narrows it back to a cause code (or null) once and for all.
+// One cause template per death site: die() stamps the flag and mints the DEATH
+// event together, so the two can never drift apart.
+function die(state: GameState, cause: string): { state: GameState; event: GameEvent } {
+  return {
+    state: { ...state, flags: { ...state.flags, death_cause: cause } },
+    event: { type: 'DEATH', cause },
+  }
+}
+
+export function readDeathCause(state: GameState): string | null {
+  const cause = state.flags.death_cause
+  return typeof cause === 'string' && cause !== '' ? cause : null
+}
+
 export function applyAction(state: GameState, action: Action): TransitionResult {
   if (action.kind === 'restart') {
-    const fresh = newGame(action.seed)
+    // Positive Failure: a reborn run inherits one attribute point keyed to how
+    // the last life fell, so death teaches instead of erasing. A restart from a
+    // living state carries no cause and inherits nothing.
+    const fresh = newGame(action.seed, { legacyCause: readDeathCause(state) })
     return finalize(fresh, [{ type: 'GAME_STARTED', seed: action.seed }])
   }
   const safeState = sanitizeRpgState(state)
@@ -432,9 +453,9 @@ function doMove(state: GameState, direction: Direction): R {
         s = { ...s, player: { ...s.player, hp: newHp } }
         events.push({ type: 'DAMAGED', amount: damage, source: dangerLocationId })
         if (newHp <= 0) {
-          s = { ...s, player: { ...s.player, alive: false } }
-          events.push({ type: 'DEATH', cause: `danger:${dangerLocationId}` })
-          return { ok: true, state: s, events }
+          const fallen = die({ ...s, player: { ...s.player, alive: false } }, `danger:${dangerLocationId}`)
+          events.push(fallen.event)
+          return { ok: true, state: fallen.state, events }
         }
         if (newHp <= 25) {
           events.push({
@@ -490,23 +511,26 @@ function doTrain(state: GameState): R {
   const sceneId = currentStoryScene(state).id
 
   if (hp <= 0) {
-    const dead: GameState = {
-      ...state,
-      rng: rngAfter,
-      player: {
-        ...state.player,
-        hp: 0,
-        qi: Math.max(0, qi),
-        stage: progress.stage,
-        realmLevel: progress.realmLevel,
-        progress: progress.progress,
-        pendingAttributePoints: 0,
-        alive: false,
+    const fallen = die(
+      {
+        ...state,
+        rng: rngAfter,
+        player: {
+          ...state.player,
+          hp: 0,
+          qi: Math.max(0, qi),
+          stage: progress.stage,
+          realmLevel: progress.realmLevel,
+          progress: progress.progress,
+          pendingAttributePoints: 0,
+          alive: false,
+        },
       },
-    }
+      'qi_deviation',
+    )
     events.push({ type: 'TRAINED', gain, stage: progress.stage, sceneId })
-    events.push({ type: 'DEATH', cause: 'qi_deviation' })
-    return { ok: true, state: dead, events }
+    events.push(fallen.event)
+    return { ok: true, state: fallen.state, events }
   }
 
   const pointsGranted = progress.breakthroughs * ATTRIBUTE_POINTS_PER_BREAKTHROUGH
@@ -1025,7 +1049,11 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
   const out: GameEvent[] = [...events, { type: 'COMBAT_HIT', actor: 'enemy', amount, enemyId: enemy.id }]
   if (poisonDrain > 0) out.push({ type: 'POISON_TICK', amount: poisonDrain, stacks: nextStacks })
   if (qiRegen > 0) out.push({ type: 'QI_REGEN', amount: qiRegen, turn })
-  if (hpAfterPoison <= 0) out.push({ type: 'DEATH', cause: `combat:${enemy.id}` })
+  if (hpAfterPoison <= 0) {
+    const fallen = die(s, `combat:${enemy.id}`)
+    out.push(fallen.event)
+    return { ok: true, state: fallen.state, events: out }
+  }
   return { ok: true, state: s, events: out }
 }
 
