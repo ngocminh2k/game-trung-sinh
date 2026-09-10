@@ -90,14 +90,15 @@ describe('branching story', () => {
     let truth = newGame('truth-ending')
     for (const id of ['study_letter', 'ask_ngo']) truth = choose(truth, id)
     truth = { ...truth, flags: { ...truth.flags, story_route_ready: true, story_proof_present: true } }
-    for (const id of ['trace_erased_name', 'record_ha', 'expose_vo', 'confess', 'open_last_page']) truth = choose(truth, id)
+    // Issue #15: the road up the peak runs through Chapters 7-8 before the mirror.
+    for (const id of ['trace_erased_name', 'record_ha', 'expose_vo', 'confess', 'branch_to_mercy', 'mercy_call_their_name', 'open_last_page']) truth = choose(truth, id)
     expect(truth.terminal).toBe(true)
     expect(truth.endingId).toBe('rootless_star')
 
     let mercy = newGame('mercy-ending')
     for (const id of ['return_pin', 'warn_village']) mercy = choose(mercy, id)
     mercy = { ...mercy, flags: { ...mercy.flags, story_route_ready: true } }
-    for (const id of ['keep_roll_call', 'free_ha', 'keep_seal', 'confess', 'share_last_page']) mercy = choose(mercy, id)
+    for (const id of ['keep_roll_call', 'free_ha', 'keep_seal', 'confess', 'branch_to_mercy', 'mercy_halt_trial', 'share_last_page']) mercy = choose(mercy, id)
     expect(mercy.terminal).toBe(true)
     expect(mercy.endingId).toBe('forgiven_enemy')
   })
@@ -117,7 +118,7 @@ describe('branching story', () => {
     ]
     for (const [choiceId, flags, expected] of cases) {
       const base = newGame(`ending-${expected}`)
-      const state = { ...base, flags: { ...base.flags, story_scene: 'last_page', ...flags } }
+      const state = { ...base, flags: { ...base.flags, story_scene: 'scene_ascension', ...flags } }
       const result = applyAction(state, { kind: 'story_choice', choiceId })
       expect(result.state.endingId).toBe(expected)
     }

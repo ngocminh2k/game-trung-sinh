@@ -188,6 +188,9 @@ export function resolveStoryEnding(state: GameState, choiceId: string): string {
   const order = flagNumber(state, 'story_order')
   const renounce = flagNumber(state, 'story_renounce')
 
+  // Issue #15 (canon §3): erasing the System is the one named outcome that does
+  // not read the value tallies — the gate lives in the scene’s `requires`.
+  if (choiceId === 'erase_system') return 'nameless_ascension'
   if (choiceId === 'open_last_page') {
     if (truth >= 3) return 'rootless_star'
     if (power >= 3 && flagTrue(state, 'story_ha_bound')) return 'rift_kingdom'

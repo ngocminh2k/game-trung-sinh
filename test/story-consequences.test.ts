@@ -119,7 +119,8 @@ describe('STORY Phase 4 — the forgotten name stays route-specific and never so
     ]
     // Scenes whose choices are ever-present (no route gate): they must always
     // keep ≥1 legal choice and one that walks toward the final page.
-    const everOpen = ['letter_at_dawn', 'market_rumor', 'cave_witness', 'sect_trial', 'mirror_choice', 'last_page']
+    const everOpen = ['letter_at_dawn', 'market_rumor', 'cave_witness', 'sect_trial', 'mirror_choice', 'last_page',
+      'scene_branch_mercy', 'scene_branch_path', 'scene_branch_blade', 'scene_branch_rootless', 'scene_ascension']
     // Route scenes gate every choice on story_route_ready. Before that the
     // player travels to the route target to unlock them — that target's
     // existence on the map is the reachability proof, not a legal choice.
@@ -144,5 +145,61 @@ describe('STORY Phase 4 — the forgotten name stays route-specific and never so
         expect(canAdvance, `${sceneId} @ ${JSON.stringify(extra)}`).toBe(true)
       }
     }
+  })
+})
+
+// Issue #15 — Chapter 7 → Chapter 8 bridge and the nameless_ascension trigger.
+const BRANCH_ROADS: Record<string, string> = {
+  mercy: 'scene_branch_mercy',
+  path: 'scene_branch_path',
+  blade: 'scene_branch_blade',
+  rootless: 'scene_branch_rootless',
+}
+
+describe('Issue #15 — all four Chapter 7 scenes are reachable from last_page', () => {
+  for (const [branch, sceneId] of Object.entries(BRANCH_ROADS)) {
+    it(`the ${branch} road is the only legal climb and lands in ${sceneId}`, () => {
+      let state = atScene({ branch }, 'last_page')
+      expect(findStoryChoice(state, `branch_to_${branch}`)).toBeDefined()
+      for (const other of Object.keys(BRANCH_ROADS).filter((entry) => entry !== branch)) {
+        expect(findStoryChoice(state, `branch_to_${other}`)).toBeUndefined()
+      }
+      state = choose(state, `branch_to_${branch}`)
+      expect(currentStoryScene(state).id).toBe(sceneId)
+      // And the scene itself carries the player onward to Chapter 8.
+      const onward = currentStoryScene(state).choices.filter((c) => c.nextSceneId !== null)
+      expect(onward.map((c) => c.nextSceneId)).toStrictEqual(['scene_ascension', 'scene_ascension', 'scene_ascension'])
+      state = choose(state, currentStoryScene(state).choices[0]!.id)
+      expect(currentStoryScene(state).id).toBe('scene_ascension')
+    })
+  }
+
+  it('a run with no named road still climbs, so last_page never dead-ends', () => {
+    const state = atScene({ system_refused: true }, 'last_page')
+    expect(findStoryChoice(state, 'ascend_alone')).toBeDefined()
+    const arrived = choose(state, 'ascend_alone')
+    expect(currentStoryScene(arrived).id).toBe('scene_ascension')
+  })
+})
+
+describe('Issue #15 — nameless_ascension has a trigger path in game', () => {
+  const ERASE_FLAGS = { system_refused: true, quest_q_main_final_vow_done: true }
+
+  it('is gated on refusing the System and completing the final vow', () => {
+    const unwedged = atScene({}, 'scene_ascension')
+    expect(findStoryChoice(unwedged, 'erase_system')).toBeUndefined()
+    expect(findStoryChoice(atScene({ system_refused: true }, 'scene_ascension'), 'erase_system')).toBeUndefined()
+    expect(findStoryChoice(atScene({ quest_q_main_final_vow_done: true }, 'scene_ascension'), 'erase_system')).toBeUndefined()
+    const earned = atScene(ERASE_FLAGS, 'scene_ascension')
+    expect(findStoryChoice(earned, 'erase_system')).toBeDefined()
+    // The three mirror decisions stay legal next to it.
+    for (const id of ['open_last_page', 'share_last_page', 'burn_last_page']) expect(findStoryChoice(earned, id)).toBeDefined()
+  })
+
+  it('erasing the System resolves to nameless_ascension and ends the run', () => {
+    const state = choose(atScene(ERASE_FLAGS, 'scene_ascension'), 'erase_system')
+    expect(state.flags.story_ending).toBe('nameless_ascension')
+    expect(state.terminal).toBe(true)
+    expect(state.endingId).toBe('nameless_ascension')
   })
 })
