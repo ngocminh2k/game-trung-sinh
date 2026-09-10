@@ -612,6 +612,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <DeathScreen
             locale={locale}
             ending={ending}
+            cause={typeof game.flags.death_cause === 'string' ? game.flags.death_cause : ''}
             onRestart={onRestart}
             onDismiss={() => setDeathDismissed(true)}
           />

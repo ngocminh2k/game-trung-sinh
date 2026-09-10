@@ -35,12 +35,13 @@ function browserStorage(): SessionStorage {
   }
 }
 
-function freshSession(locale: Locale = 'vi', options: { systemId?: string | null; difficulty?: GameDifficulty } = {}): GameSession {
+function freshSession(locale: Locale = 'vi', options: { systemId?: string | null; difficulty?: GameDifficulty; legacyCause?: string | null } = {}): GameSession {
   // Pre-menu new games carry the System pick straight into the state and open
   // on the first authored scene — no boot-story actions, no days spent.
-  const game = options.systemId === undefined
-    ? newGame(DEFAULT_SEED)
-    : newGame(DEFAULT_SEED, { systemId: options.systemId, difficulty: options.difficulty ?? 'balanced', storyScene: 'letter_at_dawn' })
+  const { legacyCause, ...gameOptions } = options
+  const game = gameOptions.systemId === undefined
+    ? newGame(DEFAULT_SEED, { legacyCause })
+    : newGame(DEFAULT_SEED, { ...gameOptions, storyScene: 'letter_at_dawn', legacyCause })
   return {
     game,
     locale,
@@ -319,7 +320,13 @@ function App() {
 
   const restart = useCallback(() => {
     if (sessionRef.current === null) return
-    const fresh = freshSession(sessionRef.current.locale)
+    // Positive Failure: the fallen life's cause is stamped on its flags; the
+    // reborn run reads it back and inherits one attribute point of hard-won
+    // experience. A fresh boot (no death recorded) inherits nothing.
+    const recorded = sessionRef.current.game.flags.death_cause
+    const fresh = freshSession(sessionRef.current.locale, {
+      legacyCause: typeof recorded === 'string' ? recorded : null,
+    })
     sessionRef.current = fresh
     setSession(fresh)
     setPhase('loading')

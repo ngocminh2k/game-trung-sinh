@@ -31,6 +31,7 @@ export const FLAG_KEYS = [
   'defeated',
   'retreated',
   'reached',
+  'death_cause',
 ] as const
 
 export type FlagKey = (typeof FLAG_KEYS)[number]
