@@ -53,6 +53,7 @@ describe('narrator', () => {
       { type: 'WARD_USED', itemId: 'warding_talisman' },
       { type: 'DAMAGED', amount: 31, source: 'cursed_rift' },
       { type: 'DEATH', cause: 'danger:cursed_rift' },
+      { type: 'DEATH', cause: 'combat:mist_boar' },
       { type: 'ACHIEVEMENT_UNLOCKED', achievementId: 'first_step' },
       { type: 'ENDING', endingId: 'ascension' },
       { type: 'CORRECTION_REJECTED', count: 1 },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyAction, newGame } from '../src/engine'
+import { applyAction, narrateLine, newGame, readDeathCause, validateGameState } from '../src/engine'
 import type { GameState } from '../src/engine'
 import { deathKind, describeDeath, legacyPointsFor } from '../src/content/death-legacy'
 import { navTo } from './test-utils'
@@ -99,6 +99,44 @@ describe('positive failure: death cause and legacy inheritance', () => {
     expect(legacyPointsFor(null)).toBe(0)
     expect(legacyPointsFor(undefined)).toBe(0)
     expect(legacyPointsFor('')).toBe(0)
+  })
+
+  it('a combat death stamps the enemy cause code', () => {
+    let state = navTo(newGame('cause-combat'), 'misty_forest')
+    state = applyAction(state, { kind: 'start_encounter' }).state
+    expect(state.encounter?.enemyId).toBe('mist_boar')
+    // Craft a near-death so the enemy's minimum-1 reply is guaranteed lethal.
+    state = { ...state, player: { ...state.player, hp: 1 } }
+    const result = applyAction(state, { kind: 'combat_defend' })
+    expect(result.state.player.alive).toBe(false)
+    expect(readDeathCause(result.state)).toBe('combat:mist_boar')
+    // The narrator names the beast, never leaks the raw code, in both locales.
+    const death = result.events.find((e) => e.type === 'DEATH')
+    expect(death).toBeDefined()
+    expect(narrateLine(death!, 'vi')).toContain('Trư Nha Sương')
+    expect(narrateLine(death!, 'en')).toContain('Mist-Tusk Boar')
+    expect(narrateLine(death!, 'vi')).not.toContain('combat:')
+  })
+
+  it('a training death stamps qi_deviation', () => {
+    // hp 8 / qi 10 pass the train guards but the -6±2 hp drain can kill.
+    let state = newGame('qi-probe-1')
+    state = { ...state, player: { ...state.player, hp: 8, qi: 10 } }
+    const result = applyAction(state, { kind: 'train' })
+    expect(result.state.player.alive).toBe(false)
+    expect(readDeathCause(result.state)).toBe('qi_deviation')
+    expect(deathKind(String(readDeathCause(result.state)))).toBe('qi_deviation')
+  })
+
+  it('the cause survives a save/reload roundtrip and reaches DeathScreen', () => {
+    let state = newGame('cause-roundtrip')
+    state = walkIntoRift(state)
+    expect(state.player.alive).toBe(false)
+    const reloaded = validateGameState(JSON.parse(JSON.stringify(state)))
+    const cause = readDeathCause(reloaded)
+    expect(cause).toBeTruthy()
+    expect(String(cause).startsWith('danger:')).toBe(true)
+    expect(describeDeath(String(cause), 'vi').subject).toBe('Khe Hở Nguyền Rủa')
   })
 
   it('each cause kind yields a localized report with a hint and a trait', () => {

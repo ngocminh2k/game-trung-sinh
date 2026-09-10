@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, storyRouteEncounter } from './engine'
+import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, readDeathCause, storyRouteEncounter } from './engine'
 import type { Action, GameDifficulty, GameEvent, Locale } from './engine'
 import { ENDINGS } from './content'
 import { requestNarration } from './ai/narration'
@@ -323,9 +323,8 @@ function App() {
     // Positive Failure: the fallen life's cause is stamped on its flags; the
     // reborn run reads it back and inherits one attribute point of hard-won
     // experience. A fresh boot (no death recorded) inherits nothing.
-    const recorded = sessionRef.current.game.flags.death_cause
     const fresh = freshSession(sessionRef.current.locale, {
-      legacyCause: typeof recorded === 'string' ? recorded : null,
+      legacyCause: readDeathCause(sessionRef.current.game),
     })
     sessionRef.current = fresh
     setSession(fresh)

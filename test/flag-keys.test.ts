@@ -26,6 +26,7 @@ describe('FLAG_KEYS', () => {
       'story_meihua_betrayed',
       'story_ha_bound',
       'crooked_circulation',
+      'death_cause',
     ]
     for (const key of required) expect(FLAG_KEYS).toContain(key)
   })
