@@ -56,15 +56,18 @@ export const STORY_SCENES: StorySceneDef[] = [
   ] },
   // Issue #15 (canon §3/§4): the last page is no longer terminal. It hands the
   // decision to the four white shadows on Cloud Peak (Chapter 7), fanning out on
-  // the run's `branch` flag — exactly one road is legal per playthrough, and all
-  // four are reachable across runs. The final keep/erase choice lands on Chapter 8.
+  // the run's `branch` flag — one named road per playthrough plus the ungated
+  // fallback below, all four roads reachable across runs. The final keep/erase
+  // choice lands on Chapter 8.
   { id: 'last_page', chapter: 6, titleVi: 'Trang cuối không viết sẵn', titleEn: 'The Last Page Is Not Written', textVi: 'Bình minh không xóa được gì, nhưng nó chỉ đường lên Đỉnh Mây, nơi bốn bóng trắng đang chờ để hỏi ngươi đã đi đường nào. Không còn sư phụ, ma quỷ hay tiền kiếp nào chọn thay ngươi.', textEn: 'Dawn erases nothing, but it points up to Cloud Peak, where four white shadows wait to ask which road you walked. No master, ghost, or prior life can choose for you now.', choices: [
     { id: 'branch_to_mercy', labelVi: 'Lên đỉnh bằng đường MINH — trái tim kẻ đã chọn lòng thương từ đầu', labelEn: 'Climb by the MERCY road — the heart of one who chose compassion first', consequenceVi: 'Bóng trắng thứ nhất đã chờ sẵn một kẻ còn biết nhớ tên người khác.', consequenceEn: 'The first white shadow has waited for someone who still remembers names.', nextSceneId: 'scene_branch_mercy', requires: { branch: 'mercy' } },
     { id: 'branch_to_path', labelVi: 'Lên đỉnh bằng đường HÀNH — đôi chân kẻ không cần ai dẫn', labelEn: 'Climb by the PATH road — the feet of one who needed no guide', consequenceVi: 'Bóng trắng thứ hai sẽ hỏi xem ai thực sự đã đưa ngươi tới đây.', consequenceEn: 'The second white shadow will ask what truly carried you here.', nextSceneId: 'scene_branch_path', requires: { branch: 'path' } },
     { id: 'branch_to_blade', labelVi: 'Lên đỉnh bằng đường SÁT — lưỡi kiếm kẻ dám chặt món nợ', labelEn: 'Climb by the BLADE road — the sword of one who dared cut the debt', consequenceVi: 'Bóng trắng thứ ba đã rút kiếm trước khi ngươi kịp chào.', consequenceEn: 'The third white shadow drew before you could bow.', nextSceneId: 'scene_branch_blade', requires: { branch: 'blade' } },
     { id: 'branch_to_rootless', labelVi: 'Lên đỉnh bằng đường GỐC — cái cây không rễ vẫn trèo được non', labelEn: 'Climb by the ROOTLESS road — the rootless tree still climbs', consequenceVi: 'Bóng trắng thứ tư sẽ hỏi điều gì đưa ngươi lên đây khi không còn Hệ Thống.', consequenceEn: 'The fourth white shadow asks what carried you up with no System.', nextSceneId: 'scene_branch_rootless', requires: { branch: 'rootless' } },
-    // Ungated fallback: a run can reach the summit with no named road (the
-    // ten-system refusal sets no branch). Never a dead end, always one step up.
+    // Ungated fallback (defense-in-depth): every boot road in today's graph
+    // sets `branch` before reaching here, so no live run is roadless — this
+    // choice is the dead-end guard for any future scene that reaches the
+    // summit without one. Never a dead end, always one step up.
     { id: 'ascend_alone', labelVi: 'Lên đỉnh một mình, không nhận đường nào của bốn bóng', labelEn: 'Climb alone, claiming none of the four shadows’ roads', consequenceVi: 'Đỉnh Mây không bắt buộc ai gọi tên con đường của mình.', consequenceEn: 'Cloud Peak does not make anyone name their road.', nextSceneId: 'scene_ascension' },
   ] },
   // T09 (canon contracts/story-canon.md §1, §3): the transmigration opening —
