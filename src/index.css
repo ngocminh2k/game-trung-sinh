@@ -389,6 +389,8 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
   background-color:var(--art-paper);
 }
 .npc-ensemble-art{filter:saturate(var(--sat-npc))}
+/* Still-life strips are painted as scene material, so they take the location
+   token, not the item one. */
 .item-collection-art{
   filter:saturate(var(--sat-location));
   border-color:var(--art-frame);
@@ -399,11 +401,16 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
 .scene-backdrop{border-color:var(--art-frame)}
 .scene-backdrop img{filter:saturate(var(--sat-location))}
 .world-map-art{filter:saturate(var(--sat-location))}
-.map-exit-icon{filter:saturate(var(--sat-location))}
+/* Exit pins render at ~42px; the location token over-flattens them, so they
+   keep the milder item token to stay legible. */
+.map-exit-icon{filter:saturate(var(--sat-item))}
 
 .protagonist-portrait{position:relative}
-.protagonist-portrait::after,.scene-backdrop::after{background-image:var(--art-grain)}
-.protagonist-portrait::after{position:absolute;inset:0;pointer-events:none;content:''}
+.protagonist-portrait::after{position:absolute;inset:0;pointer-events:none;background:var(--art-grain);content:''}
+/* The scene ::after already carries the two-edge scrim, so grain is layered on
+   top of it as the first background image instead of replacing it. */
+.scene-backdrop::after{background:var(--art-grain),linear-gradient(90deg,rgba(22,48,36,.2),transparent 58%,rgba(255,245,211,.12))}
+/* After the shorthands: `background` would reset the repeat. */
+.protagonist-portrait::after,.scene-backdrop::after{background-repeat:repeat}
 
 @media (prefers-contrast:more){:root{--art-grain:none}}
-.protagonist-portrait::after,.scene-backdrop::after{background-repeat:repeat}
