@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
+  ARENA_FLOOR_COUNT,
   CHAPTERS,
   ENEMIES,
   ENDINGS,
@@ -11,6 +12,7 @@ import {
   NPCS,
   TALENTS,
   TECHNIQUES,
+  arenaEnemyForFloor,
   getItem,
   getLocation,
   getRegionMap,
@@ -421,7 +423,13 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const selectedInventoryArt = selectedInventoryId === undefined ? undefined : itemArtFor(selectedInventoryId)
   const selectedInventoryEquipment = selectedInventoryId === undefined ? undefined : EQUIPMENT.find((equipment) => equipment.itemId === selectedInventoryId)
   const encounterEnemy = game.encounter === null ? undefined : ENEMIES.find((enemy) => enemy.id === game.encounter?.enemyId)
-  const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
+  // Arena tower floors live at the sect too, but they are never wild dangers —
+  // they open only through the arena panel below.
+  const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId && enemy.arena === undefined)
+  // Flag keys mirror flag-keys.ts; literal here matches this file's existing
+  // `defeated_${id}` convention. The pointer only moves forward on a win.
+  const arenaCleared = typeof game.flags['arena_floor'] === 'number' ? game.flags['arena_floor'] : 0
+  const nextArenaFloor = arenaCleared < ARENA_FLOOR_COUNT ? arenaEnemyForFloor(arenaCleared) : undefined
   const knownTechniques = TECHNIQUES.filter((technique) => (game.techniques[technique.id] ?? 0) > 0)
   const encounterLocked = game.encounter !== null
   const deadlineRemaining = nightDeadlineRemaining(game)
@@ -652,6 +660,30 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <section className="encounter-banner encounter-ready" aria-label={word(locale, 'Gặp gỡ hiểm họa', 'Encounter available')}>
             <div><p className="eyebrow">{word(locale, 'Hiểm họa trong khu vực', 'Local danger')}</p><h2>{localized(locale, localEnemy)}</h2><span>{locale === 'vi' ? localEnemy.descVi : localEnemy.descEn}</span></div>
             <button onClick={() => onAction({ kind: 'start_encounter' })} type="button">{word(locale, 'Bước vào giao chiến', 'Start encounter')}</button>
+          </section>
+        )}
+
+        {/* Lôi Đài (Issue #19): the sect tower-climb. One banner, three states:
+            next floor open, whole tower topped, or (during a fight) hidden by
+            the encounter banner above. */}
+        {game.encounter === null && game.player.locationId === 'sect' && (
+          <section className="encounter-banner encounter-ready" aria-label={word(locale, 'Lôi Đài', 'Sect Arena')}>
+            {nextArenaFloor !== undefined ? (
+              <>
+                <div>
+                  <p className="eyebrow">{word(locale, `Lôi Đài · tầng ${String(arenaCleared + 1)}/${String(ARENA_FLOOR_COUNT)}`, `Sect Arena · floor ${String(arenaCleared + 1)} of ${String(ARENA_FLOOR_COUNT)}`)}</p>
+                  <h2>{localized(locale, nextArenaFloor)}</h2>
+                  <span>{locale === 'vi' ? nextArenaFloor.descVi : nextArenaFloor.descEn}</span>
+                </div>
+                <button disabled={game.terminal} onClick={() => onAction({ kind: 'arena_challenge' })} type="button">{word(locale, 'Khiêu chiến Lôi Đài', 'Challenge the arena')}</button>
+              </>
+            ) : (
+              <div>
+                <p className="eyebrow">{word(locale, 'Lôi Đài đã cạn tầng', 'Arena mastered')}</p>
+                <h2>{word(locale, 'Toàn tháp Lôi Đài thuộc về ngươi', 'The whole tower is yours')}</h2>
+                <span>{word(locale, `${String(ARENA_FLOOR_COUNT)} sư huynh đệ bị ngươi đánh cho tâm phục khẩu phục.`, `${String(ARENA_FLOOR_COUNT)} senior disciples yielded to your fist.`)}</span>
+              </div>
+            )}
           </section>
         )}
       </div>

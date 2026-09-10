@@ -1,4 +1,7 @@
 import {
+  ARENA_FLOOR_COUNT,
+  arenaEnemyForFloor,
+  coercionFor,
   enemyAt,
   entryPositionFor,
   getEnemy,
@@ -58,7 +61,7 @@ import { applyRomanceChoice, findRomanceChoice, hasOtherCommitment } from './rom
 import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
-import { FLAG_AFF, FLAG_AFF_GATE, FLAG_DEFEATED, FLAG_KEYS, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
+import { FLAG_AFF, FLAG_AFF_GATE, FLAG_ARENA_CLEARED, FLAG_ARENA_FLOOR, FLAG_COERCED, FLAG_DEFEATED, FLAG_INFAMY, FLAG_KEYS, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
 import type {
   Action,
   ConcreteAction,
@@ -334,6 +337,10 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doEquipItem(state, action.itemId)
     case 'start_encounter':
       return doStartEncounter(state)
+    case 'arena_challenge':
+      return doArenaChallenge(state)
+    case 'coerce_npc':
+      return doCoerceNpc(state, action.npcId, action.approach)
     case 'combat_attack':
       return doCombatAttack(state, action.techniqueId)
     case 'combat_defend':
@@ -820,6 +827,32 @@ function doStartEncounter(state: GameState): R {
   }
 }
 
+// Lôi Đài (Issue #19): the tower-climb arena. The next opponent is chosen by
+// the cleared-floor pointer, not by `enemyAt`, so the ladder advances in order
+// regardless of how many disciples roam the sect. It is a normal encounter —
+// strike/defend/retreat/consume all work — but winning moves the pointer and
+// seizes the floor's stores (the resource-plunder payoff). Retreating is safe:
+// the pointer does not move, so the floor can be retried with no dead-end.
+function doArenaChallenge(state: GameState): R {
+  if (state.encounter !== null) return err('ITEM_UNAVAILABLE')
+  if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION')
+  const cleared = flagNum(state.flags, FLAG_ARENA_FLOOR)
+  if (cleared >= ARENA_FLOOR_COUNT) return err('NOT_AT_LOCATION')
+  const enemy = arenaEnemyForFloor(cleared)
+  if (enemy === undefined) return err('NOT_AT_LOCATION')
+  const events: GameEvent[] = []
+  state = spendDay(state, events)
+  const floor = enemy.arena ?? cleared + 1
+  return {
+    ok: true,
+    state: {
+      ...state,
+      encounter: { enemyId: enemy.id, hp: enemy.maxHp, maxHp: enemy.maxHp, guard: 0, focusStacks: 0, focusDamage: 0, behaviorBonus: 0, behaviorHealUsed: false, enemyTurns: 0, playerHits: 0 },
+    },
+    events: [...events, { type: 'ENCOUNTER_STARTED', enemyId: enemy.id }, { type: 'ARENA_CHALLENGED', floor, enemyId: enemy.id }],
+  }
+}
+
 // The encounter decision layer (design review 2026-08, Phase 1): every swing
 // carries an explicit qi price, and the choice is risk allocation. A basic
 // strike (no technique) is the cheap default; a named technique hits harder
@@ -905,6 +938,24 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
       playerState = applyPoison(playerState, 2)
       events.push({ type: 'POISON_APPLIED', amount: 2 })
     }
+    // Lôi Đài (Issue #19): clearing a tower floor advances the ladder pointer
+    // and announces the seizure of that disciple's stores. The floor index
+    // only ever moves forward (Math.max) so a rematch cannot rewind it.
+    const flags: Record<string, number | boolean | string> = { ...s.flags, [FLAG_DEFEATED(enemy.id)]: true }
+    if (enemy.arena !== undefined) {
+      flags[FLAG_ARENA_FLOOR] = Math.max(flagNum(s.flags, FLAG_ARENA_FLOOR), enemy.arena)
+      events.push({
+        type: 'ARENA_FLOOR_CLEARED',
+        floor: enemy.arena,
+        enemyId: enemy.id,
+        gold: enemy.rewardGold,
+        itemIds: Object.keys(enemy.rewardItems),
+      })
+      if (enemy.arena >= ARENA_FLOOR_COUNT && flags[FLAG_ARENA_CLEARED] !== true) {
+        flags[FLAG_ARENA_CLEARED] = true
+        events.push({ type: 'ARENA_TOWER_TOPPED', floors: ARENA_FLOOR_COUNT })
+      }
+    }
     return {
       ok: true,
       state: {
@@ -912,7 +963,7 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
         encounter: null,
         inventory,
         player: playerState,
-        flags: { ...s.flags, [FLAG_DEFEATED(enemy.id)]: true },
+        flags,
       },
       events: [...events, { type: 'COMBAT_WON', enemyId: enemy.id, rewardGold: enemy.rewardGold }],
     }
@@ -1228,6 +1279,59 @@ function doResolveRouteEvent(state: GameState, approach: 'present' | 'withhold')
       qiDelta,
       goldDelta,
     }],
+  }
+}
+
+// Cưỡng đoạt (Issue #19): the Killer's non-combat pressure channel. Intimidating
+// a personality-opposite NPC takes their stores outright. Plunder is one-shot
+// per victim (guarded by the coerced flag) — the loop cannot be farmed, and the
+// loot is fixed data rather than RNG so the whole path stays deterministic.
+// The cost is social, not numeric: the victim's goodwill empties and the sect
+// remembers the infamy. back_off is the restraint branch, spending the day but
+// mending the relationship instead.
+function doCoerceNpc(state: GameState, npcId: string, approach: 'plunder' | 'back_off'): R {
+  const npc = getNpc(npcId)
+  if (npc === undefined) return err('NPC_UNKNOWN')
+  const def = coercionFor(npcId)
+  if (def === undefined) return err('NOT_AT_LOCATION')
+  if (state.player.locationId !== npc.locationId) return err('NPC_NOT_HERE')
+  if (state.encounter !== null) return err('ITEM_UNAVAILABLE')
+  const affKey = FLAG_AFF(npcId)
+  const already = state.flags[FLAG_COERCED(npcId)] === true
+  const events: GameEvent[] = []
+  state = spendDay(state, events)
+  if (approach === 'back_off') {
+    const affection = { ...(state.affection ?? {}) }
+    affection[npcId] = (affection[npcId] ?? 0) + def.backOffAff
+    return {
+      ok: true,
+      state: { ...state, affection, flags: { ...state.flags, [affKey]: flagNum(state.flags, affKey) + def.backOffAff } },
+      events: [...events, { type: 'NPC_COERCED', npcId, approach, gold: 0, itemIds: [], aff: def.backOffAff, infamy: flagNum(state.flags, FLAG_INFAMY) }],
+    }
+  }
+  if (already) {
+    // The stores are bare — the victim was squeezed already. No loot, no extra
+    // infamy, but the day is still spent.
+    return {
+      ok: true,
+      state,
+      events: [...events, { type: 'NPC_COERCED', npcId, approach, gold: 0, itemIds: [], aff: 0, infamy: flagNum(state.flags, FLAG_INFAMY) }],
+    }
+  }
+  let inventory = state.inventory
+  for (const [itemId, qty] of Object.entries(def.stealItems)) inventory = bump(inventory, itemId, qty)
+  const infamy = flagNum(state.flags, FLAG_INFAMY) + 1
+  const affection = { ...(state.affection ?? {}), [npcId]: 0 }
+  return {
+    ok: true,
+    state: {
+      ...state,
+      inventory,
+      affection,
+      player: { ...state.player, gold: state.player.gold + def.stealGold },
+      flags: { ...state.flags, [FLAG_COERCED(npcId)]: true, [FLAG_INFAMY]: infamy, [affKey]: 0 },
+    },
+    events: [...events, { type: 'NPC_COERCED', npcId, approach, gold: def.stealGold, itemIds: Object.keys(def.stealItems), aff: -flagNum(state.flags, affKey), infamy }],
   }
 }
 

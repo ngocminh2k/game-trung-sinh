@@ -56,6 +56,10 @@ const RETREAT_WORDS = ['retreat', 'run away', 'flee', 'rut lui', 'bo chay', 'cha
 const EQUIP_WORDS = ['equip', 'trang bi', 'mac vao', 'cam vu khi']
 const LEARN_WORDS = ['learn technique', 'learn skill', 'hoc cong phap', 'luyen bi kip', 'lĩnh ngộ']
 const TALENT_WORDS = ['choose talent', 'select talent', 'chon thien phu', 'thuc tinh thien phu']
+// Lôi Đài + Cưỡng đoạt (Issue #19) — Killer-type intents.
+const ARENA_WORDS = ['arena', 'tower', 'climb tower', 'loi dai', 'leo thap', 'thach dau']
+const COERCE_WORDS = ['coerce', 'extort', 'plunder', 'intimidate', 'cuong doat', 'tran lot', 'uy hiep', 'dap do']
+const COERCE_BACKOFF_WORDS = ['back off', 'apologize', 'let go', 'bo qua', 'dinh khong', 'xin loi', 'rut lui khong']
 
 function includesAny(text: string, words: readonly string[]): boolean {
   return words.some((w) => text.includes(w))
@@ -142,6 +146,16 @@ export function parseFreeText(raw: string): ParsedIntent | FailedIntent {
   if (specifiedQty === 'invalid') return { ok: false }
   const qty = specifiedQty ?? 1
 
+  if (includesAny(text, ARENA_WORDS)) return { ok: true, action: { kind: 'arena_challenge' } }
+  // Coercion only fires on an explicit pressure verb, so "xin lỗi" drifting into
+  // an unrelated sentence never hijacks another intent. Naming the victim picks
+  // plunder; an added retreat word is read as restraint (back_off).
+  if (includesAny(text, COERCE_WORDS)) {
+    const npcId = findNpcIdIn(text)
+    if (npcId === undefined) return { ok: false }
+    const approach = includesAny(text, COERCE_BACKOFF_WORDS) ? 'back_off' : 'plunder'
+    return { ok: true, action: { kind: 'coerce_npc', npcId, approach } }
+  }
   if (includesAny(text, ENCOUNTER_WORDS)) return { ok: true, action: { kind: 'start_encounter' } }
   if (includesAny(text, RETREAT_WORDS)) return { ok: true, action: { kind: 'combat_retreat' } }
   if (includesAny(text, ATTACK_WORDS)) {

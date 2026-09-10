@@ -242,6 +242,40 @@ const TEMPLATES: Record<string, Handler> = {
     if (ev.type !== 'ENCOUNTER_STARTED') return ''
     return l === 'vi' ? `Có kẻ chặn đường: ${nameOf('enemy', ev.enemyId, l)}.` : `An enemy blocks your path: ${nameOf('enemy', ev.enemyId, l)}.`
   },
+  ARENA_CHALLENGED: (ev, l) => {
+    if (ev.type !== 'ARENA_CHALLENGED') return ''
+    return l === 'vi'
+      ? `Ngươi bước lên Lôi Đài — tầng ${String(ev.floor)}, ${nameOf('enemy', ev.enemyId, l)} đã chờ sẵn.`
+      : `You step onto the Arena — floor ${String(ev.floor)}: ${nameOf('enemy', ev.enemyId, l)} is waiting.`
+  },
+  ARENA_FLOOR_CLEARED: (ev, l) => {
+    if (ev.type !== 'ARENA_FLOOR_CLEARED') return ''
+    return l === 'vi'
+      ? `Tầng ${String(ev.floor)} ngã ngũ: ${nameOf('enemy', ev.enemyId, l)} khuỵu xuống, ngươi thu ${String(ev.gold)} lượng và ${String(ev.itemIds.length)} món linh tài.`
+      : `Floor ${String(ev.floor)} settled: ${nameOf('enemy', ev.enemyId, l)} folds; you seize ${String(ev.gold)} gold and ${String(ev.itemIds.length)} spoils.`
+  },
+  ARENA_TOWER_TOPPED: (ev, l) => {
+    if (ev.type !== 'ARENA_TOWER_TOPPED') return ''
+    return l === 'vi'
+      ? `${String(ev.floors)} tầng Lôi Đài đã san bằng — không sư huynh nào dám nhìn thẳng ngươi nữa.`
+      : `All ${String(ev.floors)} arena floors leveled — no senior brother meets your eyes now.`
+  },
+  NPC_COERCED: (ev, l) => {
+    if (ev.type !== 'NPC_COERCED') return ''
+    if (ev.approach === 'back_off') {
+      return l === 'vi'
+        ? `Ngươi hạ tay, bỏ qua cho ${nameOf('npc', ev.npcId, l)}; kẻ ấy nhớ một phần thể diện.`
+        : `You lower your hand and let ${nameOf('npc', ev.npcId, l)} off; they remember the mercy.`
+    }
+    if (ev.gold === 0 && ev.itemIds.length === 0) {
+      return l === 'vi'
+        ? `Lần nữa uy hiếp ${nameOf('npc', ev.npcId, l)} — nhưng túi của kẻ ấy đã cạn từ lượt trước.`
+        : `You lean on ${nameOf('npc', ev.npcId, l)} again — their purse was emptied last time.`
+    }
+    return l === 'vi'
+      ? `Ngươi dồn ${nameOf('npc', ev.npcId, l)} vào chân tường, cưỡng đoạt ${String(ev.gold)} lượng cùng linh tài; tiếng ác đồn xa.`
+      : `You drive ${nameOf('npc', ev.npcId, l)} against the wall and take ${String(ev.gold)} gold in spoils; the ill repute spreads.`
+  },
   COMBAT_HIT: (ev, l) => {
     if (ev.type !== 'COMBAT_HIT') return ''
     return l === 'vi'

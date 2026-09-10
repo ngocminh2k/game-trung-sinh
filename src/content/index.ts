@@ -25,6 +25,7 @@ import { CELLS, isPassable, LOCATIONS, MAP_HEIGHT, MAP_WIDTH, REGION_MAPS } from
 import { NPCS } from './npcs'
 import { QUESTS } from './quests'
 import { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from './rpg'
+import { COERCIONS } from './killer'
 import { STORY_SCENES } from './story'
 import { SYSTEMS, systemById } from './system-defs'
 
@@ -62,16 +63,20 @@ export { SYSTEM_QUESTS } from './system-quests'
 export { getNpc, NPCS, npcsAt } from './npcs'
 export { getQuest, QUESTS } from './quests'
 export {
+  ARENA_FLOOR_COUNT,
   ENEMIES,
   EQUIPMENT,
   TALENTS,
   TECHNIQUES,
+  arenaEnemyForFloor,
+  arenaFloors,
   enemyAt,
   getEnemy,
   getEquipmentByItem,
   getTalent,
   getTechnique,
 } from './rpg'
+export { COERCIONS, coercionFor } from './killer'
 
 export interface ContentValidationReport {
   ok: boolean
@@ -211,6 +216,18 @@ export function validateAllContent(): ContentValidationReport {
     if (!locationIds.has(enemy.locationId)) errors.push(`ENEMIES: ${enemy.id} at unknown location`)
     for (const itemId of Object.keys(enemy.rewardItems)) {
       if (!itemIds.has(itemId)) errors.push(`ENEMIES: reward item ${itemId} missing`)
+    }
+    if (enemy.arena !== undefined && enemy.arena !== 1 && !ENEMIES.some((other) => other.arena === enemy.arena! - 1)) {
+      errors.push(`ENEMIES: arena floor ${enemy.id} has no floor below it`)
+    }
+  }
+  // Issue #19 acceptance: at least one resource-plunder coercion choice must
+  // exist, and every coercion must point at a real NPC with real loot.
+  if (COERCIONS.length < 1) errors.push('COERCIONS: at least one coercion target is required')
+  for (const coercion of COERCIONS) {
+    if (!npcIds.has(coercion.npcId)) errors.push(`COERCIONS: unknown npc ${coercion.npcId}`)
+    for (const itemId of Object.keys(coercion.stealItems)) {
+      if (!itemIds.has(itemId)) errors.push(`COERCIONS: steal item ${itemId} missing`)
     }
   }
   for (const b of BEATS) {

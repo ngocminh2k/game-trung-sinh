@@ -50,7 +50,8 @@ export function deriveObjective(game: GameState, locale: Locale): string | null 
       ? `Đến ${targetName} theo dấu son trên bản đồ. Gặp đầu mối này để mở lựa chọn tiếp theo.`
       : `Reach ${targetName}, marked in vermilion on the map. Meeting this lead opens your next choice.`
   }
-  const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
+  // Arena floors are sect-only tower opponents, never a local wild danger.
+  const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId && enemy.arena === undefined)
   if (localEnemy !== undefined && game.flags[`defeated_${localEnemy.id}`] !== true) {
     return t(locale, 'ui.objective.danger', { enemy: locale === 'vi' ? localEnemy.nameVi : localEnemy.nameEn, location: locationName(game.player.locationId, locale) })
   }

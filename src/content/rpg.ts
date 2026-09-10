@@ -1134,6 +1134,103 @@ export const ENEMIES: EnemyDef[] = [
     requiredStage: 3,
     exp: 50,
   },
+  // Lôi Đài (Issue #19) — Sect Arena tower. Five escalating disciples, each an
+  // `arena` floor (1-based) placed in the sect region. They carry the arena flag
+  // so `enemyAt`/wild UI never surface them as random encounters; only
+  // `arena_challenge` opens them in order. rewardItems are the disciple's stores
+  // that the victor seizes — the "cướp tài nguyên" mechanic reuses the ordinary
+  // combat-win loot path untouched.
+  {
+    id: 'arena_f1_neophyte',
+    locationId: 'sect',
+    nameVi: 'Đệ Tử Mới',
+    nameEn: 'Neophyte Disciple',
+    descVi: 'Mới nhập môn, quyền còn vụng, nhưng giữ lệnh bài tích nguyệt.',
+    descEn: 'Freshly inducted, fists still clumsy, clutching a month-tally token.',
+    maxHp: 40,
+    attack: 8,
+    rewardGold: 30,
+    rewardItems: { spirit_herb: 2 },
+    element: 'Mộc',
+    behaviorPattern: 'aggressive',
+    requiredStage: 0,
+    exp: 10,
+    arena: 1,
+  },
+  {
+    id: 'arena_f2_bristle',
+    locationId: 'sect',
+    nameVi: 'Lôi Đài Hộ Pháp',
+    nameEn: 'Arena Warden',
+    descVi: 'Giữ sới đấu bằng thiết quyền, coi thường kẻ phế căn.',
+    descEn: 'Guards the ring with an iron fist, scorning the broken-root.',
+    maxHp: 58,
+    attack: 11,
+    rewardGold: 55,
+    rewardItems: { cold_iron_ore: 1, beast_fang: 1 },
+    element: 'Kim',
+    behaviorPattern: 'defensive',
+    defense: 2,
+    requiredStage: 1,
+    exp: 20,
+    arena: 2,
+  },
+  {
+    id: 'arena_f3_viper',
+    locationId: 'sect',
+    nameVi: 'Xà Thủ Kỵ Sĩ',
+    nameEn: 'Viper Cavalier',
+    descVi: 'Ngựa giấy tẩm độc, mỗi đòn liếm là một lần nhiễm.',
+    descEn: 'A paper horse bred with venom; every graze leaves a dose.',
+    maxHp: 72,
+    attack: 13,
+    rewardGold: 80,
+    rewardItems: { dew_pill: 1, moon_moss: 1 },
+    element: 'Hỏa',
+    behaviorPattern: 'poison',
+    behavior: 'poison',
+    statusOnHit: 'poison',
+    requiredStage: 2,
+    exp: 30,
+    arena: 3,
+  },
+  {
+    id: 'arena_f4_thunder',
+    locationId: 'sect',
+    nameVi: 'Lôi Âm Chân Nhân',
+    nameEn: 'Thundervoice Adept',
+    descVi: 'Một quyền một tiếng sấm, thủ thế cũng bị xuyên.',
+    descEn: 'One fist, one clap of thunder; guards shatter under it.',
+    maxHp: 96,
+    attack: 17,
+    rewardGold: 130,
+    rewardItems: { plum_qi_wine: 1, old_manual: 1 },
+    element: 'Kim',
+    behaviorPattern: 'aggressive',
+    defense: 3,
+    requiredStage: 3,
+    exp: 50,
+    arena: 4,
+  },
+  {
+    id: 'arena_f5_senior',
+    locationId: 'sect',
+    nameVi: 'Đại Sư Huynh Vân Ẩn',
+    nameEn: 'Hidden Cloud Senior Brother',
+    descVi: 'Đỉnh tháp Lôi Đài, nửa khí huyết sẽ bùng lên lần nữa.',
+    descEn: 'The arena summit — past half its breath it flares again.',
+    maxHp: 130,
+    attack: 21,
+    rewardGold: 220,
+    rewardItems: { ninefold_pill: 1, jade_charm: 1 },
+    element: 'Thổ',
+    behaviorPattern: 'counter',
+    behavior: 'phase2',
+    defense: 4,
+    requiredStage: 4,
+    exp: 80,
+    arena: 5,
+  },
 ]
 
 export function getTalent(id: string): TalentDef | undefined {
@@ -1153,8 +1250,23 @@ export function getEnemy(id: string): EnemyDef | undefined {
 }
 
 export function enemyAt(locationId: string): EnemyDef | undefined {
-  return ENEMIES.find((enemy) => enemy.locationId === locationId)
+  return ENEMIES.find((enemy) => enemy.locationId === locationId && enemy.arena === undefined)
 }
+
+// Lôi Đài (Issue #19) helpers. Arena floors live in the same ENEMIES table so
+// combat resolves through the existing encounter loop, but they are a ladder,
+// not a roaming pool: the arena floor index (1-based) selects the next opponent.
+export function arenaFloors(): EnemyDef[] {
+  return ENEMIES.filter((enemy) => enemy.arena !== undefined).sort((a, b) => (a.arena ?? 0) - (b.arena ?? 0))
+}
+
+/** The next tower floor to challenge given how many the player has cleared
+ *  (`cleared` = 0 before the first win), or undefined once the tower is topped. */
+export function arenaEnemyForFloor(cleared: number): EnemyDef | undefined {
+  return arenaFloors().find((enemy) => enemy.arena === cleared + 1)
+}
+
+export const ARENA_FLOOR_COUNT = arenaFloors().length
 
 // W6 combat depth: a location may hold several enemies. Only ones the player's
 // stage can survive may spawn (requiredStage filter). The reducer picks a

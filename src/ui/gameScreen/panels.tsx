@@ -8,6 +8,7 @@ import {
   SHOP_STOCK,
   TALENTS,
   TECHNIQUES,
+  coercionFor,
   getItem,
   getEquipmentByItem,
   getLocation,
@@ -555,22 +556,48 @@ export function DockPanelPeople({
         ? <p className="muted">{word(locale, 'Chỉ có gió trả lời.', 'Only the wind answers.')}</p>
         : (
           <div className="npc-gallery">
-            {localNpcs.map((npc) => (
-              <article className={`npc-portrait-card ${actionKind === 'talk' ? 'is-speaking' : ''}`} data-npc-id={npc.id} key={npc.id}>
-                <img alt={`${word(locale, 'Chân dung', 'Portrait of')} ${localized(locale, npc)}`} src={npcPortraitFor(npc.id)} />
-                <div>
-                  <strong>{localized(locale, npc)}</strong>
-                  <span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span>
-                  <button
-                    disabled={game.terminal || encounterLocked}
-                    onClick={() => { onCloseJournal(); onAction({ kind: 'talk', npcId: npc.id }) }}
-                    type="button"
-                  >
-                    {word(locale, 'Nói chuyện', 'Talk')}
-                  </button>
-                </div>
-              </article>
-            ))}
+            {localNpcs.map((npc) => {
+              // Cưỡng đoạt (Issue #19): pressure the temperamental opposites.
+              // Plunder is one-shot per NPC per run (coerced_<id> flag).
+              const coercible = coercionFor(npc.id) !== undefined
+              const coerced = game.flags[`coerced_${npc.id}`] === true
+              return (
+                <article className={`npc-portrait-card ${actionKind === 'talk' ? 'is-speaking' : ''}`} data-npc-id={npc.id} key={npc.id}>
+                  <img alt={`${word(locale, 'Chân dung', 'Portrait of')} ${localized(locale, npc)}`} src={npcPortraitFor(npc.id)} />
+                  <div>
+                    <strong>{localized(locale, npc)}</strong>
+                    <span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span>
+                    <button
+                      disabled={game.terminal || encounterLocked}
+                      onClick={() => { onCloseJournal(); onAction({ kind: 'talk', npcId: npc.id }) }}
+                      type="button"
+                    >
+                      {word(locale, 'Nói chuyện', 'Talk')}
+                    </button>
+                    {coercible && (
+                      <div className="coercion-choices">
+                        <button
+                          disabled={game.terminal || encounterLocked || coerced}
+                          onClick={() => { onCloseJournal(); onAction({ kind: 'coerce_npc', npcId: npc.id, approach: 'plunder' }) }}
+                          type="button"
+                        >
+                          {coerced
+                            ? word(locale, 'Cạn kiệt sau một lần cướp', 'Plundered already')
+                            : word(locale, 'Uy hiếp, cưỡng đoạt', 'Intimidate & plunder')}
+                        </button>
+                        <button
+                          disabled={game.terminal || encounterLocked}
+                          onClick={() => { onCloseJournal(); onAction({ kind: 'coerce_npc', npcId: npc.id, approach: 'back_off' }) }}
+                          type="button"
+                        >
+                          {word(locale, 'Hạ tay bỏ qua', 'Back off')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
           </div>
         )}
     </section>
@@ -601,7 +628,7 @@ export function ChronicleFeed({
         {visible.map((line, index) => {
           const absoluteIndex = visibleStartIndex + index
           const kind = chronicleKinds?.[absoluteIndex]
-          const isCombat = kind === 'encounter_started' || kind === 'combat_hit' || kind === 'combat_won' || kind === 'combat_retreated'
+          const isCombat = kind === 'encounter_started' || kind === 'combat_hit' || kind === 'combat_won' || kind === 'combat_retreated' || kind === 'arena_challenged' || kind === 'arena_floor_cleared' || kind === 'arena_tower_topped'
           const isDefend = kind === 'combat_guarded'
           const isTrain = kind === 'trained'
           const colorClass = isCombat ? 'is-combat' : isDefend ? 'is-defend' : isTrain ? 'is-train' : undefined
