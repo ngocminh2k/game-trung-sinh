@@ -23,7 +23,7 @@ describe('Scenario I regional maps', () => {
       for (const cell of map?.cells ?? []) {
         if (cell.exitTo !== undefined) {
           expect(getRegionMap(cell.exitTo), `${location.id} exit`).toBeDefined()
-          expect(locationIconFor(cell.exitTo), `${location.id} exit badge`).toMatch(/\.png$/)
+          expect(locationIconFor(cell.exitTo), `${location.id} exit badge`).toMatch(/\.webp$/)
         }
       }
     }

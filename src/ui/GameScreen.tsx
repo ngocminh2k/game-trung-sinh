@@ -17,7 +17,7 @@ import {
 } from '../content'
 import { BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, nextStageThreshold, queueDrain, RETREAT_HP_COST, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
 import type { Action, Direction, GameState, Locale } from '../engine'
-import worldMapArt from '../assets/art/world-map-inkwash.png'
+import worldMapArt from '../assets/art/world-map-inkwash.webp'
 import { locationBackdropFor, locationIconFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
 import { deriveObjective, nightDeadlineRemaining } from './objective'

@@ -42,7 +42,7 @@ describe('player action artwork', () => {
 
     const art = screen.getByTestId('player-action-art')
     expect(art.dataset.pose).toBe(pose)
-    expect(art.querySelector('img')?.getAttribute('src')).toMatch(/\.png$/)
+    expect(art.querySelector('img')?.getAttribute('src')).toMatch(/\.webp$/)
   })
 
   it('uses hurt after a non-combat damage update and death only after lethal terminal state', () => {
@@ -145,7 +145,7 @@ describe('player action artwork', () => {
     const secondImage = screen.getByTestId('player-action-art').querySelector('img')
 
     expect(secondImage).not.toBe(firstImage)
-    expect(secondImage?.getAttribute('src')).toMatch(/move\.png$/)
+    expect(secondImage?.getAttribute('src')).toMatch(/move\.webp$/)
   })
 
   it('uses the reducer-resolved action for a free-text command pose', async () => {

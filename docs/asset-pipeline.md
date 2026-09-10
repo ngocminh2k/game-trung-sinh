@@ -50,6 +50,33 @@ generation service keys are never stored in the repository.
 ## Reviewed map badges
 
 `src/assets/art/location-icons/` contains 16 reviewed 9router-generated
-PNG destination badges for Scenario I locations. They are display-only map art:
+destination badges for Scenario I locations (WebP since issue #16). They are
+display-only map art:
 location IDs, exits, movement, and saves remain authored deterministic data.
 No 9router credential or endpoint is stored in the repository.
+
+## Art Bible: format, size, and harmonization (issue #16)
+
+All gameplay art in `src/assets/art/` is WebP at 2× its largest rendered box
+(items/talents/icons ≤128–400px edge, NPC cards ≤176, scenes ≤640, banners
+≤900). Encode with `scripts/convert-art.mjs` (quality 80, effort 6) — authored
+PNGs never ship; the tree tracks only what the browser downloads. Total art
+footprint is budgeted at <20MB (currently ~5.6MB).
+
+The three source styles (2.5D NPC paintings, 3D-render locations, white-ground
+item illustrations) were produced at different intensities. They are unified in
+CSS, in the "Art Bible" block at the end of `src/index.css`, and never by
+re-baking pixels into the files:
+
+- `--sat-item / --sat-npc / --sat-location` desaturate each family toward the
+  dó-paper tone (measured mean saturation before unification: locations ~0.35,
+  NPCs ~0.28, items ~0.18).
+- `--art-frame`, `--art-radius`, `--art-bleed`, `--art-paper` give every art
+  surface one ink-wash frame — a jade-ink hairline, soft inner wash, paper
+  ground — instead of raw crops.
+- `--art-grain` is an `feTurbulence` paper-fibre overlay on hero surfaces,
+  removed under `prefers-contrast: more`; it is decorative (no state or meaning
+  is carried by color or texture alone).
+
+New art therefore needs no hand-tuning: match the family, keep a light or
+paper-compatible ground, and the CSS layer harmonizes it.
