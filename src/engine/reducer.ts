@@ -374,7 +374,11 @@ function doMove(state: GameState, direction: Direction): R {
   const arrival = targetLocId === undefined ? undefined : entryPositionFor(targetLocId, state.player.locationId)
   let s: GameState = {
     ...state,
-    flags: { ...state.flags, [FLAG_MOVED_ONCE]: true },
+    flags: {
+      ...state.flags,
+      [FLAG_MOVED_ONCE]: true,
+      moveCount: flagNum(state.flags, 'moveCount') + 1,
+    },
     player: {
       ...state.player,
       posX: arrival?.x ?? cell.x,

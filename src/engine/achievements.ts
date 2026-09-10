@@ -6,9 +6,11 @@ import type { GameState } from './types'
 export function qualifiesForAchievement(state: GameState, achievementId: string): boolean {
   switch (achievementId) {
     case 'first_step':
-      return state.flags['movedOnce'] === true
+      // Leaving the village once is trivial; require a few real journeys so the
+      // milestone is earned rather than handed out on turn one.
+      return flagNum(state.flags, 'moveCount') >= 3
     case 'green_thumb':
-      return flagNum(state.flags, 'gatherCount') >= 1
+      return flagNum(state.flags, 'gatherCount') >= 10
     case 'socialite':
       // Requires five *distinct* NPCs: each talked-to NPC leaves an aff_<id>
       // counter flag, so counting positive ones gives the distinct total.
@@ -18,9 +20,9 @@ export function qualifiesForAchievement(state: GameState, achievementId: string)
         ).length >= 5
       )
     case 'first_purchase':
-      return flagNum(state.flags, 'buyCount') >= 1
+      return flagNum(state.flags, 'buyCount') >= 5
     case 'first_sale':
-      return flagNum(state.flags, 'sellCount') >= 1
+      return flagNum(state.flags, 'sellCount') >= 5
     case 'lucky_star':
       return state.flags['grandPrizeWon'] === true
     case 'cave_brave':
