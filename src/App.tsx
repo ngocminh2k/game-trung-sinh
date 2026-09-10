@@ -336,6 +336,8 @@ function App() {
   const exitToMenu = useCallback(() => {
     if (typeof window !== 'undefined') setActiveSlot(browserStorage(), null)
     setActiveSlotState(null)
+    sessionRef.current = null
+    setSession(null)
     setPhase('menu')
   }, [])
 

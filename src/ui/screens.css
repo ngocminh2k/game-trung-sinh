@@ -571,6 +571,10 @@
 .system-tile:hover .system-tile-persona,
 .system-tile:focus-visible .system-tile-persona,
 .system-tile[data-selected='true'] .system-tile-persona { display: block; }
+/* Touch has no lasting hover — there the persona stays visible always. */
+@media (hover: none) {
+  .system-tile-persona { display: block; }
+}
 .newgame-reveal-hint {
   margin: 2px 0 0;
   font-size: 12px;
