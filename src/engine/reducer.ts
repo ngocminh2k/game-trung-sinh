@@ -13,6 +13,7 @@ import {
   getTalent,
   getTechnique,
   locationDanger,
+  newEncounter,
 } from '../content'
 import { newlyQualifiedAchievements } from './achievements'
 import {
@@ -61,7 +62,7 @@ import { applyRomanceChoice, findRomanceChoice, hasOtherCommitment } from './rom
 import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
-import { FLAG_AFF, FLAG_AFF_GATE, FLAG_ARENA_CLEARED, FLAG_ARENA_FLOOR, FLAG_COERCED, FLAG_DEFEATED, FLAG_INFAMY, FLAG_KEYS, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
+import { FLAG_AFF, FLAG_AFF_GATE, FLAG_ARENA_CLEARED, FLAG_ARENA_FLOOR, FLAG_COERCED, FLAG_COERCED_BACKOFF, FLAG_DEFEATED, FLAG_INFAMY, FLAG_KEYS, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
 import type {
   Action,
   ConcreteAction,
@@ -819,10 +820,7 @@ function doStartEncounter(state: GameState): R {
   state = spendDay(state, events)
   return {
     ok: true,
-    state: {
-      ...state,
-      encounter: { enemyId: enemy.id, hp: enemy.maxHp, maxHp: enemy.maxHp, guard: 0, focusStacks: 0, focusDamage: 0, behaviorBonus: 0, behaviorHealUsed: false, enemyTurns: 0, playerHits: 0 },
-    },
+    state: { ...state, encounter: newEncounter(enemy) },
     events: [...events, { type: 'ENCOUNTER_STARTED', enemyId: enemy.id }],
   }
 }
@@ -837,18 +835,15 @@ function doArenaChallenge(state: GameState): R {
   if (state.encounter !== null) return err('ITEM_UNAVAILABLE')
   if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION')
   const cleared = flagNum(state.flags, FLAG_ARENA_FLOOR)
-  if (cleared >= ARENA_FLOOR_COUNT) return err('NOT_AT_LOCATION')
+  if (cleared >= ARENA_FLOOR_COUNT) return err('ARENA_CLOSED')
   const enemy = arenaEnemyForFloor(cleared)
-  if (enemy === undefined) return err('NOT_AT_LOCATION')
+  if (enemy === undefined) return err('ARENA_CLOSED')
   const events: GameEvent[] = []
   state = spendDay(state, events)
   const floor = enemy.arena ?? cleared + 1
   return {
     ok: true,
-    state: {
-      ...state,
-      encounter: { enemyId: enemy.id, hp: enemy.maxHp, maxHp: enemy.maxHp, guard: 0, focusStacks: 0, focusDamage: 0, behaviorBonus: 0, behaviorHealUsed: false, enemyTurns: 0, playerHits: 0 },
-    },
+    state: { ...state, encounter: newEncounter(enemy) },
     events: [...events, { type: 'ENCOUNTER_STARTED', enemyId: enemy.id }, { type: 'ARENA_CHALLENGED', floor, enemyId: enemy.id }],
   }
 }
@@ -1293,7 +1288,7 @@ function doCoerceNpc(state: GameState, npcId: string, approach: 'plunder' | 'bac
   const npc = getNpc(npcId)
   if (npc === undefined) return err('NPC_UNKNOWN')
   const def = coercionFor(npcId)
-  if (def === undefined) return err('NOT_AT_LOCATION')
+  if (def === undefined) return err('COERCION_UNAVAILABLE')
   if (state.player.locationId !== npc.locationId) return err('NPC_NOT_HERE')
   if (state.encounter !== null) return err('ITEM_UNAVAILABLE')
   const affKey = FLAG_AFF(npcId)
@@ -1301,12 +1296,25 @@ function doCoerceNpc(state: GameState, npcId: string, approach: 'plunder' | 'bac
   const events: GameEvent[] = []
   state = spendDay(state, events)
   if (approach === 'back_off') {
+    // One-shot like plunder: the first restraint mends the relationship, but a
+    // threat followed by repeated "restraint" cannot farm affection — the
+    // second back-off spends its day for nothing.
+    const backedOff = state.flags[FLAG_COERCED_BACKOFF(npcId)] === true
+    const aff = backedOff ? 0 : def.backOffAff
     const affection = { ...(state.affection ?? {}) }
-    affection[npcId] = (affection[npcId] ?? 0) + def.backOffAff
+    affection[npcId] = (affection[npcId] ?? 0) + aff
     return {
       ok: true,
-      state: { ...state, affection, flags: { ...state.flags, [affKey]: flagNum(state.flags, affKey) + def.backOffAff } },
-      events: [...events, { type: 'NPC_COERCED', npcId, approach, gold: 0, itemIds: [], aff: def.backOffAff, infamy: flagNum(state.flags, FLAG_INFAMY) }],
+      state: {
+        ...state,
+        affection,
+        flags: {
+          ...state.flags,
+          [FLAG_COERCED_BACKOFF(npcId)]: true,
+          ...(backedOff ? {} : { [affKey]: flagNum(state.flags, affKey) + def.backOffAff }),
+        },
+      },
+      events: [...events, { type: 'NPC_COERCED', npcId, approach, gold: 0, itemIds: [], aff, infamy: flagNum(state.flags, FLAG_INFAMY) }],
     }
   }
   if (already) {

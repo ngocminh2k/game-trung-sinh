@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyAction, newGame, parseFreeText } from '../src/engine'
 import type { GameState } from '../src/engine'
-import { ARENA_FLOOR_COUNT, arenaFloors } from '../src/content'
+import { ARENA_FLOOR_COUNT, arenaFloors, eligibleEnemiesAt, validateAllContent } from '../src/content'
 import { navTo } from './test-utils'
 
 // A save that can actually clear tower floors: boosted body/stage/hp. Qi is
@@ -102,12 +102,27 @@ describe('Lôi Đài — sect arena tower climb (Issue #19)', () => {
     expect(state.flags['arena_cleared']).toBe(true)
     expect(topped).toBe(1)
     const closed = applyAction(state, { kind: 'arena_challenge' })
-    expect(closed.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION' }])
+    expect(closed.events).toEqual([{ type: 'ERROR', code: 'ARENA_CLOSED' }])
+  })
+
+  // HIGH-1: arena floors must not leak into the wild-spawn pool.
+  it('eligibleEnemiesAt("sect", 5) never returns an arena enemy', () => {
+    // Even at stage 5 (above all arena requiredStage caps), no arena floor
+    // appears in the pool the reducer would pick a wild encounter from.
+    const pool = eligibleEnemiesAt('sect', 5)
+    for (const enemy of pool) expect(enemy.arena, `arena leak: ${enemy.id}`).toBeUndefined()
+    // Sanity: the arena table is non-empty and all its entries carry a floor number.
+    expect(arenaFloors().length).toBeGreaterThan(0)
   })
 
   it('understands the arena in free text, both languages', () => {
     expect(parseFreeText('len loi dai thach dau')).toEqual({ ok: true, action: { kind: 'arena_challenge' } })
     expect(parseFreeText('climb the tower')).toEqual({ ok: true, action: { kind: 'arena_challenge' } })
+  })
+
+  // MEDIUM-H: retreat verb wins over the bare "tower" keyword.
+  it('retreat from the tower mid-fight stays a combat_retreat', () => {
+    expect(parseFreeText('retreat from the tower')).toEqual({ ok: true, action: { kind: 'combat_retreat' } })
   })
 })
 
@@ -153,15 +168,38 @@ describe('Cưỡng đoạt — resource coercion (Issue #19)', () => {
     expect(result.state.flags['infamy']).toBeUndefined()
   })
 
+  // HIGH-2: the mercy is one-shot — repeating back_off cannot farm affection.
+  it('a second back-off buys nothing — the grace was already spent', () => {
+    let state = navTo(newGame('coerce-backoff-twice'), 'market')
+    state = applyAction(state, { kind: 'coerce_npc', npcId: 'n_merchant_bao', approach: 'back_off' }).state
+    const dayBefore = state.day
+    const again = applyAction(state, { kind: 'coerce_npc', npcId: 'n_merchant_bao', approach: 'back_off' })
+    expect(again.events.some((e) => e.type === 'NPC_COERCED' && e.approach === 'back_off' && e.aff === 0)).toBe(true)
+    expect(again.state.affection?.['n_merchant_bao']).toBe(2)
+    expect(again.state.flags['aff_n_merchant_bao']).toBe(2)
+    // The day is still spent — hesitation has a cost even when it earns nothing.
+    expect(again.state.day).toBe(dayBefore + 1)
+  })
+
+  it('plunder after a back-off still works — the two one-shots are independent', () => {
+    let state = navTo(newGame('coerce-then-plunder'), 'market')
+    state = applyAction(state, { kind: 'coerce_npc', npcId: 'n_merchant_bao', approach: 'back_off' }).state
+    const plundered = applyAction(state, { kind: 'coerce_npc', npcId: 'n_merchant_bao', approach: 'plunder' })
+    expect(plundered.events.some((e) => e.type === 'NPC_COERCED' && e.approach === 'plunder' && e.gold === 90)).toBe(true)
+    // The mercy is wiped out by the theft.
+    expect(plundered.state.affection?.['n_merchant_bao']).toBe(0)
+    expect(plundered.state.flags['backoff_n_merchant_bao']).toBe(true)
+  })
+
   it('rejects coercion of the wrong NPC, at the wrong place, or mid-encounter', () => {
     const village = newGame('coerce-guards')
     // Unknown NPC id.
     expect(applyAction(village, { kind: 'coerce_npc', npcId: 'n_nobody', approach: 'plunder' }).events)
       .toEqual([{ type: 'ERROR', code: 'NPC_UNKNOWN' }])
-    // Known NPC, but not a defined coercion target — the reducer rejects the
-    // approach itself before even comparing locations.
+    // Known NPC, but not a defined coercion target — its own error code, not
+    // a misleading "wrong location".
     expect(applyAction(village, { kind: 'coerce_npc', npcId: 'n_tea_ma', approach: 'plunder' }).events)
-      .toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION' }])
+      .toEqual([{ type: 'ERROR', code: 'COERCION_UNAVAILABLE' }])
     // Right NPC, wrong location.
     expect(applyAction(newGame('coerce-away'), { kind: 'coerce_npc', npcId: 'n_merchant_bao', approach: 'plunder' }).events)
       .toEqual([{ type: 'ERROR', code: 'NPC_NOT_HERE' }])
@@ -178,5 +216,34 @@ describe('Cưỡng đoạt — resource coercion (Issue #19)', () => {
     // A pressure verb with no recognizable victim fails the parse. Tokens
     // here are chosen to collide with no NPC name or alias in the content.
     expect(parseFreeText('cuong doat ke an danh').ok).toBe(false)
+  })
+
+  // MEDIUM-A: the previously write-only arena_cleared / infamy flags must
+  // actually unlock achievements — a Killer who tops the tower and plunders
+  // both victims should earn both new medals.
+  it('unlocks arena_champion and notorious as the flags are set', () => {
+    let state = atSect('killer-achieve')
+    for (let floor = 1; floor <= ARENA_FLOOR_COUNT; floor += 1) {
+      const challenge = applyAction(state, { kind: 'arena_challenge' })
+      state = winFloor(challenge.state).state
+    }
+    expect(state.flags['arena_cleared']).toBe(true)
+    expect(state.achievements).toContain('arena_champion')
+    // Now plunder both coercion targets — infamy reaches 2, the notorious mark.
+    state = navTo(state, 'market')
+    state = applyAction(state, { kind: 'coerce_npc', npcId: 'n_merchant_bao', approach: 'plunder' }).state
+    state = navTo(state, 'sect')
+    state = applyAction(state, { kind: 'coerce_npc', npcId: 'n_keeper_anh', approach: 'plunder' }).state
+    expect(state.flags['infamy']).toBe(2)
+    expect(state.achievements).toContain('notorious')
+  })
+
+  // MEDIUM-I + MEDIUM-B: the new dup-floor and CoercionDefSchema checks run
+  // inside validateAllContent(). content.test.ts already asserts it is clean;
+  // re-asserting here keeps the Issue #19 validators wired to a live green run.
+  it('shipped content passes the new arena/coercion validators', () => {
+    const report = validateAllContent()
+    expect(report.errors).toEqual([])
+    expect(report.ok).toBe(true)
   })
 })

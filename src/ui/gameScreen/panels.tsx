@@ -13,6 +13,7 @@ import {
   getEquipmentByItem,
   getLocation,
 } from '../../content'
+import { FLAG_COERCED, FLAG_COERCED_BACKOFF } from '../../content/flag-keys'
 import {
   activeSystem,
   canCompleteQuest,
@@ -558,9 +559,10 @@ export function DockPanelPeople({
           <div className="npc-gallery">
             {localNpcs.map((npc) => {
               // Cưỡng đoạt (Issue #19): pressure the temperamental opposites.
-              // Plunder is one-shot per NPC per run (coerced_<id> flag).
+              // Plunder and back_off are each one-shot per NPC per run.
               const coercible = coercionFor(npc.id) !== undefined
-              const coerced = game.flags[`coerced_${npc.id}`] === true
+              const coerced = game.flags[FLAG_COERCED(npc.id)] === true
+              const backedOff = game.flags[FLAG_COERCED_BACKOFF(npc.id)] === true
               return (
                 <article className={`npc-portrait-card ${actionKind === 'talk' ? 'is-speaking' : ''}`} data-npc-id={npc.id} key={npc.id}>
                   <img alt={`${word(locale, 'Chân dung', 'Portrait of')} ${localized(locale, npc)}`} src={npcPortraitFor(npc.id)} />
@@ -590,7 +592,9 @@ export function DockPanelPeople({
                           onClick={() => { onCloseJournal(); onAction({ kind: 'coerce_npc', npcId: npc.id, approach: 'back_off' }) }}
                           type="button"
                         >
-                          {word(locale, 'Hạ tay bỏ qua', 'Back off')}
+                          {backedOff
+                            ? word(locale, 'Ân huệ đã một lần ban', 'Grace already granted')
+                            : word(locale, 'Hạ tay bỏ qua', 'Back off')}
                         </button>
                       </div>
                     )}

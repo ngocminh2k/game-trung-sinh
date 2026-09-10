@@ -17,6 +17,7 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
+import { FLAG_ARENA_FLOOR } from '../content/flag-keys'
 import { BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, nextStageThreshold, queueDrain, RETREAT_HP_COST, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
 import type { Action, Direction, GameState, Locale } from '../engine'
 import worldMapArt from '../assets/art/world-map-inkwash.png'
@@ -426,9 +427,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   // Arena tower floors live at the sect too, but they are never wild dangers —
   // they open only through the arena panel below.
   const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId && enemy.arena === undefined)
-  // Flag keys mirror flag-keys.ts; literal here matches this file's existing
-  // `defeated_${id}` convention. The pointer only moves forward on a win.
-  const arenaCleared = typeof game.flags['arena_floor'] === 'number' ? game.flags['arena_floor'] : 0
+  // The pointer only moves forward on a win; shared constant from flag-keys.
+  const arenaCleared = typeof game.flags[FLAG_ARENA_FLOOR] === 'number' ? game.flags[FLAG_ARENA_FLOOR] : 0
   const nextArenaFloor = arenaCleared < ARENA_FLOOR_COUNT ? arenaEnemyForFloor(arenaCleared) : undefined
   const knownTechniques = TECHNIQUES.filter((technique) => (game.techniques[technique.id] ?? 0) > 0)
   const encounterLocked = game.encounter !== null

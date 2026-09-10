@@ -204,6 +204,8 @@ export const ERROR_CODES = [
   'ATTRIBUTE_MAXED',
   'REGION_LOCKED',
   'SYSTEM_LOCKED',
+  'ARENA_CLOSED',
+  'COERCION_UNAVAILABLE',
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]

@@ -250,9 +250,17 @@ const TEMPLATES: Record<string, Handler> = {
   },
   ARENA_FLOOR_CLEARED: (ev, l) => {
     if (ev.type !== 'ARENA_FLOOR_CLEARED') return ''
+    // The spoils name the actual items — `itemIds` lists types, not quantities,
+    // so a count ("3 linh tài") would misreport a 2-herb + 1-wine haul.
+    const spoils = ev.itemIds.map((id) => nameOf('item', id, l)).join(l === 'vi' ? ', ' : ', ')
+    const loot = spoils.length === 0
+      ? (l === 'vi' ? `thu ${String(ev.gold)} lượng` : `seize ${String(ev.gold)} gold`)
+      : l === 'vi'
+        ? `thu ${String(ev.gold)} lượng cùng ${spoils}`
+        : `seize ${String(ev.gold)} gold and ${spoils}`
     return l === 'vi'
-      ? `Tầng ${String(ev.floor)} ngã ngũ: ${nameOf('enemy', ev.enemyId, l)} khuỵu xuống, ngươi thu ${String(ev.gold)} lượng và ${String(ev.itemIds.length)} món linh tài.`
-      : `Floor ${String(ev.floor)} settled: ${nameOf('enemy', ev.enemyId, l)} folds; you seize ${String(ev.gold)} gold and ${String(ev.itemIds.length)} spoils.`
+      ? `Tầng ${String(ev.floor)} ngã ngũ: ${nameOf('enemy', ev.enemyId, l)} khuỵu xuống, ngươi ${loot}.`
+      : `Floor ${String(ev.floor)} settled: ${nameOf('enemy', ev.enemyId, l)} folds; you ${loot}.`
   },
   ARENA_TOWER_TOPPED: (ev, l) => {
     if (ev.type !== 'ARENA_TOWER_TOPPED') return ''
@@ -263,9 +271,15 @@ const TEMPLATES: Record<string, Handler> = {
   NPC_COERCED: (ev, l) => {
     if (ev.type !== 'NPC_COERCED') return ''
     if (ev.approach === 'back_off') {
-      return l === 'vi'
-        ? `Ngươi hạ tay, bỏ qua cho ${nameOf('npc', ev.npcId, l)}; kẻ ấy nhớ một phần thể diện.`
-        : `You lower your hand and let ${nameOf('npc', ev.npcId, l)} off; they remember the mercy.`
+      // The grace is spent after the first time — the copy says so, so a
+      // repeat back-off is never narrated as earning goodwill it did not.
+      return ev.aff === 0
+        ? (l === 'vi'
+          ? `Ngươi lại hạ tay với ${nameOf('npc', ev.npcId, l)} — lòng khoan dung đã cho một lần, chẳng còn gì mới.`
+          : `You lower your hand at ${nameOf('npc', ev.npcId, l)} again — the mercy was granted once, nothing new is owed.`)
+        : (l === 'vi'
+          ? `Ngươi hạ tay, bỏ qua cho ${nameOf('npc', ev.npcId, l)}; kẻ ấy nhớ một phần thể diện.`
+          : `You lower your hand and let ${nameOf('npc', ev.npcId, l)} off; they remember the mercy.`)
     }
     if (ev.gold === 0 && ev.itemIds.length === 0) {
       return l === 'vi'
@@ -288,6 +302,12 @@ const TEMPLATES: Record<string, Handler> = {
   },
   COMBAT_WON: (ev, l) => {
     if (ev.type !== 'COMBAT_WON') return ''
+    const isArena = getEnemy(ev.enemyId)?.arena !== undefined
+    if (isArena) {
+      return l === 'vi'
+        ? `Thắng trận Lôi Đài trước ${nameOf('enemy', ev.enemyId, l)}.`
+        : `Victory on the Arena stage against ${nameOf('enemy', ev.enemyId, l)}.`
+    }
     return l === 'vi'
       ? `Hạ ${nameOf('enemy', ev.enemyId, l)}, nhận ${String(ev.rewardGold)} lượng.`
       : `Defeated ${nameOf('enemy', ev.enemyId, l)}; gained ${String(ev.rewardGold)} gold.`

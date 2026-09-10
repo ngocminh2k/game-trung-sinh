@@ -146,10 +146,10 @@ export function parseFreeText(raw: string): ParsedIntent | FailedIntent {
   if (specifiedQty === 'invalid') return { ok: false }
   const qty = specifiedQty ?? 1
 
-  if (includesAny(text, ARENA_WORDS)) return { ok: true, action: { kind: 'arena_challenge' } }
-  // Coercion only fires on an explicit pressure verb, so "xin lỗi" drifting into
-  // an unrelated sentence never hijacks another intent. Naming the victim picks
-  // plunder; an added retreat word is read as restraint (back_off).
+  // Coercion resolves before the bare combat verbs so a threat sentence that
+  // mentions backing off (e.g. "uy hiếp Bao nhưng rút lui không lấy gì") stays a
+  // coerce_npc/back_off, not a combat_retreat. The arena keyword sits after the
+  // active-fight verbs so "retreat from the tower" never becomes arena_challenge.
   if (includesAny(text, COERCE_WORDS)) {
     const npcId = findNpcIdIn(text)
     if (npcId === undefined) return { ok: false }
@@ -163,6 +163,7 @@ export function parseFreeText(raw: string): ParsedIntent | FailedIntent {
     return { ok: true, action: { kind: 'combat_attack', techniqueId: findTechniqueIdIn(text) } }
   }
   if (includesAny(text, DEFEND_WORDS)) return { ok: true, action: { kind: 'combat_defend' } }
+  if (includesAny(text, ARENA_WORDS)) return { ok: true, action: { kind: 'arena_challenge' } }
   if (includesAny(text, EQUIP_WORDS)) {
     const itemId = findItemIdIn(text)
     if (itemId !== undefined) return { ok: true, action: { kind: 'equip_item', itemId } }

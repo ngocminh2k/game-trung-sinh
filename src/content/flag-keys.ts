@@ -18,6 +18,9 @@ export const FLAG_ARENA_FLOOR = 'arena_floor'
 export const FLAG_ARENA_CLEARED = 'arena_cleared'
 /** One-shot guard for a NPC plunder, so a Killer cannot farm the same victim. */
 export const FLAG_COERCED = (npcId: string): string => `coerced_${npcId}`
+/** One-shot guard for the restraint branch: backing off once mends the
+ *  relationship, backing off again buys nothing (so affection cannot be farmed). */
+export const FLAG_COERCED_BACKOFF = (npcId: string): string => `backoff_${npcId}`
 /** Infamy counter — number of NPCs the player has coerced/plundered. */
 export const FLAG_INFAMY = 'infamy'
 
@@ -41,6 +44,9 @@ export const FLAG_KEYS = [
   'defeated',
   'retreated',
   'reached',
+  'arena_floor',
+  'arena_cleared',
+  'infamy',
 ] as const
 
 export type FlagKey = (typeof FLAG_KEYS)[number]

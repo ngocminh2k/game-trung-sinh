@@ -1,4 +1,5 @@
 import type { EnemyDef, EquipmentDef, Element, TalentDef, TechniqueDef } from '../engine/content-types'
+import type { EncounterState } from '../engine/types'
 
 // These tables are content-only: the reducer stores stable ids, so new content
 // can be appended without rewriting a player's deterministic save.
@@ -1272,10 +1273,32 @@ export const ARENA_FLOOR_COUNT = arenaFloors().length
 // stage can survive may spawn (requiredStage filter). The reducer picks a
 // deterministic index from this pool; the UI reads the same pool. Boss
 // story-flag gating (EnemyDef.requiredFlag) is queued for the W6 engine pass.
+// Arena floors are excluded — like `enemyAt`, the tower is opened only through
+// `arena_challenge`, never by a wild spawn that would skip the ladder.
 export function eligibleEnemiesAt(locationId: string, stage: number): EnemyDef[] {
   return ENEMIES.filter(
-    (enemy) => enemy.locationId === locationId && stage >= (enemy.requiredStage ?? 0),
+    (enemy) =>
+      enemy.locationId === locationId &&
+      enemy.arena === undefined &&
+      stage >= (enemy.requiredStage ?? 0),
   )
+}
+
+// Fresh encounter state for a chosen enemy, shared by `start_encounter` and
+// `arena_challenge` so the two openers cannot drift on the initial fields.
+export function newEncounter(enemy: EnemyDef): EncounterState {
+  return {
+    enemyId: enemy.id,
+    hp: enemy.maxHp,
+    maxHp: enemy.maxHp,
+    guard: 0,
+    focusStacks: 0,
+    focusDamage: 0,
+    behaviorBonus: 0,
+    behaviorHealUsed: false,
+    enemyTurns: 0,
+    playerHits: 0,
+  }
 }
 
 // ── W6 combat-depth pure helpers ─────────────────────────────────────────────

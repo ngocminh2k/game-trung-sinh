@@ -14,6 +14,7 @@ import {
   EquipmentDefSchema,
   TalentDefSchema,
   TechniqueDefSchema,
+  CoercionDefSchema,
 } from '../engine/schema'
 import { ACHIEVEMENTS } from './achievements-data'
 import { BEATS, BEAT_PREDICATE_IDS } from './beats-data'
@@ -24,7 +25,7 @@ import { RECIPES } from './refinement'
 import { CELLS, isPassable, LOCATIONS, MAP_HEIGHT, MAP_WIDTH, REGION_MAPS } from './locations'
 import { NPCS } from './npcs'
 import { QUESTS } from './quests'
-import { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from './rpg'
+import { ARENA_FLOOR_COUNT, ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from './rpg'
 import { COERCIONS } from './killer'
 import { STORY_SCENES } from './story'
 import { SYSTEMS, systemById } from './system-defs'
@@ -70,11 +71,13 @@ export {
   TECHNIQUES,
   arenaEnemyForFloor,
   arenaFloors,
+  eligibleEnemiesAt,
   enemyAt,
   getEnemy,
   getEquipmentByItem,
   getTalent,
   getTechnique,
+  newEncounter,
 } from './rpg'
 export { COERCIONS, coercionFor } from './killer'
 
@@ -212,22 +215,39 @@ export function validateAllContent(): ContentValidationReport {
       errors.push(`ITEMS: technique ${item.teachesTechniqueId} missing`)
     }
   }
+  const arenaFloorsSeen = new Set<number>()
   for (const enemy of ENEMIES) {
     if (!locationIds.has(enemy.locationId)) errors.push(`ENEMIES: ${enemy.id} at unknown location`)
     for (const itemId of Object.keys(enemy.rewardItems)) {
       if (!itemIds.has(itemId)) errors.push(`ENEMIES: reward item ${itemId} missing`)
     }
-    if (enemy.arena !== undefined && enemy.arena !== 1 && !ENEMIES.some((other) => other.arena === enemy.arena! - 1)) {
-      errors.push(`ENEMIES: arena floor ${enemy.id} has no floor below it`)
+    if (enemy.arena !== undefined) {
+      // A duplicate floor number would make arenaEnemyForFloor return the
+      // wrong warden; a number outside 1..N leaves a gap the ladder can never
+      // climb past. Both must be content errors, not silent gameplay traps.
+      if (arenaFloorsSeen.has(enemy.arena)) errors.push(`ENEMIES: arena floor ${enemy.arena} claimed twice (${enemy.id})`)
+      arenaFloorsSeen.add(enemy.arena)
+      if (enemy.arena < 1 || enemy.arena > ARENA_FLOOR_COUNT) {
+        errors.push(`ENEMIES: ${enemy.id} arena floor ${enemy.arena} outside 1..${ARENA_FLOOR_COUNT}`)
+      } else if (enemy.arena !== 1 && !ENEMIES.some((other) => other.arena === enemy.arena! - 1)) {
+        errors.push(`ENEMIES: arena floor ${enemy.id} has no floor below it`)
+      }
     }
   }
   // Issue #19 acceptance: at least one resource-plunder coercion choice must
   // exist, and every coercion must point at a real NPC with real loot.
   if (COERCIONS.length < 1) errors.push('COERCIONS: at least one coercion target is required')
-  for (const coercion of COERCIONS) {
-    if (!npcIds.has(coercion.npcId)) errors.push(`COERCIONS: unknown npc ${coercion.npcId}`)
-    for (const itemId of Object.keys(coercion.stealItems)) {
-      if (!itemIds.has(itemId)) errors.push(`COERCIONS: steal item ${itemId} missing`)
+  const coercionResult = z.array(CoercionDefSchema).min(1).safeParse(COERCIONS)
+  if (!coercionResult.success) {
+    for (const issue of coercionResult.error.issues) {
+      errors.push(`COERCIONS: ${issue.path.join('.')}: ${issue.message}`)
+    }
+  } else {
+    for (const coercion of COERCIONS) {
+      if (!npcIds.has(coercion.npcId)) errors.push(`COERCIONS: unknown npc ${coercion.npcId}`)
+      for (const itemId of Object.keys(coercion.stealItems)) {
+        if (!itemIds.has(itemId)) errors.push(`COERCIONS: steal item ${itemId} missing`)
+      }
     }
   }
   for (const b of BEATS) {
