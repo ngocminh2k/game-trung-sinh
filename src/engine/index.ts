@@ -90,6 +90,10 @@ export function validateGameState(state: unknown): GameState {
   return parseGameState(state)
 }
 
+// Issue 8: the UI load path (parseSession) routes saves through migration
+// before validation so pre-version saves survive the schema's version gate.
+export { migrateGameState, migrate } from './migration'
+
 export type {
   Action,
   AttributeName,
