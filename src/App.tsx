@@ -25,6 +25,8 @@ import {
   type SlotId,
 } from './ui/session'
 import { soundEngine } from './ui/audio/soundEngine'
+import { closeRun, saveFeedback, startRun, recordStep, type PlaytestSurvey } from './ui/playtest'
+import { PlaytestSurveyCard } from './ui/PlaytestSurveyCard'
 import './ui/screens.css'
 
 function browserStorage(): SessionStorage {
@@ -160,6 +162,15 @@ function App() {
   const [pendingSlot, setPendingSlot] = useState<SlotId | null>(null)
   const [runDifficulty, setRunDifficulty] = useState<GameDifficulty>(settings.difficulty)
   const sessionRef = useRef<GameSession | null>(null)
+  // Playtest telemetry (issue #20): one log per play session, keyed to a random
+  // id so the ending-screen survey can be joined back to its journey.
+  const [telemetryId, setTelemetryId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (phase !== 'playing' || sessionRef.current === null) return
+    const local = browserStorage()
+    setTelemetryId(startRun(local, sessionRef.current.game, sessionRef.current.locale).id)
+  }, [phase])
 
   useEffect(() => {
     sessionRef.current = session
@@ -245,6 +256,9 @@ function App() {
     sessionRef.current = next
     if (activeSlot !== null && shouldAutoSave(previous.game, result.state)) saveSlot(browserStorage(), activeSlot, next)
     setSession(next)
+    const local = browserStorage()
+    if (telemetryId !== null) recordStep(local, telemetryId, result.state, action.kind)
+    if (result.state.terminal && telemetryId !== null) closeRun(local, telemetryId, result.state)
     const opensStory = result.events.some((event) => event.type === 'TALKED' || (event.type === 'NODE_REACHED' && event.kind === 'event'))
     const bootScene = currentStoryScene(previous.game).id
     const resolvesSystemBoot = action.kind === 'story_choice'
@@ -286,7 +300,7 @@ function App() {
       sessionRef.current = narrated
       setSession(narrated)
     })
-  }, [activeSlot])
+  }, [activeSlot, telemetryId])
 
   useEffect(() => {
     const movement: Record<string, Action> = { ArrowUp: { kind: 'move', direction: 'north' }, w: { kind: 'move', direction: 'north' }, ArrowDown: { kind: 'move', direction: 'south' }, s: { kind: 'move', direction: 'south' }, ArrowLeft: { kind: 'move', direction: 'west' }, a: { kind: 'move', direction: 'west' }, ArrowRight: { kind: 'move', direction: 'east' }, d: { kind: 'move', direction: 'east' } }
@@ -331,6 +345,10 @@ function App() {
     setPhase('loading')
   }, [])
 
+  const submitSurvey = useCallback((survey: PlaytestSurvey) => {
+    saveFeedback(browserStorage(), survey)
+  }, [])
+
   const hasSave = Object.keys(slots).length > 0
 
   if (phase === 'menu') return <MainMenu
@@ -355,6 +373,9 @@ function App() {
   return <>
     {storyOpen && <div className="story-backdrop" onClick={() => setStoryOpen(false)} aria-hidden="true" />}
     <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} />
+    {session.game.terminal && telemetryId !== null && (
+      <PlaytestSurveyCard game={session.game} locale={session.locale} runId={telemetryId} onSubmit={submitSurvey} />
+    )}
   </>
 }
 
