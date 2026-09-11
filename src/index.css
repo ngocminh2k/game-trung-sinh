@@ -8,6 +8,20 @@
   --vermilion: #9d3e2e;
   --gold: #d9a441;
   --paper: #e5dccb;
+  /* Art Bible (issue #16): the three source styles were produced at different
+     intensities — measured mean saturation: locations ~0.35, NPC paintings
+     ~0.28, item/talent illustrations ~0.18. These multipliers pull every
+     rendered art surface toward the dó-paper tone so the styles read as one
+     hand. --art-grain is the paper-fibre overlay (SVG feTurbulence data-URI);
+     the high-contrast query below empties it. */
+  --sat-item: 0.92;
+  --sat-npc: 0.84;
+  --sat-location: 0.74;
+  --art-frame: rgba(40, 63, 47, 0.34);
+  --art-radius: 4px;
+  --art-bleed: inset 0 0 14px rgba(24, 37, 31, 0.13);
+  --art-paper: #ddd4ba;
+  --art-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.05'/%3E%3C/svg%3E");
   color: var(--ink);
   background: var(--paper);
   font-family: Spectral, 'Noto Serif', Georgia, serif;
@@ -351,3 +365,53 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
 @media (max-width:700px){.codex-endings-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @keyframes chronicle-arrive{0%{opacity:0;background:rgba(62,142,109,.14)}100%{opacity:1;background:transparent}}
 @media (prefers-reduced-motion:reduce){.day-stamp{animation:none!important;opacity:1!important;transform:rotate(-6deg)}.meter-delta{animation:none!important}.meter.delta-up .meter-track i,.meter.delta-down .meter-track i,.chronicle li.is-new{animation:none!important}}
+
+/* ── Art Bible (issue #16) ─────────────────────────────────────────────
+   WebP art arrives from three authors at three intensities. This layer —
+   not the files — reconciles them: per-family desaturation toward the dó-
+   paper tone, one shared ink-wash frame for every art surface, and a
+   paper-fibre grain so painted edges sit on "paper" instead of raw
+   crops. Player art keeps its existing multiply treatment untouched. */
+.item-art-thumb,
+.rpg-entry.art-entry>img,
+.codex-panel__entries img,
+.inventory-inspector-art{
+  filter:saturate(var(--sat-item));
+  border:1px solid var(--art-frame);
+  border-radius:var(--art-radius);
+  box-shadow:var(--art-bleed);
+  background-color:var(--art-paper);
+}
+.npc-portrait-card>img{
+  filter:saturate(var(--sat-npc));
+  border:1px solid var(--art-frame);
+  border-radius:var(--art-radius);
+  box-shadow:var(--art-bleed);
+  background-color:var(--art-paper);
+}
+.npc-ensemble-art{filter:saturate(var(--sat-npc))}
+/* Still-life strips are painted as scene material, so they take the location
+   token, not the item one. */
+.item-collection-art{
+  filter:saturate(var(--sat-location));
+  border-color:var(--art-frame);
+  border-radius:var(--art-radius);
+  box-shadow:var(--art-bleed);
+  background-color:var(--art-paper);
+}
+.scene-backdrop{border-color:var(--art-frame)}
+.scene-backdrop img{filter:saturate(var(--sat-location))}
+.world-map-art{filter:saturate(var(--sat-location))}
+/* Exit pins render at ~42px; the location token over-flattens them, so they
+   keep the milder item token to stay legible. */
+.map-exit-icon{filter:saturate(var(--sat-item))}
+
+.protagonist-portrait{position:relative}
+.protagonist-portrait::after{position:absolute;inset:0;pointer-events:none;background:var(--art-grain);content:''}
+/* The scene ::after already carries the two-edge scrim, so grain is layered on
+   top of it as the first background image instead of replacing it. */
+.scene-backdrop::after{background:var(--art-grain),linear-gradient(90deg,rgba(22,48,36,.2),transparent 58%,rgba(255,245,211,.12))}
+/* After the shorthands: `background` would reset the repeat. */
+.protagonist-portrait::after,.scene-backdrop::after{background-repeat:repeat}
+
+@media (prefers-contrast:more){:root{--art-grain:none}}

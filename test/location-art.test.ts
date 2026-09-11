@@ -15,14 +15,14 @@ describe('Scenario I location art registry', () => {
 
     for (const location of LOCATIONS) {
       expect(hasLocationBackdrop(location.id)).toBe(true)
-      expect(locationBackdropFor(location.id)).toMatch(/\.png$/)
+      expect(locationBackdropFor(location.id)).toMatch(/\.webp$/)
     }
   })
 
   it('registers one destination badge for every playable Scenario I location', () => {
     for (const location of LOCATIONS) {
       expect(hasLocationIcon(location.id)).toBe(true)
-      expect(locationIconFor(location.id)).toMatch(/\.png$/)
+      expect(locationIconFor(location.id)).toMatch(/\.webp$/)
     }
   })
 

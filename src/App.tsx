@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, storyRouteEncounter } from './engine'
+import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, readDeathCause, storyRouteEncounter } from './engine'
 import type { Action, GameDifficulty, GameEvent, GameState, Locale } from './engine'
 import { ENDINGS } from './content'
 import { requestNarration } from './ai/narration'
@@ -25,6 +25,8 @@ import {
   type SlotId,
 } from './ui/session'
 import { soundEngine } from './ui/audio/soundEngine'
+import { closeRun, saveFeedback, startRun, recordStep, type PlaytestSurvey } from './ui/playtest'
+import { PlaytestSurveyCard } from './ui/PlaytestSurveyCard'
 import './ui/screens.css'
 
 function browserStorage(): SessionStorage {
@@ -35,12 +37,13 @@ function browserStorage(): SessionStorage {
   }
 }
 
-function freshSession(locale: Locale = 'vi', options: { systemId?: string | null; difficulty?: GameDifficulty } = {}): GameSession {
+function freshSession(locale: Locale = 'vi', options: { systemId?: string | null; difficulty?: GameDifficulty; legacyCause?: string | null } = {}): GameSession {
   // Pre-menu new games carry the System pick straight into the state and open
   // on the first authored scene — no boot-story actions, no days spent.
-  const game = options.systemId === undefined
-    ? newGame(DEFAULT_SEED)
-    : newGame(DEFAULT_SEED, { systemId: options.systemId, difficulty: options.difficulty ?? 'balanced', storyScene: 'letter_at_dawn' })
+  const { legacyCause, ...gameOptions } = options
+  const game = gameOptions.systemId === undefined
+    ? newGame(DEFAULT_SEED, { legacyCause })
+    : newGame(DEFAULT_SEED, { ...gameOptions, storyScene: 'letter_at_dawn', legacyCause })
   return {
     game,
     locale,
@@ -168,6 +171,15 @@ function App() {
   const [pendingSlot, setPendingSlot] = useState<SlotId | null>(null)
   const [runDifficulty, setRunDifficulty] = useState<GameDifficulty>(settings.difficulty)
   const sessionRef = useRef<GameSession | null>(null)
+  // Playtest telemetry (issue #20): one log per play session, keyed to a random
+  // id so the ending-screen survey can be joined back to its journey.
+  const [telemetryId, setTelemetryId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (phase !== 'playing' || sessionRef.current === null) return
+    const local = browserStorage()
+    setTelemetryId(startRun(local, sessionRef.current.game, sessionRef.current.locale).id)
+  }, [phase])
 
   useEffect(() => {
     sessionRef.current = session
@@ -250,6 +262,9 @@ function App() {
     sessionRef.current = next
     if (activeSlot !== null && shouldAutoSave(previous.game, result.state)) saveSlot(browserStorage(), activeSlot, next)
     setSession(next)
+    const local = browserStorage()
+    if (telemetryId !== null) recordStep(local, telemetryId, result.state, action.kind)
+    if (result.state.terminal && telemetryId !== null) closeRun(local, telemetryId, result.state)
     const opensStory = result.events.some((event) => event.type === 'TALKED' || (event.type === 'NODE_REACHED' && event.kind === 'event'))
     const bootScene = currentStoryScene(previous.game).id
     const resolvesSystemBoot = action.kind === 'story_choice'
@@ -291,7 +306,7 @@ function App() {
       sessionRef.current = narrated
       setSession(narrated)
     })
-  }, [activeSlot])
+  }, [activeSlot, telemetryId])
 
   useEffect(() => {
     const movement: Record<string, Action> = { ArrowUp: { kind: 'move', direction: 'north' }, w: { kind: 'move', direction: 'north' }, ArrowDown: { kind: 'move', direction: 'south' }, s: { kind: 'move', direction: 'south' }, ArrowLeft: { kind: 'move', direction: 'west' }, a: { kind: 'move', direction: 'west' }, ArrowRight: { kind: 'move', direction: 'east' }, d: { kind: 'move', direction: 'east' } }
@@ -325,13 +340,18 @@ function App() {
 
   const restart = useCallback(() => {
     if (sessionRef.current === null) return
-    const fresh = freshSession(sessionRef.current.locale)
+    // Positive Failure: the fallen life's cause is stamped on its flags; the
+    // reborn run reads it back and inherits one attribute point of hard-won
+    // experience. A fresh boot (no death recorded) inherits nothing.
+    const fresh = freshSession(sessionRef.current.locale, {
+      legacyCause: readDeathCause(sessionRef.current.game),
+    })
     sessionRef.current = fresh
     setSession(fresh)
     setPhase('loading')
   }, [])
 
-  // Leaving a run clears the resume marker (F5 lands on the menu again) but
+// Leaving a run clears the resume marker (F5 lands on the menu again) but
   // keeps the slot itself — Load Game can pick the run back up.
   const exitToMenu = useCallback(() => {
     if (typeof window !== 'undefined') setActiveSlot(browserStorage(), null)
@@ -339,6 +359,10 @@ function App() {
     sessionRef.current = null
     setSession(null)
     setPhase('menu')
+  }, [])
+
+  const submitSurvey = useCallback((survey: PlaytestSurvey) => {
+    saveFeedback(browserStorage(), survey)
   }, [])
 
   const hasSave = Object.keys(slots).length > 0
@@ -365,6 +389,9 @@ function App() {
   return <>
     {storyOpen && <div className="story-backdrop" onClick={() => setStoryOpen(false)} aria-hidden="true" />}
     <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} onExitToMenu={exitToMenu} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} />
+    {session.game.terminal && telemetryId !== null && (
+      <PlaytestSurveyCard game={session.game} locale={session.locale} runId={telemetryId} onSubmit={submitSurvey} />
+    )}
   </>
 }
 

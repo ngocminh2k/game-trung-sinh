@@ -11,6 +11,7 @@ import {
   getTechnique,
   getStoryScene,
 } from '../content'
+import { describeDeath } from '../content/death-legacy'
 import type { GameEvent, Locale } from './types'
 
 type Handler = (ev: GameEvent, locale: Locale) => string
@@ -31,10 +32,15 @@ function nameOf(kind: 'item' | 'npc' | 'quest' | 'talent' | 'technique' | 'enemy
   return localizedName(ENDINGS.find((ending) => ending.id === id), id, locale)
 }
 
+// One naming source for death causes: the classifier that owns them
+// (content/death-legacy). qi_deviation has no subject there, so it keeps its
+// prose name here; DAMAGED's bare locationId falls through to the location.
 function causeName(cause: string, locale: Locale): string {
-  const location = getLocation(cause.replace(/^danger:/, ''))
-  if (location !== undefined) return localizedName(location, cause, locale)
   if (cause === 'qi_deviation') return locale === 'vi' ? 'tẩu hỏa nhập ma' : 'qi deviation'
+  const subject = describeDeath(cause, locale).subject
+  if (subject !== '') return subject
+  const location = getLocation(cause)
+  if (location !== undefined) return localizedName(location, cause, locale)
   return cause
 }
 
@@ -282,13 +288,13 @@ const TEMPLATES: Record<string, Handler> = {
     if (ev.type !== 'DAMAGED') return ''
     return l === 'vi'
       ? `Ngươi chịu ${String(ev.amount)} sát thương từ ${causeName(ev.source, l)}.`
-      : `You take ${String(ev.amount)} damage from the ${ev.source}.`
+      : `You take ${String(ev.amount)} damage from ${causeName(ev.source, l)}.`
   },
   DEATH: (ev, l) => {
     if (ev.type !== 'DEATH') return ''
     return l === 'vi'
       ? `Trước mắt ngươi tối dần. ${causeName(ev.cause, l)} đã khép lại kiếp này.`
-      : `Your vision fades. Cause: ${ev.cause}. This life ends here.`
+      : `Your vision fades. ${causeName(ev.cause, l)} has closed this life.`
   },
   ACHIEVEMENT_UNLOCKED: (ev, l) => {
     if (ev.type !== 'ACHIEVEMENT_UNLOCKED') return ''

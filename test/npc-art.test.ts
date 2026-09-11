@@ -9,7 +9,7 @@ describe('NPC art registry', () => {
     // Every NPC (core or world cultivator) renders a real PNG; world NPCs may
     // use the truthful ensemble fallback (CONTENT-02), never a missing asset.
     for (const npc of NPCS) {
-      expect(npcPortraitFor(npc.id)).toMatch(/\.png$/)
+      expect(npcPortraitFor(npc.id)).toMatch(/\.webp$/)
     }
 
     // Every registered portrait key maps to a real NPC — no stale entries.

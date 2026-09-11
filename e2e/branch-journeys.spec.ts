@@ -54,7 +54,7 @@ test.describe('T13 branch journeys: every road reaches an ending screen', () => 
     await openGame(page, bootedGame('branch-mercy', (game) => ({
       ...game,
       rememberedNames: ['Hà', 'Ngô', 'Mai Hoa'],
-      flags: { ...game.flags, story_scene: 'last_page', story_mercy: 3, story_khoa_trusted: true },
+      flags: { ...game.flags, story_scene: 'scene_ascension', story_mercy: 3, story_khoa_trusted: true },
     })))
     await clickStoryChoice(page, /give the choice/i)
     const banner = page.locator('.ending-banner')
@@ -69,7 +69,7 @@ test.describe('T13 branch journeys: every road reaches an ending screen', () => 
   test('path road: open_last_page with truth lands on Rootless Star', async ({ page }) => {
     await openGame(page, bootedGame('branch-path', (game) => ({
       ...game,
-      flags: { ...game.flags, story_scene: 'last_page', story_truth: 3 },
+      flags: { ...game.flags, story_scene: 'scene_ascension', story_truth: 3 },
     })))
     await clickStoryChoice(page, /open the mirror/i)
     const banner = page.locator('.ending-banner')
@@ -80,7 +80,7 @@ test.describe('T13 branch journeys: every road reaches an ending screen', () => 
   test('blade road: open_last_page with power lands on Borrowed Face', async ({ page }) => {
     await openGame(page, bootedGame('branch-blade', (game) => ({
       ...game,
-      flags: { ...game.flags, story_scene: 'last_page', story_power: 3 },
+      flags: { ...game.flags, story_scene: 'scene_ascension', story_power: 3 },
     })))
     await clickStoryChoice(page, /open the mirror/i)
     const banner = page.locator('.ending-banner')
@@ -114,9 +114,12 @@ test.describe('T13 branch journeys: every road reaches an ending screen', () => 
     await clickStoryChoice(page, /record ha|chép lời hà/i)
     await expect(page.getByTestId('game-screen')).toBeVisible()
 
-    // Sect trial: expose_vo — mirror: confess — last page: open.
+    // Sect trial: expose_vo — mirror: confess — then the climb: last_page →
+    // the mercy road (the boot chose it) → chapter 7 → chapter 8 → open.
     await clickStoryChoice(page, /read ha|đưa lời hà/i)
     await clickStoryChoice(page, /tell khoa|nói sự thật/i)
+    await clickStoryChoice(page, /MERCY road|đường MINH/i)
+    await clickStoryChoice(page, /by his true name|gọi đúng tên/i)
     await clickStoryChoice(page, /open the mirror|mở gương/i)
 
     const banner = page.locator('.ending-banner')

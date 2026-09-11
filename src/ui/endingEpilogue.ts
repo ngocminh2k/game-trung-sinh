@@ -17,6 +17,7 @@ const OUTCOME: Record<string, { vi: string; en: string }> = {
   blank_page: { vi: 'Ngọn lửa ăn hết mặt gương, nhưng không ăn hết lời hứa. Một con đường mới mở ra, không có tiên tri đi trước để dọn sẵn.', en: 'The fire consumes the mirror but not the promise. A new road opens, with no prophecy walking ahead to clear it.' },
   quiet_harmony: { vi: 'Ngươi rời đi khi trời sáng. Sự bình yên này mỏng, nhưng lần đầu tiên nó được chọn chứ không bị áp xuống.', en: 'You leave at dawn. This peace is thin, but for the first time it is chosen instead of imposed.' },
   tragic_death: { vi: 'Kiếp này khép lại ở một ngã rẽ dang dở. Những người còn sống vẫn mang theo dấu lựa chọn ngươi đã làm.', en: 'This life closes at an unfinished turning. Those still living carry the mark of the choices you made.' },
+  nameless_ascension: { vi: 'Khung sáng tắt. Hai trăm cái tên được gọi lại một lần nữa, rồi cả đỉnh Mây chỉ còn là đá và gió — không còn ký chủ, không còn phần thưởng, không còn ai đứng trên ngươi.', en: 'The lit frame goes dark. Two hundred names are called back once more, and then Cloud Peak is only stone and wind — no host, no reward, no one standing above you.' },
 }
 
 export function endingEpilogue(game: GameState, locale: Locale): string[] {

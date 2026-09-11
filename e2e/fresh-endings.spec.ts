@@ -135,6 +135,10 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /nói sự thật|tell khoa/i)
     await waitForMapReady(page)
 
+    // Issue #15 climb: last_page → the mercy road → chapter 7 → chapter 8.
+    await clickChoice(page, /MERCY road|đường MINH/i)
+    await clickChoice(page, /fading spirit|đứng trước vong hồn/i)
+
     // Last page: open_last_page
     await clickChoice(page, /mở gương|open the mirror/i)
 
@@ -171,6 +175,10 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     // Mirror choice: confess
     await clickChoice(page, /nói sự thật|tell khoa/i)
 
+    // Issue #15 climb: last_page → the mercy road → chapter 7 → chapter 8.
+    await clickChoice(page, /MERCY road|đường MINH/i)
+    await clickChoice(page, /true name|gọi đúng tên/i)
+
     // Last page: share_last_page
     await clickChoice(page, /đưa quyết định|give the choice/i)
 
@@ -203,6 +211,10 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
 
     await clickChoice(page, /nhập ký ức|merge with the past/i) // inherit_self
 
+    // Issue #15 climb: the mercy road (boot branch) → chapter 7 → chapter 8.
+    await clickChoice(page, /MERCY road|đường MINH/i)
+    await clickChoice(page, /halt the trial|chấm dừng phép thử/i)
+
     await clickChoice(page, /mở gương|open the mirror/i) // open_last_page
 
     const endingText = await waitForEnding(page)
@@ -234,6 +246,10 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
 
     await clickChoice(page, /nói sự thật|tell khoa/i) // confess
 
+    // Issue #15 climb: the mercy road (boot branch) → chapter 7 → chapter 8.
+    await clickChoice(page, /MERCY road|đường MINH/i)
+    await clickChoice(page, /fading spirit|đứng trước vong hồn/i)
+
     await clickChoice(page, /mở gương|open the mirror/i)
 
     const endingText = await waitForEnding(page)
@@ -259,6 +275,9 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /phá một góc|break part of the seal/i) // free_ha (cave_witness)
     await clickChoice(page, /giữ gương kín|keep the mirror sealed/i) // keep_seal
     await clickChoice(page, /xóa tên mình|erase your name/i) // leave_blank (mirror_choice)
+    // Issue #15 climb: the mercy road (boot branch) → chapter 7 → chapter 8.
+    await clickChoice(page, /MERCY road|đường MINH/i)
+    await clickChoice(page, /halt the trial|chấm dừng phép thử/i)
     await clickChoice(page, /mở gương|open the mirror/i) // open_last_page: no truth/power/wealth → iron_lantern
 
     const endingText = await waitForEnding(page)
@@ -287,6 +306,10 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
 
     await clickChoice(page, /nhập ký ức|merge with the past/i) // inherit_self
 
+    // Issue #15 climb: the mercy road (boot branch) → chapter 7 → chapter 8.
+    await clickChoice(page, /MERCY road|đường MINH/i)
+    await clickChoice(page, /true name|gọi đúng tên/i)
+
     await clickChoice(page, /mở gương|open the mirror/i)
 
     const endingText = await waitForEnding(page)
@@ -313,6 +336,9 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /phá một góc|break part of the seal/i) // free_ha
     await clickChoice(page, /giữ gương kín|keep the mirror sealed/i) // keep_seal
     await clickChoice(page, /nói sự thật|tell khoa/i) // confess
+    // Issue #15 climb: the mercy road (boot branch) → chapter 7 → chapter 8.
+    await clickChoice(page, /MERCY road|đường MINH/i)
+    await clickChoice(page, /fading spirit|đứng trước vong hồn/i)
     await clickChoice(page, /đưa quyết định|give the choice/i) // share_last_page
 
     const endingText = await waitForEnding(page)

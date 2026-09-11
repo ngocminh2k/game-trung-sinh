@@ -145,7 +145,7 @@ test('GATE-04 reload immediately before an ending still reaches that ending', as
     page,
     freshGame((game) => ({
       ...game,
-      flags: { ...game.flags, story_scene: 'last_page', story_truth: 3 },
+      flags: { ...game.flags, story_scene: 'scene_ascension', story_truth: 3 },
     })),
   )
   // We are parked on the terminal choice scene; the panel opens on Talk.
