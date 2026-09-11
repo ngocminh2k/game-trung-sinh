@@ -7,6 +7,7 @@ import {
   getNpc,
   getRecipe,
   getQuest,
+  getSkillNode,
   getTalent,
   getTechnique,
   getStoryScene,
@@ -36,6 +37,19 @@ function causeName(cause: string, locale: Locale): string {
   if (location !== undefined) return localizedName(location, cause, locale)
   if (cause === 'qi_deviation') return locale === 'vi' ? 'tẩu hỏa nhập ma' : 'qi deviation'
   return cause
+}
+
+const WEATHER_DESC: Record<string, { vi: string; en: string }> = {
+  quang: { vi: 'Trời quang đãng, gió mát.', en: 'Clear skies, a cool breeze.' },
+  mua: { vi: 'Mưa lất phất làm ẩm đường đất.', en: 'Gentle rain wets the earthen paths.' },
+  suong: { vi: 'Sương mù giăng kín lối đi.', en: 'Dense mist veils the mountain trails.' },
+  bao: { vi: 'Mây đen cuồn cuộn, sấm chớp rền vang.', en: 'Storm clouds churn; thunder rumbles across the peaks.' },
+}
+
+function weatherFlavor(weather: { season: string; kind: string; id: string }, locale: Locale): string {
+  const desc = WEATHER_DESC[weather.kind]
+  if (desc === undefined) return ''
+  return locale === 'vi' ? desc.vi : desc.en
 }
 
 export const FALLBACK_TEXT: Record<Locale, string> = {
@@ -75,7 +89,11 @@ const TEMPLATES: Record<string, Handler> = {
   },
   DAY_PASSED: (ev, l) => {
     if (ev.type !== 'DAY_PASSED') return ''
-    return l === 'vi' ? `Trời sang ngày ${String(ev.day)}.` : `Day ${String(ev.day)} dawns.`
+    const dayLine = l === 'vi' ? `Trời sang ngày ${String(ev.day)}.` : `Day ${String(ev.day)} dawns.`
+    if (ev.weather === undefined) return dayLine
+    // Issue 6: the stamped weather voices the season/sky; pure from the event.
+    const flavor = weatherFlavor(ev.weather, l)
+    return flavor === '' ? dayLine : `${dayLine} ${flavor}`
   },
   RESTED: (_ev, l) =>
     l === 'vi'
@@ -238,6 +256,16 @@ const TEMPLATES: Record<string, Handler> = {
     if (ev.type !== 'EQUIPPED') return ''
     return l === 'vi' ? `Trang bị ${nameOf('item', ev.itemId, l)}.` : `Equipped ${nameOf('item', ev.itemId, l)}.`
   },
+  // Issue 5: skill-tree unlocks voice the node's name so the player hears the
+  // choice they made (fallback to the raw node id for forward-compat nodes).
+  SKILL_UNLOCKED: (ev, l) => {
+    if (ev.type !== 'SKILL_UNLOCKED') return ''
+    const node = getSkillNode(ev.nodeId)
+    const name = l === 'vi' ? (node?.nameVi ?? ev.nodeId) : (node?.nameEn ?? ev.nodeId)
+    return l === 'vi'
+      ? `Ngươi lĩnh ngộ “${name}” — tốn ${String(ev.skillPointsSpent)} điểm kỹ năng.`
+      : `You unlock “${name}” — ${String(ev.skillPointsSpent)} skill point(s) spent.`
+  },
   ENCOUNTER_STARTED: (ev, l) => {
     if (ev.type !== 'ENCOUNTER_STARTED') return ''
     return l === 'vi' ? `Có kẻ chặn đường: ${nameOf('enemy', ev.enemyId, l)}.` : `An enemy blocks your path: ${nameOf('enemy', ev.enemyId, l)}.`
@@ -252,6 +280,12 @@ const TEMPLATES: Record<string, Handler> = {
     if (ev.type !== 'COMBAT_GUARDED') return ''
     return l === 'vi' ? `Thủ thế, giảm ${String(ev.amount)} sát thương.` : `You brace, reducing ${String(ev.amount)} damage.`
   },
+  COMBAT_FOCUSED: (ev, l) => {
+    if (ev.type !== 'COMBAT_FOCUSED') return ''
+    return l === 'vi'
+      ? `Ngươi tụ khí ${String(ev.stacks)} tầng (+${String(ev.damage)} sát thương đòn sau), thủ thế giảm ${String(ev.guard)}.`
+      : `You focus ${String(ev.stacks)} stack(s) (+${String(ev.damage)} next-strike damage), bracing for ${String(ev.guard)}.`
+  },
   COMBAT_WON: (ev, l) => {
     if (ev.type !== 'COMBAT_WON') return ''
     return l === 'vi'
@@ -263,6 +297,42 @@ const TEMPLATES: Record<string, Handler> = {
     return l === 'vi'
       ? `Ngươi lánh mình rút khỏi ${nameOf('enemy', ev.enemyId, l)} — mất ${String(ev.hpCost)} khí huyết và bỏ lại ít thành quả.`
       : `You slip away from the ${nameOf('enemy', ev.enemyId, l)} — ${String(ev.hpCost)} blood-qi spent, some gains left behind.`
+  },
+  BOSS_HEAL: (ev, l) => {
+    if (ev.type !== 'BOSS_HEAL') return ''
+    return l === 'vi'
+      ? `${nameOf('enemy', ev.enemyId, l)} hút toàn bộ linh khí, hồi ${String(ev.hpRestored)} khí huyết!`
+      : `${nameOf('enemy', ev.enemyId, l)} drains all surrounding qi, restoring ${String(ev.hpRestored)} HP!`
+  },
+  POISON_APPLIED: (ev, l) => {
+    if (ev.type !== 'POISON_APPLIED') return ''
+    return l === 'vi'
+      ? `Độc xâm nhập kinh mạch — ${String(ev.amount)} lớp độc tích tụ.`
+      : `Poison enters the meridians — ${String(ev.amount)} stack(s) applied.`
+  },
+  POISON_TICK: (ev, l) => {
+    if (ev.type !== 'POISON_TICK') return ''
+    return l === 'vi'
+      ? `Độc phát tác, gây ${String(ev.amount)} sát thương (còn ${String(ev.stacks)} lớp).`
+      : `Poison ticks for ${String(ev.amount)} damage (${String(ev.stacks)} stack(s) remain).`
+  },
+  QI_REGEN: (ev, l) => {
+    if (ev.type !== 'QI_REGEN') return ''
+    return l === 'vi'
+      ? `Hơi thở ổn định, hồi ${String(ev.amount)} linh khí ở lượt ${String(ev.turn)}.`
+      : `Breath steadies, recovered ${String(ev.amount)} qi on turn ${String(ev.turn)}.`
+  },
+  COMBO_TRIGGERED: (ev, l) => {
+    if (ev.type !== 'COMBO_TRIGGERED') return ''
+    return l === 'vi'
+      ? `Combo ${String(ev.hits)} liên tục — đòn đánh như thác nước!`
+      : `Combo ${String(ev.hits)} hits — strikes cascade like a waterfall!`
+  },
+  COMBAT_CRIT: (ev, l) => {
+    if (ev.type !== 'COMBAT_CRIT') return ''
+    return l === 'vi'
+      ? `ĐỘNH CHÍ MẠNG! ${String(ev.amount)} sát thương nhân đôi!`
+      : `CRITICAL STRIKE! ${String(ev.amount)} doubled damage!`
   },
   QI_SPENT: (ev, l) => {
     if (ev.type !== 'QI_SPENT') return ''
