@@ -85,6 +85,21 @@ export { COMPANION_EXTRA_ACTION, canTame, companionBuff } from './companion'
 export { activeSystem, budgetOk, canChooseSystem, isSystemQuest, systemQuestsFor } from './system-runtime'
 export { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from '../content/rpg'
 export { canAcceptQuest, canCompleteQuest } from './quests'
+export { chooseInheritedRelic } from './relics'
+export {
+  OFFLINE_CAP_MS,
+  OFFLINE_MIN_MS,
+  OFFLINE_PROGRESS_PER_HOUR,
+  calculateOfflineGains,
+  applyOfflineGains,
+} from './offline'
+export {
+  DEFAULT_GLOBAL_PROFILE,
+  GLOBAL_PROFILE_VERSION,
+  mergeGlobalProfile,
+  parseGlobalProfile,
+  recordTerminal,
+} from './globalProfile'
 
 export function validateGameState(state: unknown): GameState {
   return parseGameState(state)
@@ -105,6 +120,8 @@ export type {
   PlayerState,
   TransitionResult,
 } from './types'
+export type { GlobalProfile, ProfileDelta } from './globalProfile'
+export type { OfflineGains, OfflineSession } from './offline'
 export type {
   AchievementDef,
   BeatDef,

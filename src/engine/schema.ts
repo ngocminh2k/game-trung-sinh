@@ -105,6 +105,10 @@ export const GameStateSchema = z.object({
   corrections: z.number().int().min(0),
   terminal: z.boolean(),
   endingId: z.string().nullable(),
+  // NG+ (issue #14). Additive defaults: a v1 save without these fields parses
+  // cleanly into a first-life run, so no GAME_STATE_VERSION bump is required.
+  ngPlusLevel: z.number().int().min(0).max(99).default(0),
+  inheritedRelicId: z.string().min(1).nullable().default(null),
 })
 
 export const ItemDefSchema = z.object({
