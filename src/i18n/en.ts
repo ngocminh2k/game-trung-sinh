@@ -111,6 +111,11 @@ export const EN: Dict = {
     ATTRIBUTE_MAXED: 'That attribute is already at its maximum.',
     REGION_LOCKED: 'The way is sealed; the cave will not open.',
     SYSTEM_LOCKED: 'This technique is reserved for the System you contracted with.',
+    SKILL_UNKNOWN: 'No such technique exists in the skill tree.',
+    SKILL_ALREADY_UNLOCKED: 'You have already awakened that technique.',
+    SKILL_REQUIREMENT_NOT_MET: 'Your foundation is not ready for that technique yet.',
+    SKILL_CONFLICT: 'That technique contradicts one you already walk.',
+    INSUFFICIENT_SKILL_POINTS: 'Not enough skill points.',
   },
   narrator: {
     logTitle: 'What just happened',

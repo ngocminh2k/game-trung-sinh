@@ -109,6 +109,11 @@ export const VI = {
     ATTRIBUTE_MAXED: 'Thuộc tính này đã đạt mức tối đa.',
     REGION_LOCKED: 'Đường đi đã bị phong ấn — hang không mở nữa.',
     SYSTEM_LOCKED: 'Chiêu này chỉ dành cho Hệ Thống đã ký khế ước với ngươi.',
+    SKILL_UNKNOWN: 'Kỹ năng không tồn tại trong cây công pháp.',
+    SKILL_ALREADY_UNLOCKED: 'Ngươi đã lĩnh ngộ kỹ năng này rồi.',
+    SKILL_REQUIREMENT_NOT_MET: 'Căn cơ chưa đủ để lĩnh ngộ kỹ năng này.',
+    SKILL_CONFLICT: 'Kỹ năng này xung đột với con đường ngươi đã chọn.',
+    INSUFFICIENT_SKILL_POINTS: 'Không đủ điểm kỹ năng.',
   },
   narrator: {
     logTitle: 'Dấu chân trên đường tu',
