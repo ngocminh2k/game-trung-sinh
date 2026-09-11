@@ -90,6 +90,7 @@ export const GameStateSchema = z.object({
       focusDamage: z.number().int().min(0).max(99).default(0),
       behaviorBonus: z.number().int().min(0).max(99).default(0),
       behaviorHealUsed: z.boolean().default(false),
+      telegraphedHeal: z.boolean().default(false),
       enemyTurns: z.number().int().min(0).max(99).default(0),
       statusEffects: z
         .array(
