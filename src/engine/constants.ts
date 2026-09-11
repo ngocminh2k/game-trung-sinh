@@ -15,6 +15,10 @@ export const MAX_STAGE = STAGE_THRESHOLDS.length - 1
 export const MINOR_REALM_MAX = 9
 export const ATTRIBUTE_MAX = 100
 export const ATTRIBUTE_POINTS_PER_BREAKTHROUGH = 2
+// Issue 5: skill-tree currency. Each minor-realm breakthrough grants this many
+// skill points; a full run (~45 breakthroughs over 5 stages) affords roughly
+// one 20-tier branch (sum ≈ 45), as the skill-tree header calibrates.
+export const SKILL_POINTS_PER_BREAKTHROUGH = 1
 
 // Each row is one major realm. Rows 0–1 are halved (rounded up) so the early
 // game still advances without dead turns; rows 2+ keep the original cadence.
