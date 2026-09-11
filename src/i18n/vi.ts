@@ -124,7 +124,7 @@ export const VI = {
   ui: {
     loading: { aria: 'Màn hình tải — nhấn để bắt đầu', subtitle: 'Truyền kỳ trọng sinh · linh căn phế', begin: 'Nhấn để bước vào' },
     saveSlots: { title: 'Chọn kiếp tu hành', subtitle: 'Mỗi quyển lưu giữ một con đường riêng.', slotName: 'Lưu {{slot}}', empty: '— trống —', start: 'Bắt đầu mới', continue: 'Tiếp tục', day: 'Ngày {{day}}', stage: 'Cảnh giới: {{stage}}', ending: 'Kết cục: {{ending}}', saved: 'Lưu {{time}}', justNow: 'vừa xong', minutesAgo: '{{count}} phút trước', hoursAgo: '{{count}} giờ trước', daysAgo: '{{count}} ngày trước', delete: 'Xóa lưu', deleteConfirm: 'Bấm lần nữa để xóa' },
-    newGame: { title: 'Chọn Hệ Thống của ngươi', subtitle: 'Mười Hệ Thống đáp lời vào lúc bình minh. Chỉ một ký ở lại với ngươi — chọn trước khi đặt bút mở đầu.', confirm: 'Ký khế ước' },
+    newGame: { title: 'Chọn Hệ Thống của ngươi', subtitle: 'Mười Hệ Thống đáp lời vào lúc bình minh. Chỉ một ký ở lại với ngươi — chọn trước khi đặt bút mở đầu.', revealHint: 'Chạm một Hệ Thống để nghe giọng của nó. Chạm lần nữa để ký.', confirm: 'Ký khế ước' },
     settings: {
       difficultyHint: 'Áp dụng cho kiếp mới. Kiếp đang chơi giữ nguyên độ khó của nó.',
       difficulty: { story: 'Chuyện tình', balanced: 'Cân bằng', hard: 'Khó nhằn' },

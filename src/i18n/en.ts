@@ -126,7 +126,7 @@ export const EN: Dict = {
   ui: {
     loading: { aria: 'Loading — press to begin', subtitle: 'A Reborn-Cultivator Saga · The Broken Root', begin: 'Press to begin' },
     saveSlots: { title: 'Choose your cultivation life', subtitle: 'Each record keeps a separate path.', slotName: 'Save {{slot}}', empty: '— empty —', start: 'Begin new life', continue: 'Continue', day: 'Day {{day}}', stage: 'Stage: {{stage}}', ending: 'Ending: {{ending}}', saved: 'Saved {{time}}', justNow: 'just now', minutesAgo: '{{count}} minutes ago', hoursAgo: '{{count}} hours ago', daysAgo: '{{count}} days ago', delete: 'Delete save', deleteConfirm: 'Press again to delete' },
-    newGame: { title: 'Choose Your System', subtitle: 'Ten Systems answer at dawn. Only one vow stays with you — choose before you begin.', confirm: 'Seal the Contract' },
+    newGame: { title: 'Choose Your System', subtitle: 'Ten Systems answer at dawn. Only one vow stays with you — choose before you begin.', revealHint: 'Select a System to hear its voice. Select again to seal the contract.', confirm: 'Seal the Contract' },
     settings: {
       difficultyHint: 'Applies to the next new game. An active run keeps its own difficulty.',
       difficulty: { story: 'Story', balanced: 'Balanced', hard: 'Hard' },

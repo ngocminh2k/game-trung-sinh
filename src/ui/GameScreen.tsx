@@ -55,6 +55,9 @@ export interface GameScreenProps {
   onAction: (action: Action) => void
   onLocaleChange: (locale: Locale) => void
   onRestart?: () => void
+  /** Present only when the app can leave the run (auto-resume means the menu
+   *  is one click away, not a reload). Saves keep the run. */
+  onExitToMenu?: () => void
   storyOpen?: boolean
   onStoryClose?: () => void
 }
@@ -168,7 +171,7 @@ function cellDirection(px: number, py: number, x: number, y: number): 'n' | 's' 
   return `${ns}${ew}` as 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | 'here'
 }
 
-export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, chronicleKinds, onAction, onLocaleChange, onRestart = () => {}, storyOpen = false, onStoryClose = () => {} }: GameScreenProps) {
+export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, chronicleKinds, onAction, onLocaleChange, onRestart = () => {}, onExitToMenu, storyOpen = false, onStoryClose = () => {} }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
   const [journalOpen, setJournalOpen] = useState(false)
@@ -586,6 +589,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <em>{entries.reduce((sum, [, qty]) => sum + qty, 0)}</em>
             <kbd aria-hidden="true">I</kbd>
           </button>}
+          {onExitToMenu !== undefined && <button className="menu-exit" data-testid="game-exit-menu" onClick={onExitToMenu} type="button">
+            {word(locale, 'Về menu', 'Menu')}
+          </button>}
           <div className="language-toggle" role="group" aria-label="Language">
             <button aria-current={locale === 'vi' ? 'true' : undefined} className={locale === 'vi' ? 'active' : ''} onClick={() => onLocaleChange('vi')} type="button">VI</button>
             <button aria-current={locale === 'en' ? 'true' : undefined} className={locale === 'en' ? 'active' : ''} onClick={() => onLocaleChange('en')} type="button">EN</button>
@@ -881,7 +887,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2>
               <StageProgress locale={locale} realmLevel={game.player.realmLevel} stage={game.player.stage} progress={game.player.progress} />
             </div>
-            <RealmLadder locale={locale} stage={game.player.stage} />
+            {/* Issue #17: the six-realm jargon ladder lands after the first
+                day of play — day-1 HUD keeps only the current-stage chip. */}
+            {(game.day > 1 || game.player.stage > 0) && <RealmLadder locale={locale} stage={game.player.stage} />}
             <figure className={`protagonist-portrait player-action-art pose-${playerPose}`} data-pose={playerPose} data-testid="player-action-art">
               <img
                 alt={word(locale, `Tư thế nhân vật: ${playerPose}`, `Player action pose: ${playerPose}`)}
