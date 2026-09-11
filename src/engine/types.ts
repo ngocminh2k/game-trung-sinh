@@ -155,12 +155,17 @@ export type Action =
   | { kind: 'learn_technique'; techniqueId: string }
   | { kind: 'equip_item'; itemId: string }
   | { kind: 'start_encounter' }
+  | { kind: 'arena_challenge' }
   | { kind: 'combat_attack'; techniqueId?: string }
   | { kind: 'combat_defend' }
   | { kind: 'combat_retreat' }
   | { kind: 'combat_focus' }
 
   | { kind: 'resolve_route_event'; approach: 'present' | 'withhold' }
+  /** Cưỡng đoạt (Issue #19): threaten a personality-opposite NPC. 'plunder'
+   *  seizes their stores once per run (raises infamy, empties their goodwill);
+   *  'back_off' is the restraint branch that repairs the relationship. */
+  | { kind: 'coerce_npc'; npcId: string; approach: 'plunder' | 'back_off' }
   | { kind: 'story_choice'; choiceId: string }
   | { kind: 'advance_romance'; trackId: string; choiceId: string }
   | { kind: 'free_text'; raw: string }
@@ -199,6 +204,8 @@ export const ERROR_CODES = [
   'ATTRIBUTE_MAXED',
   'REGION_LOCKED',
   'SYSTEM_LOCKED',
+  'ARENA_CLOSED',
+  'COERCION_UNAVAILABLE',
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]
@@ -233,6 +240,14 @@ export type GameEvent =
   | { type: 'TECHNIQUE_LEARNED'; techniqueId: string; level: number }
   | { type: 'EQUIPPED'; itemId: string; slot: EquipmentSlot }
   | { type: 'ENCOUNTER_STARTED'; enemyId: string }
+  /** Lôi Đài (Issue #19): the player stepped onto a tower floor. */
+  | { type: 'ARENA_CHALLENGED'; floor: number; enemyId: string }
+  /** A floor was cleared and its stores seized — the resource-plunder payoff. */
+  | { type: 'ARENA_FLOOR_CLEARED'; floor: number; enemyId: string; gold: number; itemIds: string[] }
+  /** The whole tower was topped; emitted once. */
+  | { type: 'ARENA_TOWER_TOPPED'; floors: number }
+  /** Cưỡng đoạt: the outcome of threatening a non-player character. */
+  | { type: 'NPC_COERCED'; npcId: string; approach: 'plunder' | 'back_off'; gold: number; itemIds: string[]; aff: number; infamy: number }
   | { type: 'QI_SPENT'; amount: number }
   | { type: 'COMBAT_HIT'; actor: 'player' | 'enemy'; amount: number; enemyId: string }
   | { type: 'COMBAT_GUARDED'; amount: number }

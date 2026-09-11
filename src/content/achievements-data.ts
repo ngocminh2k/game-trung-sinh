@@ -78,6 +78,20 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     descVi: 'Đạt đại viên mãn cảnh giới phi thăng.',
     descEn: 'Reach the final ascension-ready stage.',
   },
+  {
+    id: 'arena_champion',
+    nameVi: 'Vô địch Lôi Đài',
+    nameEn: 'Arena Champion',
+    descVi: 'Lần đầu chinh phục toàn bộ tháp Lôi Đài.',
+    descEn: 'Top the entire Lôi Đài tower for the first time.',
+  },
+  {
+    id: 'notorious',
+    nameVi: 'Oai danh lẫy lừng',
+    nameEn: 'Notorious',
+    descVi: 'Cưỡng đoạt hai mục tiêu, tiếng tăm xấu xa lan xa.',
+    descEn: 'Plunder both coercion targets; your ill name spreads.',
+  },
 ]
 
 export function getAchievement(id: string): AchievementDef | undefined {

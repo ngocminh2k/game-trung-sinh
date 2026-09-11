@@ -109,6 +109,8 @@ export const VI = {
     ATTRIBUTE_MAXED: 'Thuộc tính này đã đạt mức tối đa.',
     REGION_LOCKED: 'Đường đi đã bị phong ấn — hang không mở nữa.',
     SYSTEM_LOCKED: 'Chiêu này chỉ dành cho Hệ Thống đã ký khế ước với ngươi.',
+    ARENA_CLOSED: 'Lôi Đài đã san bằng — không còn ai dám thử sức.',
+    COERCION_UNAVAILABLE: 'Kẻ đó không chịu uy hiếp — hoặc ngươi đã cố quá.',
   },
   narrator: {
     logTitle: 'Dấu chân trên đường tu',

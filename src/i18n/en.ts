@@ -111,6 +111,8 @@ export const EN: Dict = {
     ATTRIBUTE_MAXED: 'That attribute is already at its maximum.',
     REGION_LOCKED: 'The way is sealed; the cave will not open.',
     SYSTEM_LOCKED: 'This technique is reserved for the System you contracted with.',
+    ARENA_CLOSED: 'The Arena is mastered — no one dares challenge you now.',
+    COERCION_UNAVAILABLE: 'They will not be coerced — or you have pushed too far.',
   },
   narrator: {
     logTitle: 'What just happened',

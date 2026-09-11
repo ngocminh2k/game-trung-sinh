@@ -1,4 +1,5 @@
 import { ACHIEVEMENTS } from '../content'
+import { FLAG_ARENA_CLEARED, FLAG_INFAMY } from '../content/flag-keys'
 import { MAX_STAGE } from './constants'
 import { flagNum } from './utils'
 import type { GameState } from './types'
@@ -35,6 +36,11 @@ export function qualifiesForAchievement(state: GameState, achievementId: string)
       return state.player.gold >= 400
     case 'immortal_road_end':
       return state.player.stage >= MAX_STAGE
+    // Issue #19: these two consume the previously write-only arena/infamy flags.
+    case 'arena_champion':
+      return state.flags[FLAG_ARENA_CLEARED] === true
+    case 'notorious':
+      return flagNum(state.flags, FLAG_INFAMY) >= 2
     default:
       return false
   }
