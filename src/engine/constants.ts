@@ -46,9 +46,12 @@ export const HIGH_DANGER_LEVEL = 2
 
 export const STORAGE_CAPACITY = 50
 
-export const LOTTERY_COST = 10
+// Issue 11: the ticket was a money printer (EV incl. herb resale = 33 gold for
+// a 10-gold ticket). Rebalanced negative: EV = (1×80 + 2×60 + 3×20 + 4×12)/16
+// = 19.25 < 20 cost; one ticket/day cap unchanged.
+export const LOTTERY_COST = 20
 export const LOTTERY_ROLL_MAX = 16
-export const LOTTERY_GRAND_GOLD = 300
+export const LOTTERY_GRAND_GOLD = 80
 export const LOTTERY_MAJOR_GOLD = 60
 export const LOTTERY_MINOR_GOLD = 20
 
@@ -167,6 +170,11 @@ export function techniqueGuard(power: number, level: number): number {
 // ~12 days, so N = 21 leaves exactly 5 spare days for a sloppy run and never
 // more than 9 idle days for optimal play.
 export const DEADLINE_DAYS = 21
+
+// Issue 11: late-game gold sink — cultivation tax per day that scales with
+// major realm stage. Stage 0-1: 0, Stage 2: 2, Stage 3: 5, Stage 4: 10, Stage 5: 20.
+// Applied in spendDay() so every outing has a maintenance cost.
+export const CULTIVATION_TAX: ReadonlyArray<number> = [0, 0, 2, 5, 10, 20]
 
 export function hashSeed(seed: string): number {
   let h = 1779033703 ^ seed.length
