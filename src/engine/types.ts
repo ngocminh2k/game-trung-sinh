@@ -149,7 +149,7 @@ export type Action =
   | { kind: 'refine'; recipeId: string }
   | { kind: 'buy'; itemId: string; qty?: number }
   | { kind: 'sell'; itemId: string; qty?: number }
-| { kind: 'convert_currency'; from: 'spiritStone' | 'silver'; qty: number }
+| { kind: 'convert_currency'; from: 'spiritStone' | 'silver' | 'gold'; qty: number }
   | { kind: 'use_item'; itemId: string; qty?: number }
   | { kind: 'store'; itemId: string; qty: number }
   | { kind: 'withdraw'; itemId: string; qty: number }
@@ -235,7 +235,7 @@ export type GameEvent =
   | { type: 'ITEM_USED'; itemId: string; hpDelta: number; qiDelta: number }
   | { type: 'BOUGHT'; itemId: string; qty: number; goldPaid: number }
   | { type: 'SOLD'; itemId: string; qty: number; goldGain: number }
-  | { type: 'CURRENCY_CONVERTED'; from: 'spiritStone' | 'silver'; qty: number; goldGain: number }
+  | { type: 'CURRENCY_CONVERTED'; from: 'spiritStone' | 'silver' | 'gold'; qty: number; goldGain: number }
   | { type: 'STORED'; itemId: string; qty: number }
   | { type: 'WITHDRAWN'; itemId: string; qty: number }
   | { type: 'DRAW_RESULT'; tier: 'grand' | 'major' | 'minor' | 'herb' | 'none'; goldDelta: number; itemId?: string }

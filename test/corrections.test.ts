@@ -82,11 +82,11 @@ describe('free-text quantities resolve through content-derived item lookup', () 
     let state: GameState = { ...atMarket, player: { ...atMarket.player, gold: 200 } }
     const result = applyAction(state, { kind: 'free_text', raw: 'mua 3 viên tụ khí' })
     expect(
-      result.events.some((e) => e.type === 'BOUGHT' && e.qty === 3 && e.goldPaid === 90),
+      result.events.some((e) => e.type === 'BOUGHT' && e.qty === 3 && e.goldPaid === 42),
     ).toBe(true)
     state = result.state
     expect(state.inventory['pill_qi']).toBe(3)
-    expect(state.player.gold).toBe(110)
+    expect(state.player.gold).toBe(158)
   })
 
   it('sells multiple units when specified', () => {
@@ -118,7 +118,7 @@ describe('free-text quantities resolve through content-derived item lookup', () 
     expect(result.events.some((e) => e.type === 'ITEM_USED' && e.hpDelta === 50)).toBe(true)
     expect(result.state.inventory['pill_hp']).toBe(1)
     expect(result.state.player.hp).toBe(90)
-    expect(result.state.player.gold).toBe(130)
+    expect(result.state.player.gold).toBe(182)
   })
 
   it('rejects absurd or nonsensical quantities as corrections', () => {

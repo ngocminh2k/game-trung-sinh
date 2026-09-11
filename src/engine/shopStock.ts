@@ -24,6 +24,39 @@ export function entryPrice(entry: ShopEntry, weatherMod: number): number {
   return Math.floor(base * weatherMod)
 }
 
+/** Currency tier of a shop entry's single price field. */
+export type PriceTier = 'gold' | 'silver' | 'ls'
+export interface ShopPrice {
+  price: number
+  tier: PriceTier
+}
+
+function goldValue(price: ShopPrice): number {
+  return price.tier === 'ls' ? price.price * 10 : price.tier === 'silver' ? Math.floor(price.price / 10) : price.price
+}
+
+/**
+ * T12 — the market's *real* price for an item. The town stalls price each good
+ * in their own tier (gold / silver / Linh Thạch); a good may appear at several
+ * stalls. This walks every shop and returns the cheapest gold-normalised offer
+ * so `doBuy` pays what the NPC actually lists (issue 7), not the stale static
+ * `item.buyPrice`. 1 LS = 10 gold = 100 silver. Deterministic, no RNG.
+ */
+export function marketPriceFor(itemId: string, weatherMod = 1): ShopPrice | null {
+  let best: ShopPrice | null = null
+  for (const shop of SHOPS) {
+    for (const entry of shop.entries) {
+      if (entry.itemId !== itemId) continue
+      const tier: PriceTier =
+        entry.priceLS !== undefined ? 'ls' : entry.priceSilver !== undefined ? 'silver' : 'gold'
+      const price = entryPrice(entry, weatherMod)
+      const candidate: ShopPrice = { price, tier }
+      if (best === null || goldValue(candidate) < goldValue(best)) best = candidate
+    }
+  }
+  return best
+}
+
 /**
  * Content validation gate for T12's validateAllContent wiring. Appends human
  * readable problems to `errors` and returns nothing (void), so callers can

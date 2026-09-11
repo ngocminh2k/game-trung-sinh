@@ -16,11 +16,12 @@ describe('browser game session', () => {
     expect(loaded).not.toBeNull()
     expect(loaded!.locale).toBe('en')
     expect(loaded!.chronicle).toEqual(['A new tale begins.'])
-    // The schema parser fills migration-safe defaults (silver/spiritStones) that
-    // newGame omits, so compare the authored fields plus the safe defaults.
+    // The schema parser fills migration-safe defaults (spiritStones/poison/
+    // skillPoints) that newGame omits, so compare the authored fields plus the
+    // safe defaults. silver is now authored by newGame (START_SILVER).
     const p = loaded!.game.player
-    expect({ ...p, silver: undefined, spiritStones: undefined, poison: undefined, skillPoints: undefined }).toEqual(game.player)
-    expect(p.silver).toBe(0)
+    expect({ ...p, spiritStones: undefined, poison: undefined, skillPoints: undefined }).toEqual(game.player)
+    expect(p.silver).toBe(20)
     expect(p.spiritStones).toBe(0)
     expect(loaded!.game.rng).toBe(game.rng)
     expect(loaded!.game.day).toBe(game.day)

@@ -35,6 +35,10 @@ describe('migrateGameState', () => {
     // only applied by GameStateSchema.parse — migrateGameState must run it.
     const raw = freshSave()
     delete raw['version']
+    // Simulate a true pre-silver save so the default-filling is exercised.
+    const player = raw['player'] as Record<string, unknown>
+    delete player['silver']
+    delete player['spiritStones']
     const migrated = migrateGameState(raw)
     expect(migrated.version).toBe(GAME_STATE_VERSION)
     expect(migrated.player.alive).toBe(true)

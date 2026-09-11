@@ -46,9 +46,10 @@ describe('Issue 6: weather market variance', () => {
     if (clearPaid?.type !== 'BOUGHT' || stormPaid?.type !== 'BOUGHT') {
       expect.unreachable('both buys must succeed')
     }
-    // herb base is 20 gold: clear 20*1.0 vs storm 20*1.2. Charm and tax are
-    // identical across the two runs, so the paid gap isolates the weather mod.
-    expect(stormPaid.goldPaid - clearPaid.goldPaid).toBe(4)
+    // Market stall price is 18 gold: clear 18*1.0 vs storm 18*1.2.
+    // Charm and tax are identical across the two runs, so the paid gap
+    // isolates the weather mod.
+    expect(stormPaid.goldPaid - clearPaid.goldPaid).toBe(3)
   })
 
   it('sell payout tracks the market weather modifier', () => {

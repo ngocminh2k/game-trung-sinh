@@ -6,6 +6,7 @@ export const DEFAULT_SEED = 'ink-and-jade'
 
 export const START_DAY = 1
 export const START_GOLD = 60
+export const START_SILVER = 20
 
 export const MAX_HP = 100
 export const MAX_QI = 60
@@ -89,6 +90,9 @@ export function newGame(seed: string, options: NewGameOptions = {}): GameState {
       hp: MAX_HP,
       qi: MAX_QI,
       gold: START_GOLD,
+      // Issue 7 AC3: new players start with walking-around silver so the
+      // priceSilver stall tier circulates from day one.
+      silver: START_SILVER,
       attrs: { body: 3, mind: 4, charm: 3, luck: 2 },
       stage: 0,
       realmLevel: 1,

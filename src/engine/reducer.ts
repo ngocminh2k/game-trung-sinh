@@ -15,6 +15,7 @@ import {
 } from '../content'
 import { weatherFor, WEATHER_EFFECTS } from './weather'
 import { companionBuff } from './companion'
+import { marketPriceFor } from './shopStock'
 import { newlyQualifiedAchievements } from './achievements'
 import {
   ATTRIBUTE_MAX,
@@ -636,41 +637,52 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
   if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   const def = getItem(itemId)
-  const price = def?.buyPrice ?? null
-  if (price === null || state.player.stage < (def?.requiredStage ?? 0)) return err('ITEM_UNAVAILABLE')
-  // Issue 6: the day's weather scales the market (herb) price. Pure from
-  // (seed, day); stormy days cost more, rain discounts.
-  const herbMod = WEATHER_EFFECTS[weatherFor(state.seed, state.day).id]?.herbPriceMod ?? 1
-  const baseCost = Math.floor(price * herbMod)
-  const totalCost = Math.max(0, baseCost - charmPriceDiscount(state.player.attrs.charm)) * qty
-  // Silver fallback (T02 economy): gold is spent first; any shortfall is
-  // covered from silver at the authored 10-per-gold rate.
-  let goldSpent = 0
-  let silverSpent = 0
-  if (state.player.gold >= totalCost) {
-    goldSpent = totalCost
-  } else {
-    const shortfallSilver = (totalCost - state.player.gold) * 10
-    if ((state.player.silver ?? 0) < shortfallSilver) return err('INSUFFICIENT_GOLD')
-    goldSpent = state.player.gold
-    silverSpent = shortfallSilver
-  }
+  if (def === undefined || state.player.stage < (def.requiredStage ?? 0)) return err('ITEM_UNAVAILABLE')
+  // Issue 7: pay the price the NPC stalls actually list (shopStock.ts), not the
+  // stale static item.buyPrice. A good may appear at several stalls in
+  // different tiers (gold / silver / Linh Thạch); we take the cheapest
+  // gold-normalised offer. Goods with no shop entry AND no static buyPrice
+  // (e.g. quest-only items like old_manual) are unstocked.
+  const shop = marketPriceFor(itemId, WEATHER_EFFECTS[weatherFor(state.seed, state.day).id]?.herbPriceMod ?? 1)
+  if (shop === null && def.buyPrice == null) return err('ITEM_UNAVAILABLE')
+  const tier: 'gold' | 'silver' | 'ls' = shop?.tier ?? 'gold'
+  const unit = shop !== null ? shop.price : (def.buyPrice ?? 0)
+  const charmDiscount = charmPriceDiscount(state.player.attrs.charm)
+  const total = Math.max(0, unit - charmDiscount) * qty
   const events: GameEvent[] = []
+  let { gold, silver, spiritStones } = state.player
+  silver ??= 0
+  spiritStones ??= 0
+  if (tier === 'gold') {
+    // Gold first; any shortfall is covered from silver at the 10:1 rate (T02).
+    if (gold >= total) {
+      gold -= total
+    } else if (silver >= (total - gold) * 10) {
+      silver -= (total - gold) * 10
+      gold = 0
+    } else {
+      return err('INSUFFICIENT_GOLD')
+    }
+  } else if (tier === 'silver') {
+    if (silver < total) return err('INSUFFICIENT_SILVER')
+    silver -= total
+  } else {
+    if (spiritStones < total) return err('INSUFFICIENT_SPIRIT_STONES')
+    spiritStones -= total
+  }
   state = spendDay(state, events)
   const s: GameState = {
     ...state,
-    player: {
-      ...state.player,
-      gold: state.player.gold - goldSpent,
-      silver: (state.player.silver ?? 0) - silverSpent,
-    },
+    player: { ...state.player, gold, silver, spiritStones },
     inventory: bump(state.inventory, itemId, qty),
     flags: { ...state.flags, buyCount: flagNum(state.flags, 'buyCount') + qty },
   }
+  // goldPaid reports the gold-equivalent cost for UI parity across tiers.
+  const goldPaid = tier === 'ls' ? total * 10 : tier === 'silver' ? Math.floor(total / 10) : total
   return {
     ok: true,
     state: s,
-    events: [...events, { type: 'BOUGHT', itemId, qty, goldPaid: totalCost }],
+    events: [...events, { type: 'BOUGHT', itemId, qty, goldPaid }],
   }
 }
 
@@ -681,9 +693,11 @@ function systemIsActive(state: GameState): boolean {
 
 /**
  * Currency exchange at the market (T02 economy, 3 layers).
- * Authored rates: 1 spirit stone = 10 gold = 100 silver.
+ * Authored rates: 1 spirit stone = 10 gold = 100 silver. Issue 7 made the
+ * counter two-way in every direction: gold buys LS back (the true late-game
+ * sink) and gold buys silver for stall goods priced in Bạc.
  */
-function doConvertCurrency(state: GameState, from: 'spiritStone' | 'silver', qty: number): R {
+function doConvertCurrency(state: GameState, from: 'spiritStone' | 'silver' | 'gold', qty: number): R {
   if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   if (from === 'spiritStone') {
@@ -697,6 +711,26 @@ function doConvertCurrency(state: GameState, from: 'spiritStone' | 'silver', qty
         player: { ...state.player, spiritStones: have - qty, gold: state.player.gold + goldGain },
       },
       events: [{ type: 'CURRENCY_CONVERTED', from, qty, goldGain }],
+    }
+  }
+  if (from === 'gold') {
+    // Reverse exchange (issue 7): `qty` spirit stones cost `qty * 10` gold.
+    // The stone path is the true late-game sink — it burns gold for a tier
+    // that only rare stalls accept.
+    const have = state.player.gold
+    const cost = qty * 10
+    if (have < cost) return err('INSUFFICIENT_GOLD')
+    return {
+      ok: true,
+      state: {
+        ...state,
+        player: {
+          ...state.player,
+          gold: have - cost,
+          spiritStones: (state.player.spiritStones ?? 0) + qty,
+        },
+      },
+      events: [{ type: 'CURRENCY_CONVERTED', from, qty, goldGain: -cost }],
     }
   }
   const have = state.player.silver ?? 0

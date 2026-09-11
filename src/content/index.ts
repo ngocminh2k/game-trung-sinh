@@ -27,6 +27,7 @@ import { QUESTS } from './quests'
 import { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from './rpg'
 import { STORY_SCENES } from './story'
 import { SYSTEMS, systemById } from './system-defs'
+import { validateShops } from '../engine/shopStock'
 
 export { ACHIEVEMENTS, getAchievement } from './achievements-data'
 export { BEATS, BEAT_PREDICATE_IDS } from './beats-data'
@@ -133,6 +134,8 @@ export function validateAllContent(): ContentValidationReport {
 
   const npcIds = new Set(NPCS.map((n) => n.id))
   const itemIds = new Set(ITEMS.map((item) => item.id))
+  // Issue 7: wire the NPC shop data gate — shops.ts was dead test-only data.
+  validateShops(errors, itemIds, npcIds)
   for (const q of QUESTS) {
     if (q.requiredSystemId !== undefined) {
       const system = systemById(q.requiredSystemId)
