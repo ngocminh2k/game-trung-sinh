@@ -23,7 +23,7 @@ import {
 } from '../../engine'
 import type { Action, GameState, Locale } from '../../engine'
 import type { EquipmentDef } from '../../engine/content-types'
-import itemsStillLife from '../../assets/art/items-still-life.png'
+import itemsStillLife from '../../assets/art/items-still-life.webp'
 import { npcPortraitFor } from '../npcArt'
 import { itemArtFor, talentArtFor, techniqueArtFor } from '../rpgArt'
 import { t as i18n } from '../../i18n'

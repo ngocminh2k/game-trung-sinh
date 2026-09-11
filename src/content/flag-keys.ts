@@ -47,6 +47,7 @@ export const FLAG_KEYS = [
   'arena_floor',
   'arena_cleared',
   'infamy',
+  'death_cause',
 ] as const
 
 export type FlagKey = (typeof FLAG_KEYS)[number]

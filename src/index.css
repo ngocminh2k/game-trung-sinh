@@ -8,13 +8,27 @@
   --vermilion: #9d3e2e;
   --gold: #d9a441;
   --paper: #e5dccb;
+  /* Art Bible (issue #16): the three source styles were produced at different
+     intensities — measured mean saturation: locations ~0.35, NPC paintings
+     ~0.28, item/talent illustrations ~0.18. These multipliers pull every
+     rendered art surface toward the dó-paper tone so the styles read as one
+     hand. --art-grain is the paper-fibre overlay (SVG feTurbulence data-URI);
+     the high-contrast query below empties it. */
+  --sat-item: 0.92;
+  --sat-npc: 0.84;
+  --sat-location: 0.74;
+  --art-frame: rgba(40, 63, 47, 0.34);
+  --art-radius: 4px;
+  --art-bleed: inset 0 0 14px rgba(24, 37, 31, 0.13);
+  --art-paper: #ddd4ba;
+  --art-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.05'/%3E%3C/svg%3E");
   color: var(--ink);
   background: var(--paper);
   font-family: Spectral, 'Noto Serif', Georgia, serif;
   font-synthesis: none;
 }
 * { box-sizing: border-box; }
-body { min-width: 1060px; margin: 0; min-height: 100vh; background: radial-gradient(circle at 8% 2%, rgba(255,251,235,.9), transparent 27rem), radial-gradient(circle at 95% 7%, rgba(145,179,151,.26), transparent 26rem), repeating-linear-gradient(0deg, rgba(69,62,45,.025) 0, rgba(69,62,45,.025) 1px, transparent 1px, transparent 4px), #e5dccb; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 8% 2%, rgba(255,251,235,.9), transparent 27rem), radial-gradient(circle at 95% 7%, rgba(145,179,151,.26), transparent 26rem), repeating-linear-gradient(0deg, rgba(69,62,45,.025) 0, rgba(69,62,45,.025) 1px, transparent 1px, transparent 4px), #e5dccb; }
 button, input { font: inherit; } button { cursor: pointer; } button:disabled { cursor: not-allowed; opacity: .45; } button:focus-visible, input:focus-visible { outline: 3px solid #bb7c28; outline-offset: 2px; }
 
 .game-shell { width: min(1510px, calc(100vw - 48px)); margin: 0 auto; padding: 26px 0 44px; }
@@ -24,7 +38,8 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
 .skip-link { position: absolute; left: 0; top: -40px; padding: 8px 12px; background: var(--jade); color: var(--paper); font-family: 'DM Mono', monospace; font-size: 12px; text-decoration: none; z-index: 100; border: 2px solid var(--paper); border-radius: 4px; }
 .skip-link:focus { top: 0; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 0 4px 23px; border-bottom: 1px solid rgba(39,64,49,.25); }
-.brand,.topbar-actions,.panel-heading,.stat-strip,.npc-list li,.quest-list li,.item-list li,.shop-list>div { display:flex; align-items:center; }.brand{gap:14px}.brand-seal{display:grid;width:46px;height:46px;place-items:center;border:2px solid var(--vermilion);border-radius:50%;color:var(--vermilion);font-size:27px;line-height:1;transform:rotate(-8deg)}.eyebrow,.section-kicker{margin:0;color:#697166;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase}.brand h1{margin:2px 0 0;color:#173e31;font-size:26px;line-height:1.05}.brand h1 span{color:#68706a;font-size:15px;font-weight:500}.topbar-actions{gap:12px}.day-chip,.location-label,.root-badge,.panel-heading>span{border:1px solid rgba(43,85,60,.31);border-radius:999px;padding:5px 9px;color:#315c43;font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap}.language-toggle{display:flex;overflow:hidden;border:1px solid #8a9b88;border-radius:7px}.language-toggle button{border:0;padding:5px 9px;color:#3d5444;background:transparent;font-family:'DM Mono',monospace;font-size:11px}.language-toggle button.active{color:#fdf6e7;background:#1f5842}
+.brand,.topbar-actions,.panel-heading,.stat-strip,.npc-list li,.quest-list li,.item-list li,.shop-list>div { display:flex; align-items:center; }.brand{gap:14px}.brand-seal{display:grid;width:46px;height:46px;place-items:center;border:2px solid var(--vermilion);border-radius:50%;color:var(--vermilion);font-size:27px;line-height:1;transform:rotate(-8deg)}.eyebrow,.section-kicker{margin:0;color:#697166;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase}.brand h1{margin:2px 0 0;color:#173e31;font-size:26px;line-height:1.05}.brand h1 span{color:#68706a;font-size:15px;font-weight:500}.topbar-actions{gap:12px}.day-chip,.location-label,.root-badge,.panel-heading>span{border:1px solid rgba(43,85,60,.31);border-radius:999px;padding:5px 9px;color:#315c43;font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap}.language-toggle{display:flex;overflow:hidden;border:1px solid #8a9b88;border-radius:7px}
+.menu-exit{border:1px solid #8a9b88;border-radius:7px;padding:5px 9px;color:#3d5444;background:transparent;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer}.menu-exit:hover{color:#fdf6e7;background:#1f5842}.language-toggle button{border:0;padding:5px 9px;color:#3d5444;background:transparent;font-family:'DM Mono',monospace;font-size:11px}.language-toggle button.active{color:#fdf6e7;background:#1f5842}
 
 .chapter-banner,.danger-banner,.ending-banner{margin-top:18px;border:1px solid rgba(48,83,60,.3);padding:13px 18px;background:rgba(252,248,234,.59);box-shadow:0 9px 19px rgba(62,54,39,.05)}.chapter-banner{display:grid;grid-template-columns:120px minmax(0,1fr) minmax(260px,.9fr);gap:20px;align-items:baseline;border-left:4px solid #4b8064}.chapter-banner p,.ending-banner p{margin:0;color:#718071;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase}.chapter-banner h2,.ending-banner h2{margin:0;color:#214434;font-size:19px}.chapter-banner span,.ending-banner span{color:#5d635d;font-size:14px}.danger-banner,.ending-banner{display:flex;gap:15px;align-items:center}.danger-banner{border-left:4px solid #b94c38;color:#833929;background:#fbede0}.danger-banner strong{font-size:14px;white-space:nowrap}.ending-banner{border-left:4px solid #a8731f;background:linear-gradient(90deg,#fbf2d8,#f2e7c5)}
 
@@ -173,7 +188,7 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
   .stage-notices{display:contents}
 }
 @media (max-width:900px){
-  .game-shell{width:min(100% - 24px,760px);padding-top:16px}.game-grid{grid-template-columns:1fr}.hud-panel{grid-column:auto;grid-template-columns:1fr}.topbar{align-items:flex-start;gap:14px}.brand h1 span{display:block;margin-top:3px}.chapter-banner{grid-template-columns:1fr}.chapter-banner span{display:none}
+  .game-shell{width:min(100% - 24px,760px);padding-top:16px}.game-grid{grid-template-columns:1fr}.hud-panel{grid-column:auto;grid-template-columns:1fr}.topbar{align-items:flex-start;gap:14px}.topbar,.topbar-actions{flex-wrap:wrap}.brand h1 span{display:block;margin-top:3px}.chapter-banner{grid-template-columns:1fr}.chapter-banner span{display:none}
 }
 
 /* Artwork is decorative inside an RPG entry; it must never mask its action. */
@@ -350,3 +365,53 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
 @media (max-width:700px){.codex-endings-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @keyframes chronicle-arrive{0%{opacity:0;background:rgba(62,142,109,.14)}100%{opacity:1;background:transparent}}
 @media (prefers-reduced-motion:reduce){.day-stamp{animation:none!important;opacity:1!important;transform:rotate(-6deg)}.meter-delta{animation:none!important}.meter.delta-up .meter-track i,.meter.delta-down .meter-track i,.chronicle li.is-new{animation:none!important}}
+
+/* ── Art Bible (issue #16) ─────────────────────────────────────────────
+   WebP art arrives from three authors at three intensities. This layer —
+   not the files — reconciles them: per-family desaturation toward the dó-
+   paper tone, one shared ink-wash frame for every art surface, and a
+   paper-fibre grain so painted edges sit on "paper" instead of raw
+   crops. Player art keeps its existing multiply treatment untouched. */
+.item-art-thumb,
+.rpg-entry.art-entry>img,
+.codex-panel__entries img,
+.inventory-inspector-art{
+  filter:saturate(var(--sat-item));
+  border:1px solid var(--art-frame);
+  border-radius:var(--art-radius);
+  box-shadow:var(--art-bleed);
+  background-color:var(--art-paper);
+}
+.npc-portrait-card>img{
+  filter:saturate(var(--sat-npc));
+  border:1px solid var(--art-frame);
+  border-radius:var(--art-radius);
+  box-shadow:var(--art-bleed);
+  background-color:var(--art-paper);
+}
+.npc-ensemble-art{filter:saturate(var(--sat-npc))}
+/* Still-life strips are painted as scene material, so they take the location
+   token, not the item one. */
+.item-collection-art{
+  filter:saturate(var(--sat-location));
+  border-color:var(--art-frame);
+  border-radius:var(--art-radius);
+  box-shadow:var(--art-bleed);
+  background-color:var(--art-paper);
+}
+.scene-backdrop{border-color:var(--art-frame)}
+.scene-backdrop img{filter:saturate(var(--sat-location))}
+.world-map-art{filter:saturate(var(--sat-location))}
+/* Exit pins render at ~42px; the location token over-flattens them, so they
+   keep the milder item token to stay legible. */
+.map-exit-icon{filter:saturate(var(--sat-item))}
+
+.protagonist-portrait{position:relative}
+.protagonist-portrait::after{position:absolute;inset:0;pointer-events:none;background:var(--art-grain);content:''}
+/* The scene ::after already carries the two-edge scrim, so grain is layered on
+   top of it as the first background image instead of replacing it. */
+.scene-backdrop::after{background:var(--art-grain),linear-gradient(90deg,rgba(22,48,36,.2),transparent 58%,rgba(255,245,211,.12))}
+/* After the shorthands: `background` would reset the repeat. */
+.protagonist-portrait::after,.scene-backdrop::after{background-repeat:repeat}
+
+@media (prefers-contrast:more){:root{--art-grain:none}}

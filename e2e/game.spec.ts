@@ -145,11 +145,11 @@ test('route evidence is carried into the next dialogue', async ({ page }) => {
 })
 
 const endings: Array<{ name: string; ending: string; flags: GameState['flags']; choice: number }> = [
-  { name: 'rootless star', ending: 'Ending: The Rootless Star', flags: { story_scene: 'last_page', story_truth: 3 }, choice: 0 },
-  { name: 'kingdom of the rift', ending: 'Ending: Kingdom of the Rift', flags: { story_scene: 'last_page', story_power: 3, story_ha_bound: true }, choice: 0 },
-  { name: 'remembering ghosts', ending: 'Ending: City of Remembering Ghosts', flags: { story_scene: 'last_page', story_wealth: 2 }, choice: 0 },
-  { name: 'spring for an enemy', ending: 'Ending: Spring for an Enemy', flags: { story_scene: 'last_page', story_mercy: 3, story_khoa_trusted: true }, choice: 1 },
-  { name: 'quiet harmony', ending: 'Ending: Harmony Under a Thatched Roof', flags: { story_scene: 'last_page' }, choice: 2 },
+  { name: 'rootless star', ending: 'Ending: The Rootless Star', flags: { story_scene: 'scene_ascension', story_truth: 3 }, choice: 0 },
+  { name: 'kingdom of the rift', ending: 'Ending: Kingdom of the Rift', flags: { story_scene: 'scene_ascension', story_power: 3, story_ha_bound: true }, choice: 0 },
+  { name: 'remembering ghosts', ending: 'Ending: City of Remembering Ghosts', flags: { story_scene: 'scene_ascension', story_wealth: 2 }, choice: 0 },
+  { name: 'spring for an enemy', ending: 'Ending: Spring for an Enemy', flags: { story_scene: 'scene_ascension', story_mercy: 3, story_khoa_trusted: true }, choice: 1 },
+  { name: 'quiet harmony', ending: 'Ending: Harmony Under a Thatched Roof', flags: { story_scene: 'scene_ascension' }, choice: 2 },
 ]
 
 for (const endingCase of endings) {

@@ -24,7 +24,7 @@ describe('Scenario I progression content', () => {
       expect(item?.nameVi).not.toEqual(item?.nameEn)
       expect(item?.descVi.length).toBeGreaterThan(0)
       expect(item?.descEn.length).toBeGreaterThan(0)
-      expect(itemArtFor(id)).toMatch(/\.png$/)
+      expect(itemArtFor(id)).toMatch(/\.webp$/)
     }
   })
 
@@ -33,13 +33,13 @@ describe('Scenario I progression content', () => {
       const technique = TECHNIQUES.find((entry) => entry.id === techniqueId)
       expect(technique?.sourceItemId).toBeDefined()
       expect(ITEMS.some((item) => item.id === technique?.sourceItemId)).toBe(true)
-      expect(techniqueArtFor(techniqueId)).toMatch(/\.png$/)
+      expect(techniqueArtFor(techniqueId)).toMatch(/\.webp$/)
     }
     for (const equipmentId of NEW_EQUIPMENT_IDS) {
       const equipment = EQUIPMENT.find((entry) => entry.id === equipmentId)
       const item = ITEMS.find((entry) => entry.id === equipment?.itemId)
       expect(item?.equipmentSlot).toBe(equipment?.slot)
-      expect(itemArtFor(equipmentId)).toMatch(/\.png$/)
+      expect(itemArtFor(equipmentId)).toMatch(/\.webp$/)
     }
   })
 

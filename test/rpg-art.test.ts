@@ -5,16 +5,16 @@ import { ITEM_ART, TALENT_ART, TECHNIQUE_ART, itemArtFor, talentArtFor, techniqu
 
 describe('RPG art registry', () => {
   it('registers distinct art only for items whose promised illustration is actually shipped', () => {
-    for (const artwork of Object.values(ITEM_ART)) expect(artwork).toMatch(/\.png$/)
+    for (const artwork of Object.values(ITEM_ART)) expect(artwork).toMatch(/\.webp$/)
     expect(new Set(Object.values(ITEM_ART)).size).toBe(Object.keys(ITEM_ART).length)
     for (const itemId of Object.keys(ITEM_ART)) expect(ITEMS.some((item) => item.id === itemId)).toBe(true)
   })
 
   it('registers a distinct shipped raster illustration for every talent and technique', () => {
-    for (const artwork of [...Object.values(TALENT_ART), ...Object.values(TECHNIQUE_ART)]) expect(artwork).toMatch(/\.png$/)
+    for (const artwork of [...Object.values(TALENT_ART), ...Object.values(TECHNIQUE_ART)]) expect(artwork).toMatch(/\.webp$/)
     expect(new Set(Object.values(TALENT_ART)).size).toBe(TALENTS.length)
     expect(new Set(Object.values(TECHNIQUE_ART)).size).toBe(Object.keys(TECHNIQUE_ART).length)
-    for (const talent of TALENTS) expect(talentArtFor(talent.id)).toMatch(/\.png$/)
+    for (const talent of TALENTS) expect(talentArtFor(talent.id)).toMatch(/\.webp$/)
     for (const techniqueId of Object.keys(TECHNIQUE_ART)) expect(TECHNIQUES.some((technique) => technique.id === techniqueId)).toBe(true)
   })
 

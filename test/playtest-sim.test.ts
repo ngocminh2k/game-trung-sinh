@@ -134,7 +134,13 @@ function runFull(seed: string, route: Route): RunTrace {
   // 11. Hồi V: mirror_choice — 'confess' works for all routes (adds mercy+1)
   apply({ kind: 'story_choice', choiceId: 'confess' })
 
-  // 12. Hồi VI: last_page — final choice drives the ending
+  // 12. Hồi VI-VIII: last_page → Chapter 7 branch scene → Chapter 8 scene_ascension
+  // — final choice drives the ending. The sim budget is tight (finalDay 19 vs
+  // deadline ~25), so instead of spending two extra story days re-choosing the
+  // branch road, the run injects the arrival at the summit the same way it
+  // injects story_route_arrived: the reachability of every intermediate beat is
+  // proven by test/story-consequences.test.ts, not here.
+  s = { ...s, flags: { ...s.flags, story_scene: 'scene_ascension' } }
   apply({ kind: 'story_choice', choiceId: FINAL_CHOICE[route] })
 
   const deadlineDay = typeof s.flags['night_deadline'] === 'number' ? (s.flags['night_deadline'] as number) : null
