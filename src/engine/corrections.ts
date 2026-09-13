@@ -56,6 +56,10 @@ const RETREAT_WORDS = ['retreat', 'run away', 'flee', 'rut lui', 'bo chay', 'cha
 const EQUIP_WORDS = ['equip', 'trang bi', 'mac vao', 'cam vu khi']
 const LEARN_WORDS = ['learn technique', 'learn skill', 'hoc cong phap', 'luyen bi kip', 'lĩnh ngộ']
 const TALENT_WORDS = ['choose talent', 'select talent', 'chon thien phu', 'thuc tinh thien phu']
+// Lôi Đài + Cưỡng đoạt (Issue #19) — Killer-type intents.
+const ARENA_WORDS = ['arena', 'tower', 'climb tower', 'loi dai', 'leo thap', 'thach dau']
+const COERCE_WORDS = ['coerce', 'extort', 'plunder', 'intimidate', 'cuong doat', 'tran lot', 'uy hiep', 'dap do']
+const COERCE_BACKOFF_WORDS = ['back off', 'apologize', 'let go', 'bo qua', 'dinh khong', 'xin loi', 'rut lui khong']
 
 function includesAny(text: string, words: readonly string[]): boolean {
   return words.some((w) => text.includes(w))
@@ -142,6 +146,16 @@ export function parseFreeText(raw: string): ParsedIntent | FailedIntent {
   if (specifiedQty === 'invalid') return { ok: false }
   const qty = specifiedQty ?? 1
 
+  // Coercion resolves before the bare combat verbs so a threat sentence that
+  // mentions backing off (e.g. "uy hiếp Bao nhưng rút lui không lấy gì") stays a
+  // coerce_npc/back_off, not a combat_retreat. The arena keyword sits after the
+  // active-fight verbs so "retreat from the tower" never becomes arena_challenge.
+  if (includesAny(text, COERCE_WORDS)) {
+    const npcId = findNpcIdIn(text)
+    if (npcId === undefined) return { ok: false }
+    const approach = includesAny(text, COERCE_BACKOFF_WORDS) ? 'back_off' : 'plunder'
+    return { ok: true, action: { kind: 'coerce_npc', npcId, approach } }
+  }
   if (includesAny(text, ENCOUNTER_WORDS)) return { ok: true, action: { kind: 'start_encounter' } }
   if (includesAny(text, RETREAT_WORDS)) return { ok: true, action: { kind: 'combat_retreat' } }
   if (includesAny(text, ATTACK_WORDS)) {
@@ -149,6 +163,7 @@ export function parseFreeText(raw: string): ParsedIntent | FailedIntent {
     return { ok: true, action: { kind: 'combat_attack', techniqueId: findTechniqueIdIn(text) } }
   }
   if (includesAny(text, DEFEND_WORDS)) return { ok: true, action: { kind: 'combat_defend' } }
+  if (includesAny(text, ARENA_WORDS)) return { ok: true, action: { kind: 'arena_challenge' } }
   if (includesAny(text, EQUIP_WORDS)) {
     const itemId = findItemIdIn(text)
     if (itemId !== undefined) return { ok: true, action: { kind: 'equip_item', itemId } }

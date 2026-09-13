@@ -49,9 +49,14 @@ export function hasValidEncounter(state: GameState): boolean {
   const encounter = state.encounter
   if (encounter === null || state.terminal || !state.player.alive) return encounter === null
   const enemy = getEnemy(encounter.enemyId)
+  // An arena floor is only legal as the next rung of the ladder: a tampered
+  // save claiming floor 5 with arena_floor=0 must not load as a valid fight.
+  const ladderOk =
+    enemy?.arena === undefined || enemy.arena === Number(state.flags['arena_floor'] ?? 0) + 1
   return (
     enemy !== undefined &&
     enemy.locationId === state.player.locationId &&
+    ladderOk &&
     encounter.maxHp === enemy.maxHp &&
     encounter.hp >= 1 &&
     encounter.hp <= enemy.maxHp &&

@@ -207,6 +207,14 @@ export const EnemyDefSchema = z.object({
   requiredStage: z.number().int().min(0).max(MAX_STAGE).optional(),
   exp: z.number().int().min(0).optional(),
   statusOnHit: z.enum(['poison', 'paralysis', 'burn', 'slow', 'drain']).optional(),
+  arena: z.number().int().min(1).optional(),
+})
+
+export const CoercionDefSchema = z.object({
+  npcId: z.string().min(1),
+  stealGold: z.number().int().min(0),
+  stealItems: z.record(z.number().int().min(1)),
+  backOffAff: z.number().int().min(0),
 })
 
 export const LocationDefSchema = z.object({

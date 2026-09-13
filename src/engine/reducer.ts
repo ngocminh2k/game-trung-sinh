@@ -1,5 +1,8 @@
 import {
+  ARENA_FLOOR_COUNT,
+  arenaEnemyForFloor,
   BEASTS,
+  coercionFor,
   enemyAt,
   entryPositionFor,
   getEnemy,
@@ -12,6 +15,7 @@ import {
   getTalent,
   getTechnique,
   locationDanger,
+  newEncounter,
 } from '../content'
 import { weatherFor, WEATHER_EFFECTS } from './weather'
 import { companionBuff } from './companion'
@@ -75,7 +79,7 @@ import { applyRomanceChoice, findRomanceChoice, hasOtherCommitment } from './rom
 import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
-import { FLAG_AFF, FLAG_AFF_GATE, FLAG_DEFEATED, FLAG_KEYS, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
+import { FLAG_AFF, FLAG_AFF_GATE, FLAG_ARENA_CLEARED, FLAG_ARENA_FLOOR, FLAG_COERCED, FLAG_COERCED_BACKOFF, FLAG_DEFEATED, FLAG_INFAMY, FLAG_KEYS, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
 import type {
   Action,
   ConcreteAction,
@@ -117,9 +121,30 @@ function err(code: ErrorCode): RErr {
   return { ok: false, code }
 }
 
+// Positive Failure: the cause of death is stamped on the dying state, not just
+// pushed onto the event stream. The DeathScreen reads it after a save/reload —
+// the event list is not persisted with the run. The flags record is untyped, so
+// readDeathCause narrows it back to a cause code (or null) once and for all.
+// One cause template per death site: die() stamps the flag and mints the DEATH
+// event together, so the two can never drift apart.
+function die(state: GameState, cause: string): { state: GameState; event: GameEvent } {
+  return {
+    state: { ...state, flags: { ...state.flags, death_cause: cause } },
+    event: { type: 'DEATH', cause },
+  }
+}
+
+export function readDeathCause(state: GameState): string | null {
+  const cause = state.flags.death_cause
+  return typeof cause === 'string' && cause !== '' ? cause : null
+}
+
 export function applyAction(state: GameState, action: Action): TransitionResult {
   if (action.kind === 'restart') {
-    const fresh = newGame(action.seed)
+    // Positive Failure: a reborn run inherits one attribute point keyed to how
+    // the last life fell, so death teaches instead of erasing. A restart from a
+    // living state carries no cause and inherits nothing.
+    const fresh = newGame(action.seed, { legacyCause: readDeathCause(state) })
     return finalize(fresh, [{ type: 'GAME_STARTED', seed: action.seed }])
   }
   const safeState = sanitizeRpgState(state)
@@ -360,6 +385,10 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doEquipItem(state, action.itemId)
     case 'start_encounter':
       return doStartEncounter(state)
+    case 'arena_challenge':
+      return doArenaChallenge(state)
+    case 'coerce_npc':
+      return doCoerceNpc(state, action.npcId, action.approach)
     case 'combat_attack':
       return doCombatAttack(state, action.techniqueId)
     case 'combat_defend':
@@ -402,7 +431,11 @@ function doMove(state: GameState, direction: Direction): R {
   const arrival = targetLocId === undefined ? undefined : entryPositionFor(targetLocId, state.player.locationId)
   let s: GameState = {
     ...state,
-    flags: { ...state.flags, [FLAG_MOVED_ONCE]: true },
+    flags: {
+      ...state.flags,
+      [FLAG_MOVED_ONCE]: true,
+      moveCount: flagNum(state.flags, 'moveCount') + 1,
+    },
     player: {
       ...state.player,
       posX: arrival?.x ?? cell.x,
@@ -460,9 +493,9 @@ function doMove(state: GameState, direction: Direction): R {
         s = { ...s, player: { ...s.player, hp: newHp } }
         events.push({ type: 'DAMAGED', amount: damage, source: dangerLocationId })
         if (newHp <= 0) {
-          s = { ...s, player: { ...s.player, alive: false } }
-          events.push({ type: 'DEATH', cause: `danger:${dangerLocationId}` })
-          return { ok: true, state: s, events }
+          const fallen = die({ ...s, player: { ...s.player, alive: false } }, `danger:${dangerLocationId}`)
+          events.push(fallen.event)
+          return { ok: true, state: fallen.state, events }
         }
         if (newHp <= 25) {
           events.push({
@@ -521,23 +554,26 @@ function doTrain(state: GameState): R {
   const sceneId = currentStoryScene(state).id
 
   if (hp <= 0) {
-    const dead: GameState = {
-      ...state,
-      rng: rngAfter,
-      player: {
-        ...state.player,
-        hp: 0,
-        qi: Math.max(0, qi),
-        stage: progress.stage,
-        realmLevel: progress.realmLevel,
-        progress: progress.progress,
-        pendingAttributePoints: 0,
-        alive: false,
+    const fallen = die(
+      {
+        ...state,
+        rng: rngAfter,
+        player: {
+          ...state.player,
+          hp: 0,
+          qi: Math.max(0, qi),
+          stage: progress.stage,
+          realmLevel: progress.realmLevel,
+          progress: progress.progress,
+          pendingAttributePoints: 0,
+          alive: false,
+        },
       },
-    }
+      'qi_deviation',
+    )
     events.push({ type: 'TRAINED', gain, stage: progress.stage, sceneId })
-    events.push({ type: 'DEATH', cause: 'qi_deviation' })
-    return { ok: true, state: dead, events }
+    events.push(fallen.event)
+    return { ok: true, state: fallen.state, events }
   }
 
   const pointsGranted = progress.breakthroughs * ATTRIBUTE_POINTS_PER_BREAKTHROUGH
@@ -661,7 +697,9 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
       silver -= (total - gold) * 10
       gold = 0
     } else {
-      return err('INSUFFICIENT_GOLD')
+      // With gold in hand the fallback tier (silver) is what actually ran
+      // short; a player broke on both is fundamentally out of gold.
+      return err(gold > 0 ? 'INSUFFICIENT_SILVER' : 'INSUFFICIENT_GOLD')
     }
   } else if (tier === 'silver') {
     if (silver < total) return err('INSUFFICIENT_SILVER')
@@ -911,11 +949,39 @@ function doStartEncounter(state: GameState): R {
   state = spendDay(state, events)
   return {
     ok: true,
-    state: {
-      ...state,
-      encounter: { enemyId: enemy.id, hp: enemy.maxHp, maxHp: enemy.maxHp, guard: 0, focusStacks: 0, focusDamage: 0, behaviorBonus: 0, behaviorHealUsed: false, enemyTurns: 0, playerHits: 0 },
-    },
+    state: { ...state, encounter: newEncounter(enemy) },
     events: [...events, { type: 'ENCOUNTER_STARTED', enemyId: enemy.id }],
+  }
+}
+
+// Lôi Đài (Issue #19): the tower-climb arena. The next opponent is chosen by
+// the cleared-floor pointer, not by `enemyAt`, so the ladder advances in order
+// regardless of how many disciples roam the sect. It is a normal encounter —
+// strike/defend/retreat/consume all work — but winning moves the pointer and
+// seizes the floor's stores (the resource-plunder payoff). Retreating is safe:
+// the pointer does not move, so the floor can be retried with no dead-end.
+function doArenaChallenge(state: GameState): R {
+  if (state.encounter !== null) return err('ITEM_UNAVAILABLE')
+  if (state.player.locationId !== LOCATION_SECT) return err('NOT_AT_LOCATION')
+  const cleared = flagNum(state.flags, FLAG_ARENA_FLOOR)
+  if (cleared >= ARENA_FLOOR_COUNT) return err('ARENA_CLOSED')
+  const enemy = arenaEnemyForFloor(cleared)
+  if (enemy === undefined) return err('ARENA_CLOSED')
+  const events: GameEvent[] = []
+  state = spendDay(state, events)
+  const floor = enemy.arena ?? cleared + 1
+  // Each challenge already costs a day; the sect tends your wounds and you
+  // meditate back to full qi between rounds — a fresh morning per bout.
+  // Without it the tower is one gaunt HP/qi pool (the handoff flagged floors
+  // 4–5 as seed-critical): climbers reached the summit at qi 0 and had to
+  // defend-bank 5 qi per strike until the Senior Brother finished them.
+  const hpHeal = Math.min(REST_HEAL_HP, MAX_HP - state.player.hp)
+  state = { ...state, player: { ...state.player, hp: state.player.hp + hpHeal, qi: MAX_QI } }
+  events.push({ type: 'RESTED', hpHeal })
+  return {
+    ok: true,
+    state: { ...state, encounter: newEncounter(enemy) },
+    events: [...events, { type: 'ENCOUNTER_STARTED', enemyId: enemy.id }, { type: 'ARENA_CHALLENGED', floor, enemyId: enemy.id }],
   }
 }
 
@@ -1028,9 +1094,27 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
       playerState = applyPoison(playerState, 2)
       events.push({ type: 'POISON_APPLIED', amount: 2 })
     }
-    // Issue 5: onKill heal nodes restore HP when a strike kills the enemy.
+// Issue 5: onKill heal nodes restore HP when a strike kills the enemy.
     const onKillHeal = Math.min(MAX_HP - playerState.hp, skillOnKillHeal(state))
     playerState = { ...playerState, hp: Math.min(MAX_HP, playerState.hp + onKillHeal) }
+    // Lôi Đài (Issue #19): clearing a tower floor advances the ladder pointer
+    // and announces the seizure of that disciple's stores. The floor index
+    // only ever moves forward (Math.max) so a rematch cannot rewind it.
+    const flags: Record<string, number | boolean | string> = { ...s.flags, [FLAG_DEFEATED(enemy.id)]: true }
+    if (enemy.arena !== undefined) {
+      flags[FLAG_ARENA_FLOOR] = Math.max(flagNum(s.flags, FLAG_ARENA_FLOOR), enemy.arena)
+      events.push({
+        type: 'ARENA_FLOOR_CLEARED',
+        floor: enemy.arena,
+        enemyId: enemy.id,
+        gold: enemy.rewardGold,
+        itemIds: Object.keys(enemy.rewardItems),
+      })
+      if (enemy.arena >= ARENA_FLOOR_COUNT && flags[FLAG_ARENA_CLEARED] !== true) {
+        flags[FLAG_ARENA_CLEARED] = true
+        events.push({ type: 'ARENA_TOWER_TOPPED', floors: ARENA_FLOOR_COUNT })
+      }
+    }
     return {
       ok: true,
       state: {
@@ -1038,7 +1122,7 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
         encounter: null,
         inventory,
         player: playerState,
-        flags: { ...s.flags, [FLAG_DEFEATED(enemy.id)]: true },
+        flags,
       },
       events: [...events, { type: 'COMBAT_WON', enemyId: enemy.id, rewardGold: enemy.rewardGold }],
     }
@@ -1136,23 +1220,29 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
     const qiRegen = turn % ENCOUNTER_QI_REGEN_TURN === 0
       ? Math.min(ENCOUNTER_QI_REGEN_AMOUNT, MAX_QI - state.player.qi)
       : 0
+    // Issue 6: dodge avoids the blow, but a qi/heal companion still buffs this
+    // turn — keep the reply consistent with the non-dodge path.
     const s: GameState = {
       ...state,
       rng: rngAfterDodge,
-      player: { ...state.player, qi: Math.min(MAX_QI, state.player.qi + qiRegen) },
+      player: { ...state.player, qi: Math.min(MAX_QI, state.player.qi + qiRegen + companionQi), hp: Math.min(MAX_HP, state.player.hp + companionHeal) },
       encounter: { ...state.encounter, guard: 0, behaviorBonus: 0, enemyTurns: turn, playerHits: 0 },
     }
     const out: GameEvent[] = [...events, { type: 'COMBAT_HIT', actor: 'enemy', amount: 0, enemyId: enemy.id }]
     if (qiRegen > 0) out.push({ type: 'QI_REGEN', amount: qiRegen, turn })
+    if (companionQi > 0) out.push({ type: 'QI_REGEN', amount: companionQi, turn })
     return { ok: true, state: s, events: out }
   }
   // Combat 9+ behavior hooks on the enemy reply: phase2 adds a stored +2 to
   // attack, boss adds +50% damage when its one-shot heal already fired.
   const behaviorAtk = state.encounter.behaviorBonus ?? 0
   const bossRage = enemy.behavior === 'boss' && state.encounter.behaviorHealUsed === true ? 1.5 : 1
-  // Issue 6: the day's weather strengthens foes (mist +30%, storm +50%).
-  // Pure from (seed, day), so it never disturbs the rng stream.
-  const bossMod = WEATHER_EFFECTS[weatherFor(state.seed, state.day).id]?.bossPowerMod ?? 1
+  // Issue 6: the day's weather strengthens the boss (mist +30%, storm +50%).
+  // Gated to `behavior:'boss'` — the field name is bossPowerMod, and Lôi Đài's
+  // arena disciples are ordinary foes: applying it to every enemy made floor 3+
+  // lethal in a storm and broke the tower climb. Pure from (seed, day), so it
+  // never disturbs the rng stream.
+  const bossMod = enemy.behavior === 'boss' ? WEATHER_EFFECTS[weatherFor(state.seed, state.day).id]?.bossPowerMod ?? 1 : 1
   // Issue 6: a defense companion soaks part of every incoming blow.
   // Difficulty scales only what the enemy deals, after defences — one central
   // knob (damageMultiplier) for the whole combat path.
@@ -1186,8 +1276,12 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
   const out: GameEvent[] = [...events, { type: 'COMBAT_HIT', actor: 'enemy', amount, enemyId: enemy.id }]
   if (poisonDrain > 0) out.push({ type: 'POISON_TICK', amount: poisonDrain, stacks: nextStacks })
   if (qiRegen > 0) out.push({ type: 'QI_REGEN', amount: qiRegen, turn })
-  if (companionQi > 0) out.push({ type: 'QI_REGEN', amount: companionQi, turn })
-  if (hpAfterPoison <= 0) out.push({ type: 'DEATH', cause: `combat:${enemy.id}` })
+if (companionQi > 0) out.push({ type: 'QI_REGEN', amount: companionQi, turn })
+  if (hpAfterPoison <= 0) {
+    const fallen = die(s, `combat:${enemy.id}`)
+    out.push(fallen.event)
+    return { ok: true, state: fallen.state, events: out }
+  }
   return { ok: true, state: s, events: out }
 }
 
@@ -1390,6 +1484,72 @@ function doResolveRouteEvent(state: GameState, approach: 'present' | 'withhold')
       qiDelta,
       goldDelta,
     }],
+  }
+}
+
+// Cưỡng đoạt (Issue #19): the Killer's non-combat pressure channel. Intimidating
+// a personality-opposite NPC takes their stores outright. Plunder is one-shot
+// per victim (guarded by the coerced flag) — the loop cannot be farmed, and the
+// loot is fixed data rather than RNG so the whole path stays deterministic.
+// The cost is social, not numeric: the victim's goodwill empties and the sect
+// remembers the infamy. back_off is the restraint branch, spending the day but
+// mending the relationship instead.
+function doCoerceNpc(state: GameState, npcId: string, approach: 'plunder' | 'back_off'): R {
+  const npc = getNpc(npcId)
+  if (npc === undefined) return err('NPC_UNKNOWN')
+  const def = coercionFor(npcId)
+  if (def === undefined) return err('COERCION_UNAVAILABLE')
+  if (state.player.locationId !== npc.locationId) return err('NPC_NOT_HERE')
+  if (state.encounter !== null) return err('ITEM_UNAVAILABLE')
+  const affKey = FLAG_AFF(npcId)
+  const already = state.flags[FLAG_COERCED(npcId)] === true
+  const events: GameEvent[] = []
+  state = spendDay(state, events)
+  if (approach === 'back_off') {
+    // One-shot like plunder: the first restraint mends the relationship, but a
+    // threat followed by repeated "restraint" cannot farm affection — the
+    // second back-off spends its day for nothing.
+    const backedOff = state.flags[FLAG_COERCED_BACKOFF(npcId)] === true
+    const aff = backedOff ? 0 : def.backOffAff
+    const affection = { ...(state.affection ?? {}) }
+    affection[npcId] = (affection[npcId] ?? 0) + aff
+    return {
+      ok: true,
+      state: {
+        ...state,
+        affection,
+        flags: {
+          ...state.flags,
+          [FLAG_COERCED_BACKOFF(npcId)]: true,
+          ...(backedOff ? {} : { [affKey]: flagNum(state.flags, affKey) + def.backOffAff }),
+        },
+      },
+      events: [...events, { type: 'NPC_COERCED', npcId, approach, gold: 0, itemIds: [], aff, infamy: flagNum(state.flags, FLAG_INFAMY) }],
+    }
+  }
+  if (already) {
+    // The stores are bare — the victim was squeezed already. No loot, no extra
+    // infamy, but the day is still spent.
+    return {
+      ok: true,
+      state,
+      events: [...events, { type: 'NPC_COERCED', npcId, approach, gold: 0, itemIds: [], aff: 0, infamy: flagNum(state.flags, FLAG_INFAMY) }],
+    }
+  }
+  let inventory = state.inventory
+  for (const [itemId, qty] of Object.entries(def.stealItems)) inventory = bump(inventory, itemId, qty)
+  const infamy = flagNum(state.flags, FLAG_INFAMY) + 1
+  const affection = { ...(state.affection ?? {}), [npcId]: 0 }
+  return {
+    ok: true,
+    state: {
+      ...state,
+      inventory,
+      affection,
+      player: { ...state.player, gold: state.player.gold + def.stealGold },
+      flags: { ...state.flags, [FLAG_COERCED(npcId)]: true, [FLAG_INFAMY]: infamy, [affKey]: 0 },
+    },
+    events: [...events, { type: 'NPC_COERCED', npcId, approach, gold: def.stealGold, itemIds: Object.keys(def.stealItems), aff: -flagNum(state.flags, affKey), infamy }],
   }
 }
 

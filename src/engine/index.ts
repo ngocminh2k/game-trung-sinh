@@ -47,7 +47,7 @@ export { evaluateEndingId } from './endings'
 export { checkLottery, rollLottery } from './lottery'
 export { checkMoveFrom, findPath, playerPosition, targetCell } from './map'
 export { narrate, narrateLine, FALLBACK_TEXT } from './narrator'
-export { applyAction, totalInventoryUnits } from './reducer'
+export { applyAction, readDeathCause, totalInventoryUnits } from './reducer'
 export { initialRng, nextFloat, nextInt, pickFrom } from './rng'
 export { buyPriceOf, canAfford, hasItem, isBuyable, isSellable, sellPriceOf } from './shop'
 export {

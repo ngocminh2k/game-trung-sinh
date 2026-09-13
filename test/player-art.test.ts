@@ -18,7 +18,7 @@ describe('player action art registry', () => {
     ])
 
     for (const action of PLAYER_ACTION_KEYS) {
-      expect(playerArtFor(action)).toMatch(/\.png$/)
+      expect(playerArtFor(action)).toMatch(/\.webp$/)
     }
   })
 })

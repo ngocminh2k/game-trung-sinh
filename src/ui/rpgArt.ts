@@ -2,9 +2,9 @@
  * Visual content is keyed by the stable deterministic IDs used in saves. This
  * keeps art additions independent from the game reducer and content rules.
  *
- * Registration is glob-driven: every `*.png` present under the art folders is
+ * Registration is glob-driven: every `*.webp` present under the art folders is
  * auto-discovered and exposed by its kebab-case filename mapped back to the
- * snake_case content id (e.g. `dew-pill.png` -> `dew_pill`). New illustrations
+ * snake_case content id (e.g. `dew-pill.webp` -> `dew_pill`). New illustrations
  * therefore need no code change — drop the file in and it registers. Missing
  * art simply stays absent (`undefined`) so the UI degrades to text instead of
  * showing a broken image, and the asset manifest reports an honest count.
@@ -12,13 +12,13 @@
 
 import { TALENTS, TECHNIQUES } from '../content/rpg'
 
-const itemModules = import.meta.glob('../assets/art/items/*.png', {
+const itemModules = import.meta.glob('../assets/art/items/*.webp', {
   eager: true,
   query: '?url',
   import: 'default',
 }) as Record<string, string>
 
-const talentTechModules = import.meta.glob('../assets/art/talents/*.png', {
+const talentTechModules = import.meta.glob('../assets/art/talents/*.webp', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -30,7 +30,7 @@ function toArtMap(modules: Record<string, string>): Record<string, string> {
     const base = path
       .split('/')
       .pop()!
-      .replace(/\.png$/i, '')
+      .replace(/\.[a-z0-9]+$/i, '')
       .replace(/-/g, '_')
     out[base] = url
   }

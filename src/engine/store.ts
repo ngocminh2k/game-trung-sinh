@@ -7,7 +7,10 @@ export interface GameStoreState {
   state: GameState
   lastEvents: GameEvent[]
   dispatch: (action: Action) => void
-  reset: (seed?: string) => void
+  /** Starts a fresh life. `legacyCause` mirrors the restart action's Positive
+   *  Failure inheritance — omit it and the run inherits nothing, so resetting
+   *  straight from a dead state does NOT silently gift the fallen life's point. */
+  reset: (seed?: string, legacyCause?: string | null) => void
 }
 
 export const useGameStore = create<GameStoreState>((set) => ({
@@ -18,9 +21,9 @@ export const useGameStore = create<GameStoreState>((set) => ({
       const result = applyAction(prev.state, action)
       return { state: result.state, lastEvents: result.events }
     }),
-  reset: (seed) =>
+  reset: (seed, legacyCause) =>
     set(() => ({
-      state: newGame(seed ?? DEFAULT_SEED),
+      state: newGame(seed ?? DEFAULT_SEED, { legacyCause }),
       lastEvents: [],
     })),
 }))

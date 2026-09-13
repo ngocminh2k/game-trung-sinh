@@ -12,6 +12,7 @@ import {
   getTechnique,
   getStoryScene,
 } from '../content'
+import { describeDeath } from '../content/death-legacy'
 import type { GameEvent, Locale } from './types'
 
 type Handler = (ev: GameEvent, locale: Locale) => string
@@ -32,10 +33,15 @@ function nameOf(kind: 'item' | 'npc' | 'quest' | 'talent' | 'technique' | 'enemy
   return localizedName(ENDINGS.find((ending) => ending.id === id), id, locale)
 }
 
+// One naming source for death causes: the classifier that owns them
+// (content/death-legacy). qi_deviation has no subject there, so it keeps its
+// prose name here; DAMAGED's bare locationId falls through to the location.
 function causeName(cause: string, locale: Locale): string {
-  const location = getLocation(cause.replace(/^danger:/, ''))
-  if (location !== undefined) return localizedName(location, cause, locale)
   if (cause === 'qi_deviation') return locale === 'vi' ? 'tẩu hỏa nhập ma' : 'qi deviation'
+  const subject = describeDeath(cause, locale).subject
+  if (subject !== '') return subject
+  const location = getLocation(cause)
+  if (location !== undefined) return localizedName(location, cause, locale)
   return cause
 }
 
@@ -270,6 +276,54 @@ const TEMPLATES: Record<string, Handler> = {
     if (ev.type !== 'ENCOUNTER_STARTED') return ''
     return l === 'vi' ? `Có kẻ chặn đường: ${nameOf('enemy', ev.enemyId, l)}.` : `An enemy blocks your path: ${nameOf('enemy', ev.enemyId, l)}.`
   },
+  ARENA_CHALLENGED: (ev, l) => {
+    if (ev.type !== 'ARENA_CHALLENGED') return ''
+    return l === 'vi'
+      ? `Ngươi bước lên Lôi Đài — tầng ${String(ev.floor)}, ${nameOf('enemy', ev.enemyId, l)} đã chờ sẵn.`
+      : `You step onto the Arena — floor ${String(ev.floor)}: ${nameOf('enemy', ev.enemyId, l)} is waiting.`
+  },
+  ARENA_FLOOR_CLEARED: (ev, l) => {
+    if (ev.type !== 'ARENA_FLOOR_CLEARED') return ''
+    // The spoils name the actual items — `itemIds` lists types, not quantities,
+    // so a count ("3 linh tài") would misreport a 2-herb + 1-wine haul.
+    const spoils = ev.itemIds.map((id) => nameOf('item', id, l)).join(l === 'vi' ? ', ' : ', ')
+    const loot = spoils.length === 0
+      ? (l === 'vi' ? `thu ${String(ev.gold)} lượng` : `seize ${String(ev.gold)} gold`)
+      : l === 'vi'
+        ? `thu ${String(ev.gold)} lượng cùng ${spoils}`
+        : `seize ${String(ev.gold)} gold and ${spoils}`
+    return l === 'vi'
+      ? `Tầng ${String(ev.floor)} ngã ngũ: ${nameOf('enemy', ev.enemyId, l)} khuỵu xuống, ngươi ${loot}.`
+      : `Floor ${String(ev.floor)} settled: ${nameOf('enemy', ev.enemyId, l)} folds; you ${loot}.`
+  },
+  ARENA_TOWER_TOPPED: (ev, l) => {
+    if (ev.type !== 'ARENA_TOWER_TOPPED') return ''
+    return l === 'vi'
+      ? `${String(ev.floors)} tầng Lôi Đài đã san bằng — không sư huynh nào dám nhìn thẳng ngươi nữa.`
+      : `All ${String(ev.floors)} arena floors leveled — no senior brother meets your eyes now.`
+  },
+  NPC_COERCED: (ev, l) => {
+    if (ev.type !== 'NPC_COERCED') return ''
+    if (ev.approach === 'back_off') {
+      // The grace is spent after the first time — the copy says so, so a
+      // repeat back-off is never narrated as earning goodwill it did not.
+      return ev.aff === 0
+        ? (l === 'vi'
+          ? `Ngươi lại hạ tay với ${nameOf('npc', ev.npcId, l)} — lòng khoan dung đã cho một lần, chẳng còn gì mới.`
+          : `You lower your hand at ${nameOf('npc', ev.npcId, l)} again — the mercy was granted once, nothing new is owed.`)
+        : (l === 'vi'
+          ? `Ngươi hạ tay, bỏ qua cho ${nameOf('npc', ev.npcId, l)}; kẻ ấy nhớ một phần thể diện.`
+          : `You lower your hand and let ${nameOf('npc', ev.npcId, l)} off; they remember the mercy.`)
+    }
+    if (ev.gold === 0 && ev.itemIds.length === 0) {
+      return l === 'vi'
+        ? `Lần nữa uy hiếp ${nameOf('npc', ev.npcId, l)} — nhưng túi của kẻ ấy đã cạn từ lượt trước.`
+        : `You lean on ${nameOf('npc', ev.npcId, l)} again — their purse was emptied last time.`
+    }
+    return l === 'vi'
+      ? `Ngươi dồn ${nameOf('npc', ev.npcId, l)} vào chân tường, cưỡng đoạt ${String(ev.gold)} lượng cùng linh tài; tiếng ác đồn xa.`
+      : `You drive ${nameOf('npc', ev.npcId, l)} against the wall and take ${String(ev.gold)} gold in spoils; the ill repute spreads.`
+  },
   COMBAT_HIT: (ev, l) => {
     if (ev.type !== 'COMBAT_HIT') return ''
     return l === 'vi'
@@ -288,6 +342,12 @@ const TEMPLATES: Record<string, Handler> = {
   },
   COMBAT_WON: (ev, l) => {
     if (ev.type !== 'COMBAT_WON') return ''
+    const isArena = getEnemy(ev.enemyId)?.arena !== undefined
+    if (isArena) {
+      return l === 'vi'
+        ? `Thắng trận Lôi Đài trước ${nameOf('enemy', ev.enemyId, l)}.`
+        : `Victory on the Arena stage against ${nameOf('enemy', ev.enemyId, l)}.`
+    }
     return l === 'vi'
       ? `Hạ ${nameOf('enemy', ev.enemyId, l)}, nhận ${String(ev.rewardGold)} lượng.`
       : `Defeated ${nameOf('enemy', ev.enemyId, l)}; gained ${String(ev.rewardGold)} gold.`
@@ -331,8 +391,8 @@ const TEMPLATES: Record<string, Handler> = {
   COMBAT_CRIT: (ev, l) => {
     if (ev.type !== 'COMBAT_CRIT') return ''
     return l === 'vi'
-      ? `ĐỘNH CHÍ MẠNG! ${String(ev.amount)} sát thương nhân đôi!`
-      : `CRITICAL STRIKE! ${String(ev.amount)} doubled damage!`
+      ? `ĐỘNH CHÍ MẠNG! ${String(ev.amount)} sát thương chí mạng!`
+      : `CRITICAL STRIKE! ${String(ev.amount)} critical damage!`
   },
   QI_SPENT: (ev, l) => {
     if (ev.type !== 'QI_SPENT') return ''
@@ -352,13 +412,13 @@ const TEMPLATES: Record<string, Handler> = {
     if (ev.type !== 'DAMAGED') return ''
     return l === 'vi'
       ? `Ngươi chịu ${String(ev.amount)} sát thương từ ${causeName(ev.source, l)}.`
-      : `You take ${String(ev.amount)} damage from the ${ev.source}.`
+      : `You take ${String(ev.amount)} damage from ${causeName(ev.source, l)}.`
   },
   DEATH: (ev, l) => {
     if (ev.type !== 'DEATH') return ''
     return l === 'vi'
       ? `Trước mắt ngươi tối dần. ${causeName(ev.cause, l)} đã khép lại kiếp này.`
-      : `Your vision fades. Cause: ${ev.cause}. This life ends here.`
+      : `Your vision fades. ${causeName(ev.cause, l)} has closed this life.`
   },
   ACHIEVEMENT_UNLOCKED: (ev, l) => {
     if (ev.type !== 'ACHIEVEMENT_UNLOCKED') return ''

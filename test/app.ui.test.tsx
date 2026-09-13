@@ -68,6 +68,26 @@ describe('browser game journey', () => {
     await waitFor(() => expect(screen.getByTestId('map-current-cell').textContent).not.toBe(startCell))
   })
 
+  // Issue #17: reload (remount) resumes the active slot; exiting to menu ends auto-resume.
+  it('auto-resumes the active save on remount and stops after returning to the menu', async () => {
+    const first = render(<App />)
+    beginGame()
+    expect(screen.getByTestId('game-screen')).toBeTruthy()
+    first.unmount()
+    cleanup()
+
+    render(<App />)
+    expect(screen.queryByTestId('main-menu')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /nhấn|press/i }))
+    expect(await screen.findByTestId('game-screen')).toBeTruthy()
+
+    fireEvent.click(screen.getByTestId('game-exit-menu'))
+    expect(screen.getByTestId('main-menu')).toBeTruthy()
+    // The save itself survives the exit — Load Game still lists it.
+    fireEvent.click(screen.getByTestId('menu-load-game'))
+    expect(screen.getByText(/Tiếp tục|Continue/)).toBeTruthy()
+  })
+
   it('submits a free-form action through the deterministic reducer', async () => {
     const user = userEvent.setup()
     render(<App />)

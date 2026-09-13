@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
+  ARENA_FLOOR_COUNT,
   CHAPTERS,
   ENEMIES,
   ENDINGS,
@@ -11,13 +12,15 @@ import {
   NPCS,
   TALENTS,
   TECHNIQUES,
+  arenaEnemyForFloor,
   getItem,
   getLocation,
   getRegionMap,
 } from '../content'
-import { BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, nextStageThreshold, queueDrain, RETREAT_HP_COST, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
+import { FLAG_ARENA_FLOOR } from '../content/flag-keys'
+import { BASIC_STRIKE_QI_COST, activeSystem, canCompleteQuest, currentStoryScene, dangerWarning, findStoryChoice, formatSystemMessage, nextStageThreshold, queueDrain, readDeathCause, RETREAT_HP_COST, storyRouteEncounter, storyRouteProof, storyRouteTarget, systemQuestsFor, techniqueQiCost } from '../engine'
 import type { Action, Direction, GameState, Locale } from '../engine'
-import worldMapArt from '../assets/art/world-map-inkwash.png'
+import worldMapArt from '../assets/art/world-map-inkwash.webp'
 import { locationBackdropFor, locationIconFor } from './locationArt'
 import { npcPortraitFor } from './npcArt'
 import { deriveObjective, nightDeadlineRemaining } from './objective'
@@ -55,6 +58,9 @@ export interface GameScreenProps {
   onAction: (action: Action) => void
   onLocaleChange: (locale: Locale) => void
   onRestart?: () => void
+  /** Present only when the app can leave the run (auto-resume means the menu
+   *  is one click away, not a reload). Saves keep the run. */
+  onExitToMenu?: () => void
   storyOpen?: boolean
   onStoryClose?: () => void
 }
@@ -168,7 +174,7 @@ function cellDirection(px: number, py: number, x: number, y: number): 'n' | 's' 
   return `${ns}${ew}` as 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | 'here'
 }
 
-export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, chronicleKinds, onAction, onLocaleChange, onRestart = () => {}, storyOpen = false, onStoryClose = () => {} }: GameScreenProps) {
+export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, chronicleKinds, onAction, onLocaleChange, onRestart = () => {}, onExitToMenu, storyOpen = false, onStoryClose = () => {} }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
   const [journalOpen, setJournalOpen] = useState(false)
@@ -421,7 +427,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const selectedInventoryArt = selectedInventoryId === undefined ? undefined : itemArtFor(selectedInventoryId)
   const selectedInventoryEquipment = selectedInventoryId === undefined ? undefined : EQUIPMENT.find((equipment) => equipment.itemId === selectedInventoryId)
   const encounterEnemy = game.encounter === null ? undefined : ENEMIES.find((enemy) => enemy.id === game.encounter?.enemyId)
-  const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
+  // Arena tower floors live at the sect too, but they are never wild dangers —
+  // they open only through the arena panel below.
+  const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId && enemy.arena === undefined)
+  // The pointer only moves forward on a win; shared constant from flag-keys.
+  const arenaCleared = typeof game.flags[FLAG_ARENA_FLOOR] === 'number' ? game.flags[FLAG_ARENA_FLOOR] : 0
+  const nextArenaFloor = arenaCleared < ARENA_FLOOR_COUNT ? arenaEnemyForFloor(arenaCleared) : undefined
   const knownTechniques = TECHNIQUES.filter((technique) => (game.techniques[technique.id] ?? 0) > 0)
   const encounterLocked = game.encounter !== null
   const deadlineRemaining = nightDeadlineRemaining(game)
@@ -586,6 +597,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <em>{entries.reduce((sum, [, qty]) => sum + qty, 0)}</em>
             <kbd aria-hidden="true">I</kbd>
           </button>}
+          {onExitToMenu !== undefined && <button className="menu-exit" data-testid="game-exit-menu" onClick={onExitToMenu} type="button">
+            {word(locale, 'Về menu', 'Menu')}
+          </button>}
           <div className="language-toggle" role="group" aria-label="Language">
             <button aria-current={locale === 'vi' ? 'true' : undefined} className={locale === 'vi' ? 'active' : ''} onClick={() => onLocaleChange('vi')} type="button">VI</button>
             <button aria-current={locale === 'en' ? 'true' : undefined} className={locale === 'en' ? 'active' : ''} onClick={() => onLocaleChange('en')} type="button">EN</button>
@@ -612,6 +626,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <DeathScreen
             locale={locale}
             ending={ending}
+            cause={readDeathCause(game) ?? ''}
             onRestart={onRestart}
             onDismiss={() => setDeathDismissed(true)}
           />
@@ -652,6 +667,30 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           <section className="encounter-banner encounter-ready" aria-label={word(locale, 'Gặp gỡ hiểm họa', 'Encounter available')}>
             <div><p className="eyebrow">{word(locale, 'Hiểm họa trong khu vực', 'Local danger')}</p><h2>{localized(locale, localEnemy)}</h2><span>{locale === 'vi' ? localEnemy.descVi : localEnemy.descEn}</span></div>
             <button onClick={() => onAction({ kind: 'start_encounter' })} type="button">{word(locale, 'Bước vào giao chiến', 'Start encounter')}</button>
+          </section>
+        )}
+
+        {/* Lôi Đài (Issue #19): the sect tower-climb. One banner, three states:
+            next floor open, whole tower topped, or (during a fight) hidden by
+            the encounter banner above. */}
+        {game.encounter === null && game.player.locationId === 'sect' && (
+          <section className="encounter-banner encounter-ready" aria-label={word(locale, 'Lôi Đài', 'Sect Arena')}>
+            {nextArenaFloor !== undefined ? (
+              <>
+                <div>
+                  <p className="eyebrow">{word(locale, `Lôi Đài · tầng ${String(arenaCleared + 1)}/${String(ARENA_FLOOR_COUNT)}`, `Sect Arena · floor ${String(arenaCleared + 1)} of ${String(ARENA_FLOOR_COUNT)}`)}</p>
+                  <h2>{localized(locale, nextArenaFloor)}</h2>
+                  <span>{locale === 'vi' ? nextArenaFloor.descVi : nextArenaFloor.descEn}</span>
+                </div>
+                <button disabled={game.terminal} onClick={() => onAction({ kind: 'arena_challenge' })} type="button">{word(locale, 'Khiêu chiến Lôi Đài', 'Challenge the arena')}</button>
+              </>
+            ) : (
+              <div>
+                <p className="eyebrow">{word(locale, 'Lôi Đài đã cạn tầng', 'Arena mastered')}</p>
+                <h2>{word(locale, 'Toàn tháp Lôi Đài thuộc về ngươi', 'The whole tower is yours')}</h2>
+                <span>{word(locale, `${String(ARENA_FLOOR_COUNT)} sư huynh đệ bị ngươi đánh cho tâm phục khẩu phục.`, `${String(ARENA_FLOOR_COUNT)} senior disciples yielded to your fist.`)}</span>
+              </div>
+            )}
           </section>
         )}
       </div>
@@ -880,7 +919,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <div className="panel-heading compact"><h2 id="stats-title">{word(locale, 'Tu vi', 'Cultivation')}</h2>
               <StageProgress locale={locale} realmLevel={game.player.realmLevel} stage={game.player.stage} progress={game.player.progress} />
             </div>
-            <RealmLadder locale={locale} stage={game.player.stage} />
+            {/* Issue #17: the six-realm jargon ladder lands after the first
+                day of play — day-1 HUD keeps only the current-stage chip. */}
+            {(game.day > 1 || game.player.stage > 0) && <RealmLadder locale={locale} stage={game.player.stage} />}
             <figure className={`protagonist-portrait player-action-art pose-${playerPose}`} data-pose={playerPose} data-testid="player-action-art">
               <img
                 alt={word(locale, `Tư thế nhân vật: ${playerPose}`, `Player action pose: ${playerPose}`)}

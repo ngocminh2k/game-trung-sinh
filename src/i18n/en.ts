@@ -111,6 +111,8 @@ export const EN: Dict = {
     ATTRIBUTE_MAXED: 'That attribute is already at its maximum.',
     REGION_LOCKED: 'The way is sealed; the cave will not open.',
     SYSTEM_LOCKED: 'This technique is reserved for the System you contracted with.',
+    ARENA_CLOSED: 'The Arena is mastered — no one dares challenge you now.',
+    COERCION_UNAVAILABLE: 'They will not be coerced — or you have pushed too far.',
     SKILL_UNKNOWN: 'No such technique exists in the skill tree.',
     SKILL_ALREADY_UNLOCKED: 'You have already awakened that technique.',
     SKILL_REQUIREMENT_NOT_MET: 'Your foundation is not ready for that technique yet.',
@@ -131,7 +133,7 @@ export const EN: Dict = {
   ui: {
     loading: { aria: 'Loading — press to begin', subtitle: 'A Reborn-Cultivator Saga · The Broken Root', begin: 'Press to begin' },
     saveSlots: { title: 'Choose your cultivation life', subtitle: 'Each record keeps a separate path.', slotName: 'Save {{slot}}', empty: '— empty —', start: 'Begin new life', continue: 'Continue', day: 'Day {{day}}', stage: 'Stage: {{stage}}', ending: 'Ending: {{ending}}', saved: 'Saved {{time}}', justNow: 'just now', minutesAgo: '{{count}} minutes ago', hoursAgo: '{{count}} hours ago', daysAgo: '{{count}} days ago', delete: 'Delete save', deleteConfirm: 'Press again to delete' },
-    newGame: { title: 'Choose Your System', subtitle: 'Ten Systems answer at dawn. Only one vow stays with you — choose before you begin.', confirm: 'Seal the Contract' },
+    newGame: { title: 'Choose Your System', subtitle: 'Ten Systems answer at dawn. Only one vow stays with you — choose before you begin.', revealHint: 'Select a System to hear its voice. Select again to seal the contract.', confirm: 'Seal the Contract' },
     settings: {
       difficultyHint: 'Applies to the next new game. An active run keeps its own difficulty.',
       difficulty: { story: 'Story', balanced: 'Balanced', hard: 'Hard' },
@@ -140,7 +142,8 @@ export const EN: Dict = {
       narrationOn: 'Proxy: on',
       narrationOff: 'Proxy: off',
     },
-    death: { aria: 'Game over', title: 'This Life Closes', restart: 'Be Reborn', dismiss: 'Step Back' },
+death: { aria: 'Game over', title: 'This Life Closes', restart: 'Be Reborn', dismiss: 'Step Back', cause: 'Cause', hint: 'Lesson', legacy: 'Legacy carried on', legacyPoints: 'The next life begins with {{count}} attribute point to spend.' },
+    playtest: { title: 'This life has closed. May I ask a few short questions?', clarity: 'I understood what my choices would do.', agency: 'My decisions felt like they mattered.', pressure: 'The twelfth-night deadline pressured me.', freeTextLabel: 'What stays with you? (Optional)', submit: 'Send impressions', skip: 'Skip', thanks: 'Thank you, fellow traveller. Until the next life.' },
     codex: { title: 'Wandering Codex', kicker: 'Content & artwork', progress: 'Asset loading progress', registered: 'Assets registered in the game', packsReady: 'packs ready', packs: 'Asset packs', entries: 'Codex entries', open: 'Open', view: 'View', endings: 'Ending Gallery', endingLocked: 'Ending unrevealed', endingTier: { main: 'Main-story endings', system: 'System endings' }, kind: { npc: 'Character', item: 'Item', talent: 'Talent', technique: 'Technique', location: 'Location' }, status: { queued: 'Queued', loading: 'Loading', ready: 'Ready', failed: 'Needs retry' } },
     objective: { title: 'Objective', battle: 'In battle: strike or defend', danger: 'Local danger: face {{enemy}} in {{location}}', progress: 'Cultivate to build realm progress ({{progress}}/120)', breakthrough: 'Progress is full — seek a breakthrough to Tier {{stage}}', beats: { letter_at_dawn: 'Read the letter and decide how to meet Elder Meihua. Your broken root gathers qi slowly, but it can feel cracks in sealed memories.', market_rumor: 'Go to Cloudgather Market and decide who deserves your trust before the twelfth night.', cave_witness: 'Find the Sealed Cave; Ha’s testimony needs someone willing to hear it.', sect_trial: 'Carry the truth to Hidden Cloud, then decide who should own the village’s memory.', mirror_choice: 'Face the prior life: the enemy you pursue may be yourself.', last_page: 'Make the final decision about the mirror — no one else may choose for you.', scene_branch_mercy: 'Answer the first white shadow on Cloud Peak: what is one name worth against a reward?', scene_branch_path: 'Answer the second white shadow in footsteps, not notifications.', scene_branch_blade: 'Choose the true stroke before the ice that cages two hundred names.', scene_branch_rootless: 'Tell the last white shadow what carried you up with no System.', scene_ascension: 'The final decision: keep the System, return the two hundred names, or step across the frame.' } },
   },

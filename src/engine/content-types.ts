@@ -168,6 +168,22 @@ export interface EnemyDef {
   /** Optional status effect applied on the enemy's reply turn. The pattern
    *  drives the choice (poison → poison, ranged → slow, drain_qi → drain). */
   statusOnHit?: StatusEffect['kind']
+  /** Lôi Đài (Issue #19): when set, this enemy is a tower floor (1-based) of the
+   *  Sect Arena rather than a roaming encounter. Arena floors are excluded from
+   *  `enemyAt`/wild-encounter UI and are only opened through `arena_challenge`. */
+  arena?: number
+}
+
+/** A Cưỡng đoạt (Issue #19) target: a personality-opposite NPC the Killer can
+ *  threaten to seize resources from. Plunder is one-shot per NPC per run (recorded
+ *  in a flag) so it cannot be farmed; the effects are fixed, never RNG. */
+export interface CoercionDef {
+  npcId: string
+  /** Loot seized on a successful plunder. */
+  stealGold: number
+  stealItems: Record<string, number>
+  /** Restraint flavour — a back_off choice grants the NPC this much goodwill. */
+  backOffAff: number
 }
 
 export interface LocationDef {
