@@ -228,6 +228,7 @@ export function DockPanelMarket({
   entries,
   locale,
   onAction,
+  unlockedAchievementIds,
 }: {
   actionKind: Action['kind'] | null
   encounterLocked: boolean
@@ -235,6 +236,7 @@ export function DockPanelMarket({
   entries: [string, number][]
   locale: Locale
   onAction: (action: Action) => void
+  unlockedAchievementIds?: readonly string[]
 }): JSX.Element {
   void _actionKind
   return (
@@ -346,10 +348,14 @@ export function DockPanelMarket({
       <div className="achievements">
         {ACHIEVEMENTS.map((achievement) => {
           const unlocked = game.achievements.includes(achievement.id)
+          // AC1: a deed from another slot's life persists globally — stamp it
+          // faded so cross-run progress is visible, not just stored.
+          const pastLife = !unlocked && (unlockedAchievementIds?.includes(achievement.id) ?? false)
           const HAN_SEAL = '成'
+          const desc = locale === 'vi' ? achievement.descVi : achievement.descEn
           return (
-            <span className={unlocked ? 'unlocked' : ''} key={achievement.id} title={locale === 'vi' ? achievement.descVi : achievement.descEn}>
-              {unlocked && <i aria-hidden="true" className="achievement-seal" data-testid="achievement-seal">{HAN_SEAL}</i>}
+            <span className={unlocked ? 'unlocked' : pastLife ? 'is-past-life' : ''} key={achievement.id} title={pastLife ? `${desc} · ${i18n(locale, 'ui.achievements.pastLife')}` : desc}>
+              {(unlocked || pastLife) && <i aria-hidden="true" className="achievement-seal" data-testid="achievement-seal">{HAN_SEAL}</i>}
               {localized(locale, achievement)}
             </span>
           )

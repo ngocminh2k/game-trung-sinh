@@ -239,6 +239,18 @@
   font-size: 11px;
   white-space: nowrap;
 }
+.save-slot-ngplus {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid #bb7c28;
+  border-radius: 999px;
+  color: #bb7c28;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
 .save-slot-main:focus-visible { outline: 3px solid #bb7c28; outline-offset: 2px; }
 .save-slot-delete {
   border: 1px solid rgba(157, 62, 46, .5);
