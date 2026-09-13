@@ -13,6 +13,7 @@ import {
   getStoryScene,
 } from '../content'
 import { describeDeath } from '../content/death-legacy'
+import { TIME_OF_DAY_EN, TIME_OF_DAY_VI } from './time'
 import type { GameEvent, Locale } from './types'
 
 type Handler = (ev: GameEvent, locale: Locale) => string
@@ -58,6 +59,50 @@ function weatherFlavor(weather: { season: string; kind: string; id: string }, lo
   return locale === 'vi' ? desc.vi : desc.en
 }
 
+// NOT_AT_LOCATION gates a dozen different flows, so a single generic line read
+// like a shrug. The event now carries the required place (`at`) and the
+// attempted action (`context`); naming both turns the refusal into directions.
+const PLACE_ACTION: Record<string, [string, string]> = {
+  gather: ['hái linh thảo', 'gather spirit herbs'],
+  refine: ['ép vật liệu', 'refine materials'],
+  buy: ['mua hàng', 'buy goods'],
+  sell: ['bán hàng', 'sell goods'],
+  convert_currency: ['đổi tiền', 'exchange currency'],
+  store: ['gửi đồ vào kho', 'store goods'],
+  withdraw: ['lấy đồ từ kho', 'withdraw goods'],
+  draw_lottery: ['quay vé số', 'draw a lottery ticket'],
+  accept_quest: ['nhận nhiệm vụ', 'take up that task'],
+  turn_in_quest: ['nộp nhiệm vụ', 'hand in that task'],
+  complete_quest: ['nộp nhiệm vụ', 'hand in that task'],
+  system_accept_quest: ['nhận nhiệm vụ', 'take up that task'],
+  system_turn_in_quest: ['nộp nhiệm vụ', 'hand in that task'],
+}
+
+function notAtLocationLine(ev: GameEvent, l: Locale): string {
+  if (ev.type !== 'ERROR') return ''
+  const placeId = ev.at
+  const place = placeId === undefined ? undefined : getLocation(placeId)
+  if (place === undefined || placeId === undefined) {
+    // No place involved — this is a combat-state refusal, not a travel problem.
+    if (ev.context === 'start_encounter') {
+      return l === 'vi'
+        ? 'Nơi này không còn thú nào để giao chiến — thử vùng khác trên bản đồ.'
+        : 'Nothing here will fight you — try another region on the map.'
+    }
+    return l === 'vi' ? 'Ngươi đang không đánh nhau với ai cả.' : 'You are not fighting anyone right now.'
+  }
+  const verb = ev.context === undefined ? undefined : PLACE_ACTION[ev.context]
+  const placeName = localizedName(place, placeId, l)
+  if (verb === undefined) {
+    return l === 'vi'
+      ? `Việc này chỉ làm được ở ${placeName}. Bản đồ có chỉ đường tới đó.`
+      : `This can only be done at ${placeName}. The map shows the way.`
+  }
+  return l === 'vi'
+    ? `Muốn ${verb[0]} thì phải đến ${placeName}. Bản đồ có chỉ đường tới đó.`
+    : `You must go to ${placeName} to ${verb[1]}. The map shows the way.`
+}
+
 export const FALLBACK_TEXT: Record<Locale, string> = {
   vi: 'Chuyện gì đó đã xảy ra...',
   en: 'Something happened...',
@@ -100,6 +145,11 @@ const TEMPLATES: Record<string, Handler> = {
     // Issue 6: the stamped weather voices the season/sky; pure from the event.
     const flavor = weatherFlavor(ev.weather, l)
     return flavor === '' ? dayLine : `${dayLine} ${flavor}`
+  },
+  TIME_ADVANCED: (ev, l) => {
+    if (ev.type !== 'TIME_ADVANCED') return ''
+    const name = l === 'vi' ? TIME_OF_DAY_VI[ev.timeOfDay] : TIME_OF_DAY_EN[ev.timeOfDay]
+    return l === 'vi' ? `Trời chuyển sang ${name}.` : `The day turns to ${name}.`
   },
   RESTED: (_ev, l) =>
     l === 'vi'
@@ -441,10 +491,10 @@ const TEMPLATES: Record<string, Handler> = {
   },
   ERROR: (ev, l) => {
     if (ev.type !== 'ERROR') return ''
+    if (ev.code === 'NOT_AT_LOCATION') return notAtLocationLine(ev, l)
     const explanations: Record<string, [string, string]> = {
       TERMINAL: ['Kiếp này đã khép lại; hãy bắt đầu một kiếp mới để lựa chọn khác.', 'This life has closed; begin another to choose differently.'],
       MOVE_BLOCKED: ['Lối đó bị địa hình chặn. Hãy nhìn đường sáng hoặc tìm lối vòng trên bản đồ.', 'That way is blocked by terrain. Follow a lit route or find a way around on the map.'],
-      NOT_AT_LOCATION: ['Việc này chỉ có thể làm tại đúng địa điểm. Bản đồ sẽ cho biết nơi cần đến.', 'This can only happen at the right place. The map tells you where to go.'],
       INSUFFICIENT_GOLD: ['Ngươi chưa đủ tiền cho việc này. Bán đồ, hoàn thành việc, hoặc kiếm phần thưởng trước.', 'You do not have enough gold. Sell goods, finish work, or earn a reward first.'],
       INSUFFICIENT_QI: ['Khí lực chưa đủ để tu luyện. Nghỉ một đêm sẽ hồi đầy linh khí.', 'Your qi is too low to train. Resting for a night restores it.'],
       NO_ITEM: ['Trong túi ngươi không có vật đó.', 'That item is not in your bag.'],

@@ -25,6 +25,8 @@ describe('browser game session', () => {
     expect(p.spiritStones).toBe(0)
     expect(loaded!.game.rng).toBe(game.rng)
     expect(loaded!.game.day).toBe(game.day)
+    // pr/4's time-of-day clock survives the save round-trip.
+    expect(loaded!.game.timeOfDay).toBe(game.timeOfDay)
   })
 
   it('rejects malformed or stale saved data instead of letting it corrupt a run', () => {

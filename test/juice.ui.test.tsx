@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { newGame } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
@@ -87,6 +87,13 @@ describe('game feel feedback (design review Phase 6)', () => {
     const first = render(
       <GameScreen actionNonce={0} chronicle={['Dòng mở đầu.']} game={base} locale="vi" onAction={() => undefined} onLocaleChange={() => undefined} storyOpen />,
     )
+    // The proto-shell layout moved the chronicle feed into the journal dock,
+    // so open the journal and select the Biên niên tab before asserting.
+    act(() => {
+      fireEvent.keyDown(window, { key: 'i' })
+      ;(first.container.querySelector('#dock-tab-chronicle') as HTMLButtonElement)?.click()
+    })
+    expect(first.container.querySelector('.chronicle')).toBeTruthy()
     expect(first.container.querySelector('.chronicle li.is-new')).toBeNull()
 
     first.rerender(

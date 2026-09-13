@@ -14,36 +14,46 @@ function gatherUntilDeadline(seed: string): GameState {
   return state
 }
 
-describe('day cost (design review 2026-08, Phase 2)', () => {
-  it('ordinary travel is free while deliberate training costs a day', () => {
-    let state = newGame('day-cost')
+describe('time cost (2026-09 four-slot clock)', () => {
+  it('ordinary travel is free while deliberate actions spend one slot, not a full day', () => {
+    let state = newGame('time-cost')
     const day = state.day
     state = applyAction(state, { kind: 'move', direction: 'west' }).state
     expect(state.day).toBe(day)
+    expect(state.timeOfDay).toBe('sang')
     const trainable = { ...state, player: { ...state.player, qi: 60 } }
     const trained = applyAction(trainable, { kind: 'train' }).state
-    expect(trained.day).toBe(day + 1)
+    expect(trained.day).toBe(day)
+    expect(trained.timeOfDay).toBe('trua')
   })
 
-  it('the core loop verbs — gathering and selling — each burn a day', () => {
-    let state = navTo(newGame('day-cost-loop'), 'herb_field')
-    const gatherDay = state.day
-    state = applyAction(state, { kind: 'gather' }).state
-    expect(state.day).toBe(gatherDay + 1)
+  it('four slots wrap a full day: gathering stays same-day until the night edge', () => {
+    let state = navTo(newGame('time-loop'), 'herb_field')
+    const day = state.day
+    state = applyAction(state, { kind: 'gather' }).state // Sáng → Trưa
+    expect(state.day).toBe(day)
+    state = applyAction(state, { kind: 'gather' }).state // Trưa → Chiều
+    state = applyAction(state, { kind: 'gather' }).state // Chiều → Tối
+    state = applyAction(state, { kind: 'gather' }).state // Tối → Sáng ngày mới
+    expect(state.day).toBe(day + 1)
+    expect(state.timeOfDay).toBe('sang')
+    // Selling is a new outing with its own slot budget.
     state = navTo(state, 'market')
     const sellDay = state.day
     state = applyAction(state, { kind: 'sell', itemId: 'spirit_herb' }).state
-    expect(state.day).toBe(sellDay + 1)
+    expect(state.day).toBe(sellDay)
+    expect(state.timeOfDay).toBe('trua')
   })
 
   it('a pill outside a fight is an outing; mid-fight it is a free turn', () => {
-    const state = newGame('day-cost-pill')
+    const state = newGame('time-pill')
     const used = applyAction(state, { kind: 'use_item', itemId: 'pill_hp' })
     expect(used.events.some((e) => e.type === 'ITEM_USED')).toBe(true)
-    expect(used.events.some((e) => e.type === 'DAY_PASSED')).toBe(true)
-    expect(used.state.day).toBe(state.day + 1)
+    expect(used.events.some((e) => e.type === 'TIME_ADVANCED')).toBe(true)
+    expect(used.state.day).toBe(state.day)
+    expect(used.state.timeOfDay).toBe('trua')
 
-    let fighting = navTo(newGame('day-cost-pill-fight'), 'misty_forest')
+    let fighting = navTo(newGame('time-pill-fight'), 'misty_forest')
     fighting = applyAction(fighting, { kind: 'start_encounter' }).state
     const midfight = applyAction(fighting, { kind: 'use_item', itemId: 'pill_hp' })
     expect(midfight.events.some((e) => e.type === 'ITEM_USED')).toBe(true)
@@ -51,51 +61,53 @@ describe('day cost (design review 2026-08, Phase 2)', () => {
     expect(midfight.state.inventory['pill_hp'] ?? 0).toBe(0)
   })
 
-  it('story decisions are part of the day cost', () => {
-    const state = newGame('day-cost-story')
+  it('story decisions keep the whole-day montage cost (boot lands on Ngày 3)', () => {
+    const state = newGame('time-story')
     const result = applyAction(state, { kind: 'story_choice', choiceId: 'return_pin' })
     expect(result.events.some((e) => e.type === 'STORY_CHOICE')).toBe(true)
     expect(result.state.day).toBe(state.day + 1)
+    expect(result.state.timeOfDay).toBe(state.timeOfDay)
   })
 
-  it('failed actions never charge a day', () => {
-    const state = newGame('day-cost-error')
+  it('failed actions never charge time', () => {
+    const state = newGame('time-error')
     const result = applyAction(state, { kind: 'buy', itemId: 'pill_hp' }) // not at market
     expect(result.events.some((e) => e.type === 'ERROR')).toBe(true)
     expect(result.state.day).toBe(state.day)
-    expect(result.events.some((e) => e.type === 'DAY_PASSED')).toBe(false)
+    expect(result.state.timeOfDay).toBe(state.timeOfDay)
+    expect(result.events.some((e) => e.type === 'TIME_ADVANCED' || e.type === 'DAY_PASSED')).toBe(false)
   })
 
-  it('talking is free — conversations do not burn a day', () => {
-    const state = newGame('day-cost-talk')
+  it('talking is free — a chat does not burn a slot', () => {
+    const state = newGame('time-talk')
     const result = applyAction(state, { kind: 'talk', npcId: 'n_elder_meihua' })
     expect(result.events.some((e) => e.type === 'TALKED')).toBe(true)
-    expect(result.state.day).toBe(state.day)
+    expect(result.state.timeOfDay).toBe(state.timeOfDay)
   })
 
   it('combat turns are free inside an encounter — the trip is paid at start_encounter', () => {
-    let state = navTo(newGame('day-cost-combat'), 'misty_forest')
-    const dayBefore = state.day
+    let state = navTo(newGame('time-combat'), 'misty_forest')
+    const slotBefore = state.timeOfDay
     state = applyAction(state, { kind: 'start_encounter' }).state
-    expect(state.day).toBe(dayBefore + 1)
+    expect(state.timeOfDay).not.toBe(slotBefore)
     const fought = applyAction(state, { kind: 'combat_attack' }).state
+    expect(fought.timeOfDay).toBe(state.timeOfDay)
     expect(fought.day).toBe(state.day)
   })
 
-  it('rest keeps its own day accounting', () => {
-    const state = newGame('day-cost-rest')
+  it('resting sleeps to the next dawn', () => {
+    const state = newGame('time-rest')
     const result = applyAction(state, { kind: 'rest' })
     expect(result.state.day).toBe(state.day + 1)
+    expect(result.state.timeOfDay).toBe('sang')
     expect(result.events.some((e) => e.type === 'DAY_PASSED')).toBe(true)
   })
-})
 
-describe('the twelfth night (design review 2026-08, Phase 2)', () => {
-  it('starts the countdown when the story reaches Hồi II', () => {
+  it('entering Hồi II sets the twelfth-night deadline from the current day', () => {
     const state = gatherUntilDeadline('deadline-start')
     expect(typeof state.flags['night_deadline']).toBe('number')
     expect(state.flags['night_deadline']).toBe(state.day + DEADLINE_DAYS)
-    expect(state.day).toBeGreaterThan(1)
+    expect(state.day).toBeGreaterThanOrEqual(1)
   })
 
   it('sets the deadline exactly once', () => {
@@ -147,7 +159,7 @@ describe('the twelfth night (design review 2026-08, Phase 2)', () => {
     expect(nightDeadlineRemaining(state)).toBeNull()
   })
 
-  it('pins DEADLINE_DAYS: the core path clears the twelfth night', () => {
+  it('pins the deadline budget: walking is day-neutral so the core route clears the window', () => {
     let state = gatherUntilDeadline('deadline-balance')
     const startDay = state.day
     state = navTo(state, 'market')
@@ -165,7 +177,7 @@ describe('the twelfth night (design review 2026-08, Phase 2)', () => {
     // Reaching the seal resolves the clock — the village still remembers.
     expect(state.flags['night_deadline_cleared']).toBe(true)
     const coreDays = state.day - startDay
-    // Walking is day-neutral; only deliberate actions consume the deadline.
+    // Walking is day-neutral; only deliberate actions consume the calendar.
     expect(coreDays).toBeLessThanOrEqual(DEADLINE_DAYS - 1)
   })
 })

@@ -30,7 +30,7 @@ describe('material exchange loop', () => {
     const result = applyAction(withMaterials, { kind: 'refine', recipeId: 'warding_exchange' })
 
     expect(result.state.inventory).toEqual(withMaterials.inventory)
-    expect(result.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION' }])
+    expect(result.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION', at: 'market', context: 'refine' }])
   })
 
   it('understands a named material exchange from free text', () => {

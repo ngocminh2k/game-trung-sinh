@@ -61,7 +61,7 @@ describe('Lôi Đài — sect arena tower climb (Issue #19)', () => {
 
   it('refuses to open a fight away from the sect or mid-encounter', () => {
     const village = applyAction(newGame('arena-away'), { kind: 'arena_challenge' })
-    expect(village.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION' }])
+    expect(village.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION', context: 'arena_challenge' }])
     const sect = atSect('arena-infight')
     const inFight = applyAction(applyAction(sect, { kind: 'arena_challenge' }).state, { kind: 'arena_challenge' })
     expect(inFight.events).toEqual([{ type: 'ERROR', code: 'ITEM_UNAVAILABLE' }])
@@ -71,7 +71,7 @@ describe('Lôi Đài — sect arena tower climb (Issue #19)', () => {
     const sect = atSect('arena-wild')
     const wild = applyAction(sect, { kind: 'start_encounter' })
     // The sect has no wild enemies: only the tower ladder opens fights there.
-    expect(wild.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION' }])
+    expect(wild.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION', context: 'start_encounter' }])
     expect(arenaFloors().every((floor) => floor.arena !== undefined)).toBe(true)
     expect(ARENA_FLOOR_COUNT).toBe(5)
   })

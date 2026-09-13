@@ -8,6 +8,7 @@ export const GameStateSchema = z.object({
   seed: z.string().min(1),
   rng: z.number().int().nonnegative(),
   day: z.number().int().min(1),
+  timeOfDay: z.enum(['sang', 'trua', 'chieu', 'toi']).default('sang'),
   player: z.object({
     hp: z.number().int().min(0).max(MAX_HP),
     qi: z.number().int().min(0).max(MAX_QI),

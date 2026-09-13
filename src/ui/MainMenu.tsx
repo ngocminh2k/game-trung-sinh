@@ -20,30 +20,39 @@ export interface MainMenuProps {
 export function MainMenu({ locale, hasSave, onNewGame, onLoadGame, onSettings, onLocaleChange }: MainMenuProps) {
   const firstAction = useRef<HTMLButtonElement>(null)
   useEffect(() => { firstAction.current?.focus() }, [])
+  const vi = locale === 'vi'
 
-  return <main className="menu-screen" data-testid="main-menu" aria-labelledby="menu-title">
-    <div className="menu-wash" aria-hidden="true" />
-    <div className="menu-seal" aria-hidden="true">命</div>
-    <section className="menu-panel">
-      <p className="menu-kicker">{t(locale, 'ui.loading.subtitle')}</p>
-      <h1 id="menu-title">{t(locale, 'common.appName')}</h1>
-      <p className="menu-tagline">{t(locale, 'common.tagline')}</p>
-      <div className="menu-actions">
-        <button ref={firstAction} className="menu-action" data-testid="menu-new-game" onClick={onNewGame}>
+  return <main className="proto-root proto-scene-boot" data-testid="main-menu" aria-labelledby="menu-title">
+    <div className="proto-boot-menu" data-od-id="boot-menu">
+      <h1 id="menu-title" className="proto-boot-logo">
+        <span>{t(locale, 'common.appName')}</span>
+        <span className="seal" aria-label={vi ? 'ấn triện Mệnh' : 'Fate seal'}>{vi ? 'MỆNH' : 'FATE'}</span>
+      </h1>
+      <p className="proto-boot-tagline">{t(locale, 'common.tagline')}</p>
+      <ol>
+        <li><button ref={firstAction} type="button" data-testid="menu-new-game" onClick={onNewGame}>
           {t(locale, 'common.newGame')}
-        </button>
-        <button className="menu-action" data-testid="menu-load-game" onClick={onLoadGame}>
+          <span className="hint">{vi ? 'Chọn khế ước & nhập đạo' : 'Pick a covenant & enter'}</span>
+        </button></li>
+        <li><button type="button" data-testid="menu-load-game" onClick={onLoadGame}>
           {hasSave ? t(locale, 'common.continueGame') : t(locale, 'ui.saveSlots.title')}
-        </button>
-        <button className="menu-action" data-testid="menu-settings" onClick={onSettings}>
+          <span className="hint">{vi ? 'Ngọc bài lưu trữ' : 'Saved jade tablets'}</span>
+        </button></li>
+        <li><button type="button" data-testid="menu-settings" onClick={onSettings}>
           {t(locale, 'common.settings')}
-        </button>
+          <span className="hint">{vi ? 'Âm thanh · Ngôn ngữ' : 'Audio · Language'}</span>
+        </button></li>
+      </ol>
+    </div>
+    <div className="proto-boot-footer">
+      <span>v0.1 · 2026</span>
+      <span>·</span>
+      <span>{vi ? 'Esc để đóng hộp thoại' : 'Esc to close dialogs'}</span>
+      <div className="proto-lang-toggle" role="group" aria-label="Language">
+        <button type="button" className={vi ? 'active' : undefined} aria-pressed={vi} onClick={() => onLocaleChange('vi')}>VI</button>
+        <button type="button" className={!vi ? 'active' : undefined} aria-pressed={!vi} onClick={() => onLocaleChange('en')}>EN</button>
       </div>
-      <div className="menu-locale" role="group" aria-label="Language">
-        <button aria-pressed={locale === 'vi'} onClick={() => onLocaleChange('vi')}>VI</button>
-        <button aria-pressed={locale === 'en'} onClick={() => onLocaleChange('en')}>EN</button>
-      </div>
-    </section>
+    </div>
   </main>
 }
 

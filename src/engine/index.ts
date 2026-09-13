@@ -42,6 +42,7 @@ export function getAffection(state: GameState, npcId: string): number {
   const legacy = state.flags[`aff_${npcId}`]
   return typeof legacy === 'number' ? legacy : 0
 }
+export { TIME_MODS, TIME_SLOTS, TIME_OF_DAY_EN, TIME_OF_DAY_VI, advanceTime, currentTimeOfDay, restToDawn } from './time'
 export { LOW_HP_WARNING, damageRoll, dangerWarning } from './danger'
 export { evaluateEndingId } from './endings'
 export { checkLottery, rollLottery } from './lottery'
@@ -122,6 +123,7 @@ export type {
   GameState,
   Locale,
   PlayerState,
+  TimeOfDay,
   TransitionResult,
 } from './types'
 export type { GlobalProfile, ProfileDelta } from './globalProfile'

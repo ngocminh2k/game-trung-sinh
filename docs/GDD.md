@@ -473,7 +473,7 @@ explicit qi price (`src/engine/constants.ts`):
 | Retreat | `combat_retreat` (new) | 0 | Always works; costs `RETREAT_HP_COST` (10, clamped so it never kills) + `RETREAT_PROGRESS_COST` (3 progress); sets `retreated_<enemy>` |
 
 - Retreat is the pressure valve: qi and consumables can run dry, escape cannot.
-- In-fight turns cost **no** day — an encounter is one day-trip paid at `start_encounter`.
+- In-fight turns cost **no** time — an encounter is one trip paid at `start_encounter` (1 slot).
 - Free text: "tấn công" without a technique name = basic strike; "rút lui /
   run away / bỏ chạy" = retreat.
 - UI: encounter banner shows qi cost per strike and a retreat button; both
@@ -481,23 +481,47 @@ explicit qi price (`src/engine/constants.ts`):
 
 ### B.2 The twelfth night (Phase 2 — dead-line)
 
-- **Day cost:** every outing action (`move`, `train`, `gather`, `refine`, `buy`,
-  `sell`, `use_item` out of combat, `store`, `withdraw`, `draw_lottery`,
-  `start_encounter`, `story_choice`, `resolve_route_event`) costs 1 `state.day`.
-  `rest` keeps its own +1; `talk`, quests, talent/equip menus, and in-fight
-  turns are free. Failed actions never charge a day.
+- **Slot clock (2026-09):** a day has four beats — Sáng / Trưa / Chiều / Tối —
+  and carries `GameState.timeOfDay` (optional; old saves read as `sang`). A
+  deliberate outing costs **1 slot**: `train`, `gather`, `buy`, `sell`,
+  `use_item` out of combat, `store`, `withdraw`, `draw_lottery`,
+  `start_encounter`. `refine` costs 2 slots. `story_choice` /
+  `resolve_route_event` are a whole-day montage (4 slots, so the boot still
+  lands on Ngày 3 as pinned by e2e). `rest` sleeps to the next dawn: day +1 and
+  slot back to `sang`. `move`, `talk`, quests, talent/equip menus and in-fight
+  turns are free; failed actions never charge time.
+- **Time of day is a real choice** (`src/engine/time.ts`): Sáng is calm and
+  good for gathering — danger ×0.75, herb yield ×1.25, gentle training (HP cost
+  ×0.75, deviation range halved) but slower progress (×0.9); Trưa is the
+  neutral beat; Chiều stirs the chợ (buy price ×0.9) and sharpens the wilds
+  (danger ×1.1, training ×1.1); Tối surges cultivation (+25% progress) at a
+  real cost — ×1.5 HP tax, doubled deviation range, danger ×1.25 — and brightens
+  rare herbs (yield ×1.3).
+- **Danger zones roll damage on entry, once per day per zone:** a repeated
+  village→forest→village errand no longer bleeds the player on every crossing
+  (`flags.danger_tick_<id>` stores the day; the tick rolls over with the
+  calendar). The damage roll is scaled by the slot (Sáng ×0.75 … Tối ×1.25).
+- **Cultivation pacing (2026-09):** row 0 of `MINOR_REALM_THRESHOLDS` is no
+  longer halved (`[4,4,5,5,6,6,7,7,8]`). A defective root takes 2–4 training
+  sessions per minor realm instead of one, and night sessions are the lever
+  that shortens the climb at a real risk (see the slot table above).
 - **Clock:** entering Hồi II sets `flags.night_deadline = day + DEADLINE_DAYS`
   (21, pinned by `test/day-cost.test.ts`). The topbar shows a vermilion
   countdown chip; the objective line becomes the countdown at ≤ 3 days.
 - **Resolution:** reaching Hồi III (seal / herb debt / first hunt) sets
   `flags.night_deadline_cleared`; overshoot sets `flags.night_forgotten` —
   a narrative branch opener, **never** a game over (Part D risk 3).
-- **Balance pin:** optimal core path (herb debt → ward → seal) ≈ 12 days;
-  a 5-day-sloppy run clears with 1 spare day; optimal play can idle at most 9.
+- **Balance pin:** the optimal core path (herb debt → ward → seal) consumes
+  ≈ 12 deliberate actions ≈ 3–4 calendar days under the slot clock; the twelfth
+  night remains a *calendar* countdown (a rest-slept night always ticks one
+  day), so the real pressure is the per-day slot budget and the danger tax, and
+  the old "slack days" pin is superseded by the slot budget. Re-tune with
+  external playtest evidence per design-review Phase 7.
 
 ### B.3 Save safety
 
-No schema fields were added or removed — all new state lives in the existing
-`flags` record, so pre-change saves validate and load unchanged (SAFE-04).
+One schema field was added for the slot clock — `GameState.timeOfDay` — as an
+optional field with a default, so pre-change saves validate and load unchanged
+(SAFE-04). All other new state lives in the existing `flags` record.
 `combat_attack.techniqueId` is now optional at the action layer only; saves
 never persist actions.

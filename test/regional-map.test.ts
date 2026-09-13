@@ -59,7 +59,11 @@ describe('Scenario I regional maps', () => {
     expect(moved.state.player.locationId).toBe('market')
 
     const sect = travel(fresh, 'sect')
-    const blocked = applyAction(sect, { kind: 'move', direction: 'south' })
+    // the sect rim is impassable mountain — step onto (1,3) then move west
+    let atRim = sect
+    atRim = applyAction(atRim, { kind: 'move', direction: 'west' }).state
+    atRim = applyAction(atRim, { kind: 'move', direction: 'west' }).state
+    const blocked = applyAction(atRim, { kind: 'move', direction: 'west' })
     expect(blocked.events.some((event) => event.type === 'ERROR' && event.code === 'MOVE_BLOCKED')).toBe(true)
   })
 

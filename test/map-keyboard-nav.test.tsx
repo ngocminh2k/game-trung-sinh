@@ -7,6 +7,10 @@ import { GameScreen } from '../src/ui/GameScreen'
 
 afterEach(() => cleanup())
 
+// The 49-cell grid is gone (pr/4 illustrated map): travel is pin-click only and
+// each region cell renders as a .map-pin button keyed by data-pin-id="x,y".
+// Movement no longer dispatches on WASD/arrows — keyboard support is roving
+// focus between pins (GameScreen.handleCellKeyDown) plus Escape/`i`.
 function renderWithSpy(spy: (action: Action) => void) {
   return render(
     <GameScreen
@@ -19,28 +23,29 @@ function renderWithSpy(spy: (action: Action) => void) {
   )
 }
 
+function pins(): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>('.world-map .map-pin')]
+}
+
 describe('P0-2: map keyboard navigation', () => {
-  it('renders every map cell keyboard-reachable (tabindex=0) for roving focus', () => {
+  it('renders every map pin keyboard-reachable for roving focus', () => {
     renderWithSpy(() => undefined)
 
-    const cells = [...document.querySelectorAll<HTMLElement>('.regional-map .map-cell')]
+    const cells = pins()
     expect(cells.length).toBe(49)
-    const focusables = cells.filter((c) => c.getAttribute('tabindex') === '0')
-    expect(focusables).toHaveLength(cells.length)
-    const unfocusables = cells.filter((c) => c.getAttribute('tabindex') === '-1')
-    expect(unfocusables).toHaveLength(0)
-    // Player cell stays visually distinguishable.
-    const playerCells = cells.filter((c) => c.getAttribute('data-visited') === 'true')
-    expect(playerCells).toHaveLength(1)
+    // <button>s are natively focusable; nothing opts out of the tab order.
+    expect(cells.filter((c) => c.getAttribute('tabindex') === '-1')).toHaveLength(0)
+    // Player pin stays visually distinguishable.
+    expect(cells.filter((c) => c.getAttribute('data-visited') === 'true')).toHaveLength(1)
   })
 
-  it('arrow keys move focus to the adjacent cell (not the player-move action)', () => {
-    renderWithSpy(() => undefined)
+  it('arrow keys move focus to the adjacent pin (not the player-move action)', () => {
+    const onAction = vi.fn()
+    renderWithSpy(onAction)
 
-    const cells = [...document.querySelectorAll<HTMLElement>('.regional-map .map-cell')]
     const byCoord = (x: number, y: number) =>
-      cells.find((c) => c.getAttribute('data-cell-x') === String(x) && c.getAttribute('data-cell-y') === String(y))
-    expect(byCoord(0, 0)).toBeDefined()
+      document.querySelector<HTMLElement>(`.map-pin[data-pin-id="${String(x)},${String(y)}"]`)
+    expect(byCoord(0, 0)).not.toBeNull()
 
     const start = byCoord(2, 2)!
     start.focus()
@@ -57,52 +62,46 @@ describe('P0-2: map keyboard navigation', () => {
 
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' })
     expect(document.activeElement).toBe(byCoord(2, 2))
+
+    // Focus traversal never dispatches a move.
+    expect(onAction).not.toHaveBeenCalled()
   })
 
-  it('marks every map cell with role="gridcell" and a localized aria-label', () => {
+  it('marks every map pin as an accessible button with a localized aria-label', () => {
     renderWithSpy(() => undefined)
 
-    const cells = [...document.querySelectorAll<HTMLElement>('.regional-map .map-cell')]
+    const cells = pins()
     expect(cells.length).toBeGreaterThan(0)
     for (const cell of cells) {
-      expect(cell.getAttribute('role')).toBe('gridcell')
-      const label = cell.getAttribute('aria-label') ?? ''
-      expect(label.length).toBeGreaterThan(0)
+      expect(cell.tagName).toBe('BUTTON')
+      expect((cell.getAttribute('aria-label') ?? '').length).toBeGreaterThan(0)
     }
   })
 
-  it('dispatches move actions on arrow-key press at the window level', () => {
+  it('does not dispatch move actions on arrow-key press at the window level', () => {
+    // Movement was removed by request (2026-09-08): travelTo replayed whole
+    // paths against per-action gates and silently stopped mid-route. The only
+    // window keydown handlers left are Escape/`i` and the 1-3 story choices.
     const onAction = vi.fn()
     renderWithSpy(onAction)
 
-    fireEvent.keyDown(window, { key: 'ArrowUp' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'north' })
-
-    fireEvent.keyDown(window, { key: 'ArrowDown' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'south' })
-
-    fireEvent.keyDown(window, { key: 'ArrowLeft' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'west' })
-
-    fireEvent.keyDown(window, { key: 'ArrowRight' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'east' })
+    for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
+      fireEvent.keyDown(window, { key })
+    }
+    expect(onAction).not.toHaveBeenCalled()
   })
 
-  it('dispatches move actions on WASD keys', () => {
+  it('does not dispatch move actions on WASD keys', () => {
     const onAction = vi.fn()
     renderWithSpy(onAction)
 
-    fireEvent.keyDown(window, { key: 'w' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'north' })
-    fireEvent.keyDown(window, { key: 'a' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'west' })
-    fireEvent.keyDown(window, { key: 's' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'south' })
-    fireEvent.keyDown(window, { key: 'd' })
-    expect(onAction).toHaveBeenLastCalledWith({ kind: 'move', direction: 'east' })
+    for (const key of ['w', 'a', 's', 'd']) {
+      fireEvent.keyDown(window, { key })
+    }
+    expect(onAction).not.toHaveBeenCalled()
   })
 
-  it('skips arrow-key movement while typing in the free-text input', () => {
+  it('ignores keys while typing in the free-text input', () => {
     const onAction = vi.fn()
     render(
       <GameScreen
@@ -115,21 +114,11 @@ describe('P0-2: map keyboard navigation', () => {
       />,
     )
 
-    // Free-text input exists inside the story panel — switch focus there.
     const input = screen.getByLabelText('Viết hành động khác') as HTMLInputElement
     input.focus()
 
-    // The typing guard is checked inside the handler; storyOpen already short-
-    // circuits. Open a fresh world render and target the system-chat input.
-    cleanup()
-    renderWithSpy(onAction)
-    // System chat input is present only when a system is active. Skip the
-    // focus part if missing; instead simulate keydown whose target IS an
-    // input element by passing an Input target via fireEvent.keyDown(input, ...).
     const before = onAction.mock.calls.length
     fireEvent.keyDown(input, { key: 'ArrowUp' })
-    // The handler attaches to window only, so an input-targeted keydown
-    // bubbles to window with target=input; our guard must skip it.
     expect(onAction.mock.calls.length).toBe(before)
   })
 

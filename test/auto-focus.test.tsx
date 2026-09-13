@@ -48,8 +48,13 @@ describe('P0-3: auto-focus dialog and combat', () => {
     const game = { ...base, encounter: { enemyId: 'mist_boar', hp: 10, maxHp: 10, guard: 0, cooldowns: {} } }
     render(<GameScreen chronicle={[]} game={game} locale="vi" onAction={() => undefined} onLocaleChange={() => undefined} />)
 
-    const strike = screen.getByRole('button', { name: /Đánh thường/ }) as HTMLButtonElement
-    expect(document.activeElement).toBe(strike)
+    // Proto-shell renders its own combat overlay, so two strike buttons exist;
+    // the feature is that focus lands on a basic-strike button.
+    const strikes = screen.getAllByRole('button', { name: /Đánh thường/ })
+    expect(strikes.length).toBeGreaterThan(0)
+    const active = document.activeElement as HTMLElement
+    expect(active.tagName).toBe('BUTTON')
+    expect(active.textContent).toMatch(/Đánh thường/)
   })
 
   it('exposes an aria-live="assertive" region on the encounter banner', () => {

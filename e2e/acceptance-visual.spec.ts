@@ -53,11 +53,12 @@ for (const size of SIZES) {
       mkdirSync(`artifacts/${size.tag}`, { recursive: true })
     })
 
-    test('UX-03 world mode keeps the 45/55 map and system reading surface in bounds', async ({ page }) => {
+    test('UX-03 world mode keeps the 3-column map | story | hud layout in bounds', async ({ page }) => {
       await openGame(page, freshGame((game) => ({ ...game, systemId: 'sys_battle' })))
       const metrics = await page.evaluate(() => {
         const world = document.querySelector<HTMLElement>('.world-content .game-grid')
         const map = document.querySelector<HTMLElement>('.world-content .map-panel')
+        const story = document.querySelector<HTMLElement>('.world-content .story-panel')
         const hud = document.querySelector<HTMLElement>('.world-content .hud-panel')
         const system = document.querySelector<HTMLElement>('.world-content .system-panel')
         const stats = document.querySelector<HTMLElement>('.world-content .stats-card')
@@ -73,6 +74,7 @@ for (const size of SIZES) {
           innerHeight: window.innerHeight,
           mapRatio: mapBox.width / worldBox.width,
           hudRatio: hudBox.width / worldBox.width,
+          storyVisible: story !== null,
           panelsOverlap: mapBox.right > hudBox.left,
           systemAndStatsShareRow: Math.abs(systemBox.top - statsBox.top) < 2,
           iconsInBounds: icons.length > 0 && icons.every((icon) => {
@@ -82,10 +84,12 @@ for (const size of SIZES) {
         }
       })
       expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.innerHeight)
-      expect(metrics.mapRatio).toBeGreaterThan(.42)
-      expect(metrics.mapRatio).toBeLessThan(.48)
-      expect(metrics.hudRatio).toBeGreaterThan(.52)
-      expect(metrics.hudRatio).toBeLessThan(.58)
+      // 3-column ratios: map ~36% (col 1fr), story ~38% (col 1.05fr), hud ~25% (col 0.7fr)
+      // of total 2.75fr. Tolerate a small band for sub-pixel rounding + scrollbar gutter.
+      expect(metrics.mapRatio).toBeGreaterThan(.32)
+      expect(metrics.mapRatio).toBeLessThan(.42)
+      expect(metrics.hudRatio).toBeGreaterThan(.21)
+      expect(metrics.hudRatio).toBeLessThan(.31)
       expect(metrics.panelsOverlap).toBe(false)
       expect(metrics.systemAndStatsShareRow).toBe(true)
       expect(metrics.iconsInBounds).toBe(true)

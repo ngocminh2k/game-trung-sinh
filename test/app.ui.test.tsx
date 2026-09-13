@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -15,6 +16,12 @@ describe('browser game journey', () => {
     fireEvent.click(screen.getByRole('button', { name: /nhấn|press/i }))
   }
 
+  // The proto-shell map overlay (.map-overlay-label) and the legacy world-map
+  // overlay share the map-current-cell testid; both carry the same "Ô x · y"
+  // cell coordinates. Read the visible proto-shell one.
+  const currentCellText = (): string =>
+    screen.getAllByTestId('map-current-cell').find((el) => el.classList.contains('map-overlay-label'))?.textContent ?? ''
+
   it('responds to keyboard travel, supports bilingual UI, and persists the run', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -27,7 +34,9 @@ describe('browser game journey', () => {
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
     await waitFor(() => expect(screen.getByTestId('location-label').textContent).toBe('Chợ Vân Tập'))
     expect(screen.getByTestId('game-screen').className).toContain('action-move')
-    expect(screen.getByTestId('player-map-marker').className).toContain('action-move')
+    // player-map-marker became player-marker (rendered by both the proto map
+    // and the legacy player-pin); the legacy pin carries the action-* class.
+    expect(screen.getAllByTestId('player-marker').some((el) => el.className.includes('action-move'))).toBe(true)
 
     await user.click(screen.getByRole('button', { name: 'EN' }))
     expect(screen.getByRole('heading', { name: 'Local area map' })).toBeTruthy()
@@ -55,17 +64,17 @@ describe('browser game journey', () => {
     render(<App />)
     beginGame()
 
-    const startCell = screen.getByTestId('map-current-cell').textContent
+    const startCell = currentCellText()
     await user.click(screen.getByRole('button', { name: 'Mở Hành trang và giang hồ' }))
     await user.click(screen.getByRole('tab', { name: /Người ở đây/ }))
     await user.click(screen.getAllByRole('button', { name: 'Nói chuyện' })[0]!)
     fireEvent.keyDown(window, { key: 'ArrowDown' })
-    expect(screen.getByTestId('map-current-cell').textContent).toBe(startCell)
+    expect(currentCellText()).toBe(startCell)
 
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.queryByTestId('narration-panel')).toBeNull()
     fireEvent.keyDown(window, { key: 'ArrowDown' })
-    await waitFor(() => expect(screen.getByTestId('map-current-cell').textContent).not.toBe(startCell))
+    await waitFor(() => expect(currentCellText()).not.toBe(startCell))
   })
 
   // Issue #17: reload (remount) resumes the active slot; exiting to menu ends auto-resume.
@@ -99,7 +108,14 @@ describe('browser game journey', () => {
     await user.type(screen.getByLabelText('Viết hành động khác'), 'nói chuyện với cụ Mai Hoa')
     await user.click(screen.getByRole('button', { name: 'Thử vận' }))
 
-    await waitFor(() => expect(screen.getByLabelText('Biên niên ký').textContent).toContain('Mai Hoa'))
+    // The redesign moved the chronicle feed into the journal dock and only
+    // mounts the active tab's panel (the old aria-label 'Biên niên ký' was
+    // dropped); the dock is inert while the story overlay is open, so activate
+    // its tab by id and assert the reducer's reply in the mounted panel.
+    const chronicleTab = document.getElementById('dock-tab-chronicle')
+    if (chronicleTab === null) throw new Error('dock-tab-chronicle missing')
+    fireEvent.click(chronicleTab)
+    await waitFor(() => expect(screen.getByTestId('chronicle-panel').textContent).toContain('Mai Hoa'))
     expect(screen.getByTestId('narration-panel')).toBeTruthy()
   })
 })

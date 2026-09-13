@@ -1,0 +1,334 @@
+{
+  "steps": [
+    {
+      "name": "goto http://127.0.0.1:5177/",
+      "ok": true,
+      "info": ""
+    },
+    {
+      "name": "click [data-testid=\"menu-new-game\"]",
+      "ok": true,
+      "info": ""
+    },
+    {
+      "name": "click first .system-tile",
+      "ok": true,
+      "info": ""
+    },
+    {
+      "name": "click [data-testid=\"newgame-confirm\"]",
+      "ok": true,
+      "info": ""
+    },
+    {
+      "name": "click .loading-screen",
+      "ok": true,
+      "info": ""
+    },
+    {
+      "name": "waitFor .proto-topbar",
+      "ok": true,
+      "info": ""
+    },
+    {
+      "name": "screenshot verify-shell-main.png",
+      "ok": true,
+      "info": "C:\\Users\\minhd\\orca\\workspaces\\game-trung-sinh\\redesign-game-UI\\screenshots\\verify-shell-main.png"
+    },
+    {
+      "name": "measured shell rects",
+      "ok": true,
+      "info": ""
+    },
+    {
+      "name": "click first .pin.npc",
+      "ok": true,
+      "info": "(4 npc pins)"
+    },
+    {
+      "name": "screenshot verify-shell-chat.png",
+      "ok": true,
+      "info": "C:\\Users\\minhd\\orca\\workspaces\\game-trung-sinh\\redesign-game-UI\\screenshots\\verify-shell-chat.png"
+    },
+    {
+      "name": "measured chat rects",
+      "ok": true,
+      "info": ""
+    }
+  ],
+  "shell": {
+    ".proto-topbar": {
+      "selector": ".proto-topbar",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 52,
+      "display": "flex",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".proto-leftrail": {
+      "selector": ".proto-leftrail",
+      "x": 0,
+      "y": 52,
+      "width": 56,
+      "height": 816,
+      "display": "grid",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".proto-center": {
+      "selector": ".proto-center",
+      "x": 56,
+      "y": 52,
+      "width": 1104,
+      "height": 816,
+      "display": "grid",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".proto-righthud": {
+      "selector": ".proto-righthud",
+      "x": 1160,
+      "y": 52,
+      "width": 280,
+      "height": 816,
+      "display": "flex",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".proto-portrait": {
+      "selector": ".proto-portrait",
+      "x": 1174,
+      "y": 66,
+      "width": 252,
+      "height": 96,
+      "display": "flex",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".proto-portrait .face": {
+      "selector": ".proto-portrait .face",
+      "x": 1182,
+      "y": 74,
+      "width": 80,
+      "height": 80,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "radial-gradient(circle at 50% 38%, oklch(0.82 0.06 70) 0px, oklch(0.82 0.06 70) 30%, oklch(0.34 0.1 25) 32%, oklch(0.34 0.1 25) 100%)"
+    },
+    ".proto-map .painting": {
+      "selector": ".proto-map .painting",
+      "x": 56,
+      "y": 52,
+      "width": 1104,
+      "height": 748,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "0.92",
+      "backgroundImage": "url(\"http://127.0.0.1:5177/src/assets/art/locations/village.png\")"
+    },
+    ".proto-ticker": {
+      "selector": ".proto-ticker",
+      "x": 0,
+      "y": 868,
+      "width": 1440,
+      "height": 32,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    }
+  },
+  "chat": {
+    "opened": true,
+    ".proto-modal.chat": {
+      "selector": ".proto-modal.chat",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "display": "grid",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".chat-stage": {
+      "selector": ".chat-stage",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 500,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "linear-gradient(oklch(0.88 0.04 75) 0%, oklch(0.94 0.02 80) 100%)"
+    },
+    ".chat-stage .char.left .body": {
+      "selector": ".chat-stage .char.left .body",
+      "x": 191,
+      "y": 64,
+      "width": 280,
+      "height": 373,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "linear-gradient(oklch(0.56 0.1 175 / 0.18) 0%, oklch(0.78 0.13 85 / 0.18) 100%)"
+    },
+    ".chat-stage .char.left .body .face": {
+      "selector": ".chat-stage .char.left .body .face",
+      "x": 191,
+      "y": 64,
+      "width": 280,
+      "height": 373,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "url(\"http://127.0.0.1:5177/src/assets/art/player/idle.png\"), radial-gradient(circle at 50% 38%, oklch(0.82 0.06 70) 0px, oklch(0.82 0.06 70) 30%, oklch(0.34 0.1 25) 32%, oklch(0.34 0.1 25) 100%)"
+    },
+    ".chat-stage .char.left .body .robe": {
+      "selector": ".chat-stage .char.left .body .robe",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "display": "none",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".chat-stage .char.left .nameplate": {
+      "selector": ".chat-stage .char.left .nameplate",
+      "x": 279,
+      "y": 445,
+      "width": 104,
+      "height": 35,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".chat-stage .char.left .nameplate::text": "Lâm Phàm",
+    ".chat-stage .char.right .body": {
+      "selector": ".chat-stage .char.right .body",
+      "x": 969,
+      "y": 64,
+      "width": 280,
+      "height": 373,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "linear-gradient(oklch(0.34 0.1 25 / 0.15) 0%, oklch(0.78 0.13 85 / 0.22) 100%)"
+    },
+    ".chat-stage .char.right .body .face": {
+      "selector": ".chat-stage .char.right .body .face",
+      "x": 969,
+      "y": 64,
+      "width": 280,
+      "height": 373,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "url(\"http://127.0.0.1:5177/src/assets/art/npcs/elder-meihua.png\"), radial-gradient(circle at 50% 38%, oklch(0.82 0.06 70) 0px, oklch(0.82 0.06 70) 30%, oklch(0.34 0.1 25) 32%, oklch(0.34 0.1 25) 100%)"
+    },
+    ".chat-stage .char.right .nameplate": {
+      "selector": ".chat-stage .char.right .nameplate",
+      "x": 1052,
+      "y": 445,
+      "width": 114,
+      "height": 35,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".chat-stage .char.right .nameplate::text": "Cụ Mai Hoa",
+    ".chat-stage .mist": {
+      "selector": ".chat-stage .mist",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 500,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "radial-gradient(at 30% 70%, oklch(0.78 0.03 75 / 0.55) 0%, rgba(0, 0, 0, 0) 55%), radial-gradient(at 75% 65%, oklch(0.78 0.03 75 / 0.45) 0%, rgba(0, 0, 0, 0) 60%)"
+    },
+    ".chat-stage .floor": {
+      "selector": ".chat-stage .floor",
+      "x": 0,
+      "y": 325,
+      "width": 1440,
+      "height": 175,
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "linear-gradient(rgba(0, 0, 0, 0), oklch(0.34 0.1 25 / 0.18))"
+    },
+    ".chat-bottom": {
+      "selector": ".chat-bottom",
+      "x": 0,
+      "y": 500,
+      "width": 1440,
+      "height": 400,
+      "display": "flex",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".chat-log": {
+      "selector": ".chat-log",
+      "x": 0,
+      "y": 500,
+      "width": 1440,
+      "height": 166,
+      "display": "flex",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    },
+    ".chat-choices": {
+      "selector": ".chat-choices",
+      "x": 0,
+      "y": 666,
+      "width": 1440,
+      "height": 234,
+      "display": "flex",
+      "visibility": "visible",
+      "opacity": "1",
+      "backgroundImage": "none"
+    }
+  },
+  "checks": {
+    "face_left": true,
+    "face_right": true,
+    "robe_left": false,
+    "nameplate_left_text": true,
+    "nameplate_right_text_not_empty": true,
+    "mist_nonzero": true,
+    "floor_nonzero": true,
+    "map_bg": false,
+    "portrait_face_visible": true,
+    "topbar_present": true,
+    "center_present": true,
+    "leftrail_present": true,
+    "righthud_present": true,
+    "ticker_present": true,
+    "summary": {
+      "pass": 12,
+      "fail": 2,
+      "total": 14
+    }
+  },
+  "screenshots": {
+    "shell": "C:\\Users\\minhd\\orca\\workspaces\\game-trung-sinh\\redesign-game-UI\\screenshots\\verify-shell-main.png",
+    "chat": "C:\\Users\\minhd\\orca\\workspaces\\game-trung-sinh\\redesign-game-UI\\screenshots\\verify-shell-chat.png"
+  },
+  "errors": []
+}

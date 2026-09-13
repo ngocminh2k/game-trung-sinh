@@ -1,8 +1,8 @@
 import type { AssetPackId } from '../assetPacks'
 
-export type DockPanel = 'people' | 'quests' | 'inventory' | 'market' | 'path'
+export type DockPanel = 'people' | 'quests' | 'inventory' | 'market' | 'path' | 'chronicle'
 
-export const DOCK_PANELS: DockPanel[] = ['people', 'quests', 'inventory', 'market', 'path']
+export const DOCK_PANELS: DockPanel[] = ['people', 'quests', 'inventory', 'market', 'path', 'chronicle']
 
 export const REALM_STAGES: ReadonlyArray<{ vi: string; en: string; seal: string }> = [
   { vi: 'Luyện Khí', en: 'Qi Refining', seal: '氣' },
