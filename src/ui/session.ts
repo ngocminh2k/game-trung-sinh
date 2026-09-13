@@ -1,4 +1,6 @@
 import { migrateGameState } from '../engine'
+import { DEFAULT_GLOBAL_PROFILE, parseGlobalProfile } from '../engine/globalProfile'
+import type { GlobalProfile } from '../engine/globalProfile'
 import type { GameDifficulty, GameState, Locale } from '../engine'
 
 export const SESSION_KEY = 'phe-can-ky:save:v1'
@@ -6,6 +8,7 @@ export const LEGACY_SESSION_KEY = SESSION_KEY
 export const SLOTS_KEY = 'phe-can-ky:slots'
 export const ACTIVE_SLOT_KEY = 'phe-can-ky:active-slot'
 export const SETTINGS_KEY = 'phe-can-ky:settings'
+export const GLOBAL_PROFILE_KEY = 'phe-can-ky:global-profile:v1'
 export const SLOT_IDS = [1, 2, 3, 4, 5] as const
 export type SlotId = (typeof SLOT_IDS)[number]
 
@@ -95,6 +98,22 @@ export function saveSession(storage: SessionStorage, session: GameSession): void
 export function loadSession(storage: SessionStorage): GameSession | null {
   const raw = storage.get(SESSION_KEY)
   return typeof raw === 'string' ? parseSession(raw) : null
+}
+
+/** Device-local meta-progression. Corrupt or missing data falls back to the
+ *  default profile — the game must never refuse to boot over a bad key. */
+export function loadGlobalProfile(storage: SessionStorage): GlobalProfile {
+  const raw = storage.get(GLOBAL_PROFILE_KEY)
+  if (typeof raw !== 'string') return { ...DEFAULT_GLOBAL_PROFILE }
+  try {
+    return parseGlobalProfile(JSON.parse(raw))
+  } catch {
+    return { ...DEFAULT_GLOBAL_PROFILE }
+  }
+}
+
+export function saveGlobalProfile(storage: SessionStorage, profile: GlobalProfile): void {
+  storage.set(GLOBAL_PROFILE_KEY, JSON.stringify(profile))
 }
 
 function writeSlots(storage: SessionStorage, slots: Partial<Record<SlotId, SaveSlot>>): void {

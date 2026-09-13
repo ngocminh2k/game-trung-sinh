@@ -136,6 +136,12 @@ export interface GameState {
   corrections: number
   terminal: boolean
   endingId: string | null
+  /** New Game Plus cycle (0 = first life). Optional so older saves stay valid;
+   *  the schema default fills 0 on parse. */
+  ngPlusLevel?: number
+  /** Relic id inherited into this run's starting inventory, or null. Optional
+   *  so older saves stay valid; the schema default fills null on parse. */
+  inheritedRelicId?: string | null
 }
 
 export type Direction = 'north' | 'south' | 'east' | 'west'

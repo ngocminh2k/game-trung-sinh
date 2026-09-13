@@ -86,6 +86,10 @@ export interface NewGameOptions {
    *  'danger:…', 'qi_deviation'). The life inherits one attribute point of
    *  hard-won experience — Positive Failure: death teaches, it does not erase. */
   legacyCause?: string | null
+  /** New Game Plus cycle (issue #14). 0/omitted = first life. */
+  ngPlusLevel?: number
+  /** Relic id to carry into the starting inventory from a finished run. */
+  inheritedRelicId?: string | null
 }
 
 export function newGame(seed: string, options: NewGameOptions = {}): GameState {
@@ -119,7 +123,10 @@ export function newGame(seed: string, options: NewGameOptions = {}): GameState {
       elementEn: 'Muddled Wood',
       efficiency: DEFECTIVE_ROOT_EFFICIENCY,
     },
-    inventory: { [ITEM_HERB]: 1, pill_hp: 1, wooden_staff: 1, tattered_robe: 1 },
+    inventory:
+      options.inheritedRelicId !== undefined && options.inheritedRelicId !== null
+        ? { [ITEM_HERB]: 1, pill_hp: 1, wooden_staff: 1, tattered_robe: 1, [options.inheritedRelicId]: 1 }
+        : { [ITEM_HERB]: 1, pill_hp: 1, wooden_staff: 1, tattered_robe: 1 },
     storage: {},
     quests: {},
     achievements: [],
@@ -131,6 +138,8 @@ export function newGame(seed: string, options: NewGameOptions = {}): GameState {
     corrections: 0,
     terminal: false,
     endingId: null,
+    ngPlusLevel: options.ngPlusLevel ?? 0,
+    inheritedRelicId: options.inheritedRelicId ?? null,
     systemId: options.systemId ?? null,
     difficulty: options.difficulty ?? 'balanced',
     flags: options.storyScene === undefined ? {} : { story_scene: options.storyScene },

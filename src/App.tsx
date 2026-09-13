@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DEFAULT_SEED, applyAction, currentStoryScene, narrate, newGame, readDeathCause, storyRouteEncounter } from './engine'
-import type { Action, GameDifficulty, GameEvent, GameState, Locale } from './engine'
+import { DEFAULT_GLOBAL_PROFILE, DEFAULT_SEED, applyAction, applyOfflineGains, chooseInheritedRelic, currentStoryScene, mergeGlobalProfile, narrate, newGame, readDeathCause, recordTerminal, storyRouteEncounter } from './engine'
+import type { Action, GameDifficulty, GameEvent, GameState, GlobalProfile, Locale } from './engine'
 import { ENDINGS } from './content'
 import { requestNarration } from './ai/narration'
 import { t } from './i18n'
@@ -12,8 +12,10 @@ import {
   DEFAULT_SETTINGS,
   deleteSaveSlot,
   getActiveSlot,
+  loadGlobalProfile,
   loadSaveSlots,
   loadSettings,
+  saveGlobalProfile,
   saveSettings,
   saveSlot,
   setActiveSlot,
@@ -37,13 +39,22 @@ function browserStorage(): SessionStorage {
   }
 }
 
-function freshSession(locale: Locale = 'vi', options: { systemId?: string | null; difficulty?: GameDifficulty; legacyCause?: string | null } = {}): GameSession {
+function freshSession(
+  locale: Locale = 'vi',
+  options: {
+    systemId?: string | null
+    difficulty?: GameDifficulty
+    legacyCause?: string | null
+    ngPlusLevel?: number
+    inheritedRelicId?: string | null
+  } = {},
+): GameSession {
   // Pre-menu new games carry the System pick straight into the state and open
   // on the first authored scene — no boot-story actions, no days spent.
-  const { legacyCause, ...gameOptions } = options
+  const { legacyCause, ngPlusLevel, inheritedRelicId, ...gameOptions } = options
   const game = gameOptions.systemId === undefined
-    ? newGame(DEFAULT_SEED, { legacyCause })
-    : newGame(DEFAULT_SEED, { ...gameOptions, storyScene: 'letter_at_dawn', legacyCause })
+    ? newGame(DEFAULT_SEED, { legacyCause, ngPlusLevel, inheritedRelicId })
+    : newGame(DEFAULT_SEED, { ...gameOptions, difficulty: gameOptions.difficulty ?? 'balanced', storyScene: 'letter_at_dawn', legacyCause, ngPlusLevel, inheritedRelicId })
   return {
     game,
     locale,
@@ -99,6 +110,7 @@ function SaveSlotsScreen({ slots, locale, onSelect, onDelete }: SaveSlotsScreenP
               }}
             >
               <span className="save-slot-number">{t(locale, 'ui.saveSlots.slotName', { slot: slotId })}</span>
+              {slot !== undefined && (slot.session.game.ngPlusLevel ?? 0) > 0 && <span className="save-slot-ngplus">{t(locale, 'ui.ngPlus.badge', { level: slot.session.game.ngPlusLevel ?? 0 })}</span>}
               {slot === undefined
                 ? <span className="save-slot-empty">{t(locale, 'ui.saveSlots.empty')}</span>
                 : <span className="save-slot-meta">
@@ -162,15 +174,36 @@ function App() {
   const [activeSlot, setActiveSlotState] = useState<SlotId | null>(() => storage === undefined ? null : getActiveSlot(storage))
   // Issue #17: F5 resumes the active run instead of dropping to the menu —
   // mirrors the occupied-slot branch of selectSlot (loading beat included).
-  const [session, setSession] = useState<GameSession | null>(() => activeSlot === null ? null : slots[activeSlot]?.session ?? null)
+  // Issue #14 (AC3): settle offline gains here too. The save-on-session-change
+  // effect rewrites savedAt on mount, so a reload that skipped this would
+  // silently swallow the absence — selectSlot is not the only entry point.
+  const [session, setSession] = useState<GameSession | null>(() => {
+    if (activeSlot === null) return null
+    const slot = slots[activeSlot]
+    if (slot === undefined) return null
+    const now = Date.now()
+    return applyOfflineGains(slot.session, now - slot.savedAt, now, (hours, progress) =>
+      t(slot.session.locale, 'ui.offline.gained', { hours, progress })).session
+  })
   const [locale, setLocale] = useState<Locale>(() => session?.locale ?? settings.locale)
   const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
   const [storyOpen, setStoryOpen] = useState(() => session !== null && opensOnBootScene(session.game))
   const [phase, setPhase] = useState<'menu' | 'slots' | 'newgame' | 'settings' | 'loading' | 'playing'>(() => session === null ? 'menu' : 'loading')
+  // Global meta-progression (issue #14 — AC1).
+  const [globalProfile, setGlobalProfile] = useState<GlobalProfile>(() =>
+    storage === undefined ? { ...DEFAULT_GLOBAL_PROFILE } : loadGlobalProfile(storage),
+  )
   // New Game intent: slot chosen on the slots screen, awaiting its System pick.
   const [pendingSlot, setPendingSlot] = useState<SlotId | null>(null)
   const [runDifficulty, setRunDifficulty] = useState<GameDifficulty>(settings.difficulty)
   const sessionRef = useRef<GameSession | null>(null)
+  // Latest profile readable from stable callbacks (act fires on every keypress).
+  const globalProfileRef = useRef<GlobalProfile>(globalProfile)
+
+  useEffect(() => {
+    globalProfileRef.current = globalProfile
+  }, [globalProfile])
+
   // Playtest telemetry (issue #20): one log per play session, keyed to a random
   // id so the ending-screen survey can be joined back to its journey.
   const [telemetryId, setTelemetryId] = useState<string | null>(null)
@@ -211,9 +244,16 @@ function App() {
       return
     }
     if (slot !== undefined) {
-      const next = slot.session
-      const local = browserStorage()
-      setActiveSlot(local, slotId)
+      // AC3: settle offline gains before we hand the session to the UI so the
+      // chronicle line is already baked into the first render.
+      const now = Date.now()
+      const settled = applyOfflineGains(slot.session, now - slot.savedAt, now, (hours, progress) =>
+        t(slot.session.locale, 'ui.offline.gained', { hours, progress }))
+      const next = settled.session
+      // The save-on-session-change effect persists `next` to this slot with
+      // savedAt reset to now, so offline gains apply exactly once per absence
+      // (a later reload settles from *this* point, not the original absence).
+      setActiveSlot(browserStorage(), slotId)
       setActiveSlotState(slotId)
       sessionRef.current = next
       setSession(next)
@@ -235,11 +275,26 @@ function App() {
     }
     const slotId = pendingSlot ?? firstFreeSlot(slots)
     const local = browserStorage()
-    const next = freshSession(locale, { systemId, difficulty: runDifficulty })
+    // AC2 across slots: a relic queued by *some other* slot's finished run
+    // (profile.inheritedRelicId, written in restart) seeds this fresh run and
+    // is consumed — same-slot rebirth paths pass the relic directly and never
+    // touch the queue. (review #28 LOW: field was write-only.)
+    const queuedRelic = globalProfileRef.current.inheritedRelicId
+    const next = freshSession(locale, {
+      systemId,
+      difficulty: runDifficulty,
+      ...(queuedRelic !== null ? { inheritedRelicId: queuedRelic } : {}),
+    })
     saveSlot(local, slotId, next)
     setActiveSlot(local, slotId)
     setActiveSlotState(slotId)
     setSlots(loadSaveSlots(local))
+    if (queuedRelic !== null) {
+      const cleared: GlobalProfile = { ...globalProfileRef.current, inheritedRelicId: null }
+      globalProfileRef.current = cleared
+      setGlobalProfile(cleared)
+      saveGlobalProfile(local, cleared)
+    }
     sessionRef.current = next
     setSession(next)
     setPendingSlot(null)
@@ -262,9 +317,25 @@ function App() {
     sessionRef.current = next
     if (activeSlot !== null && shouldAutoSave(previous.game, result.state)) saveSlot(browserStorage(), activeSlot, next)
     setSession(next)
-    const local = browserStorage()
+const local = browserStorage()
     if (telemetryId !== null) recordStep(local, telemetryId, result.state, action.kind)
     if (result.state.terminal && telemetryId !== null) closeRun(local, telemetryId, result.state)
+
+    // Global Profile sync (issue #14 — AC1): endings and achievements persist
+    // across all slots the moment they fire — not just when a run is restarted.
+    const endingEvent = result.events.find((e) => e.type === 'ENDING')
+    const newAchievements = result.events
+      .filter((e): e is Extract<GameEvent, { type: 'ACHIEVEMENT_UNLOCKED' }> => e.type === 'ACHIEVEMENT_UNLOCKED')
+      .map((e) => e.achievementId)
+    if (endingEvent !== undefined || newAchievements.length > 0) {
+      const nextProfile = mergeGlobalProfile(globalProfileRef.current, {
+        endings: endingEvent === undefined ? [] : [endingEvent.endingId],
+        achievements: newAchievements,
+      })
+      globalProfileRef.current = nextProfile
+      setGlobalProfile(nextProfile)
+      saveGlobalProfile(local, nextProfile)
+    }
     const opensStory = result.events.some((event) => event.type === 'TALKED' || (event.type === 'NODE_REACHED' && event.kind === 'event'))
     const bootScene = currentStoryScene(previous.game).id
     const resolvesSystemBoot = action.kind === 'story_choice'
@@ -339,13 +410,31 @@ function App() {
   }, [])
 
   const restart = useCallback(() => {
-    if (sessionRef.current === null) return
+    const prev = sessionRef.current
+    if (prev === null) return
+    const local = browserStorage()
+    const relic = chooseInheritedRelic(prev.game) // snapshot before the wipe
+    const nextNpPlus = (prev.game.ngPlusLevel ?? 0) + 1
     // Positive Failure: the fallen life's cause is stamped on its flags; the
     // reborn run reads it back and inherits one attribute point of hard-won
     // experience. A fresh boot (no death recorded) inherits nothing.
-    const fresh = freshSession(sessionRef.current.locale, {
-      legacyCause: readDeathCause(sessionRef.current.game),
+    const fresh = freshSession(prev.locale, {
+      legacyCause: readDeathCause(prev.game),
+      ngPlusLevel: nextNpPlus,
+      inheritedRelicId: relic ?? undefined,
     })
+    // Close the loop on the global profile: tally the finished run, remember the
+    // inherited relic for the *next* new game, and bump the highest cycle reached.
+    const nextProfile = recordTerminal(
+      globalProfileRef.current,
+      prev.game.endingId,
+      [],
+      nextNpPlus,
+      relic,
+    )
+    globalProfileRef.current = nextProfile
+    setGlobalProfile(nextProfile)
+    saveGlobalProfile(local, nextProfile)
     sessionRef.current = fresh
     setSession(fresh)
     setPhase('loading')
@@ -388,7 +477,7 @@ function App() {
   if (phase === 'loading') return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
   return <>
     {storyOpen && <div className="story-backdrop" onClick={() => setStoryOpen(false)} aria-hidden="true" />}
-    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} onExitToMenu={exitToMenu} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} />
+    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} onExitToMenu={exitToMenu} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} unlockedEndingIds={globalProfile.unlockedEndingIds} unlockedAchievementIds={globalProfile.unlockedAchievementIds} />
     {session.game.terminal && telemetryId !== null && (
       <PlaytestSurveyCard game={session.game} locale={session.locale} runId={telemetryId} onSubmit={submitSurvey} />
     )}
