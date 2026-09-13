@@ -9,14 +9,14 @@ function encounterAtMistyForest() {
 }
 
 describe('P0-5: combat focus action', () => {
-  it('costs 0 qi, applies +5 guard to the encounter, and stacks +2 for next strike', () => {
+  it('costs 0 qi, applies +5 guard to the encounter, and stacks +2 for next strike (COMBAT_FOCUSED reports guard, damage, stacks)', () => {
     const state = encounterAtMistyForest()
     const qiBefore = state.player.qi
     const result = applyAction(state, { kind: 'combat_focus' })
     expect(result.state.player.qi).toBe(qiBefore)
     expect(result.state.encounter?.focusStacks).toBe(1)
     expect(result.state.encounter?.focusDamage).toBe(2)
-    expect(result.events.some((e) => e.type === 'COMBAT_GUARDED' && e.amount === 5)).toBe(true)
+    expect(result.events.some((e) => e.type === 'COMBAT_FOCUSED' && e.guard === 5 && e.damage === 2 && e.stacks === 1)).toBe(true)
     expect(result.events.some((e) => e.type === 'QI_SPENT')).toBe(false)
   })
 

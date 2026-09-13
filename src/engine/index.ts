@@ -80,7 +80,7 @@ export {
 } from './economy'
 export { MEMORY_GATE, MEMORY_TOTAL, memoryMilestone, rememberedCount, rememberNames } from './memory'
 export { formatSystemMessage, queueDrain, queuePush } from './system'
-export { entryPrice, shopForNpc, validateShops } from './shopStock'
+export { entryPrice, marketPriceFor, shopForNpc, validateShops, type PriceTier, type ShopPrice } from './shopStock'
 export { COMPANION_EXTRA_ACTION, canTame, companionBuff } from './companion'
 export { activeSystem, budgetOk, canChooseSystem, isSystemQuest, systemQuestsFor } from './system-runtime'
 export { ENEMIES, EQUIPMENT, TALENTS, TECHNIQUES } from '../content/rpg'
@@ -104,6 +104,10 @@ export {
 export function validateGameState(state: unknown): GameState {
   return parseGameState(state)
 }
+
+// Issue 8: the UI load path (parseSession) routes saves through migration
+// before validation so pre-version saves survive the schema's version gate.
+export { migrateGameState, migrate } from './migration'
 
 export type {
   Action,

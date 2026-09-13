@@ -29,6 +29,8 @@ export const GameStateSchema = z.object({
     posY: z.number().int().min(0).max(MAP_HEIGHT - 1),
     locationId: z.string().min(1),
     alive: z.boolean(),
+    // Issue 5: skill-tree currency. Default keeps pre-skill-tree saves valid.
+    skillPoints: z.number().int().min(0).default(0),
     poison: z.number().int().min(0).max(5).default(0),
     status: z
       .array(
@@ -51,6 +53,8 @@ export const GameStateSchema = z.object({
   flags: z.record(z.union([z.number(), z.boolean(), z.string()])),
   quests: z.record(z.object({ status: z.enum(['available', 'active', 'completed']), step: z.number().int().min(0).optional() })),
   achievements: z.array(z.string()),
+  // Issue 5: ids of unlocked skill-tree nodes. Default keeps pre-skill-tree saves valid.
+  unlockedSkills: z.array(z.string()).default([]),
   // Expansion fields: older saves omit them and receive safe defaults on parse.
   rememberedNames: z.array(z.string()).default([]),
   companionId: z.string().min(1).nullable().default(null),
@@ -86,6 +90,7 @@ export const GameStateSchema = z.object({
       focusDamage: z.number().int().min(0).max(99).default(0),
       behaviorBonus: z.number().int().min(0).max(99).default(0),
       behaviorHealUsed: z.boolean().default(false),
+      telegraphedHeal: z.boolean().default(false),
       enemyTurns: z.number().int().min(0).max(99).default(0),
       statusEffects: z
         .array(

@@ -7,6 +7,7 @@ export const DEFAULT_SEED = 'ink-and-jade'
 
 export const START_DAY = 1
 export const START_GOLD = 60
+export const START_SILVER = 20
 
 export const MAX_HP = 100
 export const MAX_QI = 60
@@ -16,6 +17,10 @@ export const MAX_STAGE = STAGE_THRESHOLDS.length - 1
 export const MINOR_REALM_MAX = 9
 export const ATTRIBUTE_MAX = 100
 export const ATTRIBUTE_POINTS_PER_BREAKTHROUGH = 2
+// Issue 5: skill-tree currency. Each minor-realm breakthrough grants this many
+// skill points; a full run (~45 breakthroughs over 5 stages) affords roughly
+// one 20-tier branch (sum ≈ 45), as the skill-tree header calibrates.
+export const SKILL_POINTS_PER_BREAKTHROUGH = 1
 
 // Each row is one major realm. Rows 0–1 are halved (rounded up) so the early
 // game still advances without dead turns; rows 2+ keep the original cadence.
@@ -42,9 +47,12 @@ export const HIGH_DANGER_LEVEL = 2
 
 export const STORAGE_CAPACITY = 50
 
-export const LOTTERY_COST = 10
+// Issue 11: the ticket was a money printer (EV incl. herb resale = 33 gold for
+// a 10-gold ticket). Rebalanced negative: EV = (1×80 + 2×60 + 3×20 + 4×12)/16
+// = 19.25 < 20 cost; one ticket/day cap unchanged.
+export const LOTTERY_COST = 20
 export const LOTTERY_ROLL_MAX = 16
-export const LOTTERY_GRAND_GOLD = 300
+export const LOTTERY_GRAND_GOLD = 80
 export const LOTTERY_MAJOR_GOLD = 60
 export const LOTTERY_MINOR_GOLD = 20
 
@@ -95,6 +103,9 @@ export function newGame(seed: string, options: NewGameOptions = {}): GameState {
       hp: MAX_HP,
       qi: MAX_QI,
       gold: START_GOLD,
+      // Issue 7 AC3: new players start with walking-around silver so the
+      // priceSilver stall tier circulates from day one.
+      silver: START_SILVER,
       attrs: { body: 3, mind: 4, charm: 3, luck: 2 },
       stage: 0,
       realmLevel: 1,
@@ -174,6 +185,11 @@ export function techniqueGuard(power: number, level: number): number {
 // ~12 days, so N = 21 leaves exactly 5 spare days for a sloppy run and never
 // more than 9 idle days for optimal play.
 export const DEADLINE_DAYS = 21
+
+// Issue 11: late-game gold sink — cultivation tax per day that scales with
+// major realm stage. Stage 0-1: 0, Stage 2: 2, Stage 3: 5, Stage 4: 10, Stage 5: 20.
+// Applied in spendDay() so every outing has a maintenance cost.
+export const CULTIVATION_TAX: ReadonlyArray<number> = [0, 0, 2, 5, 10, 20]
 
 export function hashSeed(seed: string): number {
   let h = 1779033703 ^ seed.length

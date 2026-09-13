@@ -37,6 +37,9 @@ export interface PlayerState {
   /** Combat conditions (poison, paralysis…). Optional so older saves stay
    *  valid; the reducer treats a missing array as empty. */
   status?: import('./content-types').StatusEffect[]
+  /** Issue 5: skill-tree currency. Granted at breakthrough (+1 per minor realm
+   *  advance); spent to unlock nodes. Optional so older saves stay valid. */
+  skillPoints?: number
 }
 
 export interface SpiritRootInfo {
@@ -84,6 +87,11 @@ export interface EncounterState {
   /** Combo counter: consecutive player hits without an enemy reply. Resets
    *  to 0 in resolveEnemyTurn. Optional so older saves stay valid. */
   playerHits?: number
+  /** Issue 9: true once the boss's heal+rage telegraph has been announced.
+   *  The full heal then fires on the NEXT player strike, giving the player
+   *  one reaction turn (burst, focus, or retreat) at ≤33% HP. Optional so
+   *  older saves stay valid. */
+  telegraphedHeal?: boolean
 }
 
 export interface GameState {
@@ -120,6 +128,9 @@ export interface GameState {
   affection?: Record<string, number>
   /** Skill-tree crit bonus (P0-5). Optional; missing/0 means no crit path. */
   critBonus?: number
+  /** Issue 5: ids of unlocked skill-tree nodes. Optional so older saves stay
+   *  valid; the schema default fills [] on parse. */
+  unlockedSkills?: string[]
   encounter: EncounterState | null
   lastLotteryDay: number | null
   corrections: number
@@ -144,7 +155,7 @@ export type Action =
   | { kind: 'refine'; recipeId: string }
   | { kind: 'buy'; itemId: string; qty?: number }
   | { kind: 'sell'; itemId: string; qty?: number }
-| { kind: 'convert_currency'; from: 'spiritStone' | 'silver'; qty: number }
+| { kind: 'convert_currency'; from: 'spiritStone' | 'silver' | 'gold'; qty: number }
   | { kind: 'use_item'; itemId: string; qty?: number }
   | { kind: 'store'; itemId: string; qty: number }
   | { kind: 'withdraw'; itemId: string; qty: number }
@@ -166,6 +177,8 @@ export type Action =
   | { kind: 'combat_defend' }
   | { kind: 'combat_retreat' }
   | { kind: 'combat_focus' }
+  /** Issue 5: unlock a skill-tree node by spending skillPoints. */
+  | { kind: 'unlock_skill'; nodeId: string }
 
   | { kind: 'resolve_route_event'; approach: 'present' | 'withhold' }
   /** Cưỡng đoạt (Issue #19): threaten a personality-opposite NPC. 'plunder'
@@ -212,6 +225,11 @@ export const ERROR_CODES = [
   'SYSTEM_LOCKED',
   'ARENA_CLOSED',
   'COERCION_UNAVAILABLE',
+  'SKILL_UNKNOWN',
+  'SKILL_ALREADY_UNLOCKED',
+  'SKILL_REQUIREMENT_NOT_MET',
+  'SKILL_CONFLICT',
+  'INSUFFICIENT_SKILL_POINTS',
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]
@@ -220,17 +238,17 @@ export type GameEvent =
   | { type: 'GAME_STARTED'; seed: string }
   | { type: 'MOVED'; from: string; to: string }
   | { type: 'NODE_REACHED'; nodeId: string; nameVi: string; nameEn: string; kind: 'npc' | 'event' | 'exit' | 'danger' }
-  | { type: 'DAY_PASSED'; day: number }
+  | { type: 'DAY_PASSED'; day: number; weather?: { season: string; kind: string; id: string } }
   | { type: 'RESTED'; hpHeal: number }
   | { type: 'TRAINED'; gain: number; stage: number; sceneId?: string }
-  | { type: 'MINOR_REALM_ADVANCED'; stage: number; realmLevel: number; pointsGranted: number }
+  | { type: 'MINOR_REALM_ADVANCED'; stage: number; realmLevel: number; pointsGranted: number; skillPointsGranted: number }
   | { type: 'ATTRIBUTE_ALLOCATED'; attribute: AttributeName; value: number; pointsRemaining: number }
   | { type: 'GATHERED'; itemId: string; qty: number; qiDrain: number }
   | { type: 'REFINED'; recipeId: string; itemId: string; qty: number }
   | { type: 'ITEM_USED'; itemId: string; hpDelta: number; qiDelta: number }
   | { type: 'BOUGHT'; itemId: string; qty: number; goldPaid: number }
   | { type: 'SOLD'; itemId: string; qty: number; goldGain: number }
-  | { type: 'CURRENCY_CONVERTED'; from: 'spiritStone' | 'silver'; qty: number; goldGain: number }
+  | { type: 'CURRENCY_CONVERTED'; from: 'spiritStone' | 'silver' | 'gold'; qty: number; goldGain: number }
   | { type: 'STORED'; itemId: string; qty: number }
   | { type: 'WITHDRAWN'; itemId: string; qty: number }
   | { type: 'DRAW_RESULT'; tier: 'grand' | 'major' | 'minor' | 'herb' | 'none'; goldDelta: number; itemId?: string }
@@ -244,6 +262,8 @@ export type GameEvent =
   | { type: 'SYSTEM_CHOSEN'; systemId: string }
   | { type: 'TALENT_CHOSEN'; talentId: string }
   | { type: 'TECHNIQUE_LEARNED'; techniqueId: string; level: number }
+  /** Issue 5: skill-tree node unlocked. */
+  | { type: 'SKILL_UNLOCKED'; nodeId: string; skillPointsSpent: number }
   | { type: 'EQUIPPED'; itemId: string; slot: EquipmentSlot }
   | { type: 'ENCOUNTER_STARTED'; enemyId: string }
   /** Lôi Đài (Issue #19): the player stepped onto a tower floor. */
@@ -257,6 +277,11 @@ export type GameEvent =
   | { type: 'QI_SPENT'; amount: number }
   | { type: 'COMBAT_HIT'; actor: 'player' | 'enemy'; amount: number; enemyId: string }
   | { type: 'COMBAT_GUARDED'; amount: number }
+  /** Issue 12: focus reports its stacking damage, not just the guard it grants. */
+  | { type: 'COMBAT_FOCUSED'; guard: number; damage: number; stacks: number }
+  /** Issue 12: emitted alongside COMBAT_HIT when a strike crits, so the UI can
+   *  show a distinct crit chip. */
+  | { type: 'COMBAT_CRIT'; amount: number; enemyId: string }
   | { type: 'COMBAT_WON'; enemyId: string; rewardGold: number }
   | { type: 'COMBAT_RETREATED'; enemyId: string; hpCost: number; progressCost: number }
   | { type: 'BOSS_HEAL'; enemyId: string; hpRestored: number }

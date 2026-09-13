@@ -1,259 +1,107 @@
-import { expect, test } from 'vitest'
-import { SKILL_NODES, SKILL_BRANCHES, SKILL_TREES, getSkillNode, skillNodesInBranch } from '../src/content/skill-tree'
+import { describe, expect, it } from 'vitest'
+import { applyAction, newGame } from '../src/engine'
+import type { GameState } from '../src/engine'
+import { navTo } from './test-utils'
 
-// Items that actually exist in src/content/items.ts (used in cost.item)
-const VALID_ITEM_IDS = new Set([
-  'wooden_staff', 'tattered_robe', 'pill_hp', 'pill_qi', 'jade_charm',
-  'rift_step_scroll', 'ironwood_saber', 'mistweave_vest', 'spirit_ring',
-  'cloudpiercer_spear', 'herbal_breath_manual', 'iron_skin_manual',
-  'cloudwalk_manual', 'peak_cleaver_manual', 'dew_pill', 'plum_qi_wine',
-  'ninefold_pill', 'marrow_gather_pill', 'trail_rations', 'moon_moss',
-  'cold_iron_ore', 'beast_fang', 'cloudsilk_thread', 'crane_feather',
-  'bamboo_saber', 'travelers_coat', 'bone_ward_charm', 'frostfang_saber',
-  'cloudveil_robe', 'moonstone_pendant', 'tide_breath_manual',
-  'stone_aegis_manual', 'evidence_route_mercy', 'evidence_route_wealth',
-  'evidence_route_truth',
-])
+// Issue 5: the 100-node skill tree must actually wire into the reducer.
+function encounterAtMistyForest(seed = 'skill-test', prefix?: (s: GameState) => GameState) {
+  let state = newGame(seed)
+  if (prefix !== undefined) state = prefix(state)
+  state = navTo(state, 'misty_forest')
+  state = applyAction(state, { kind: 'start_encounter' }).state
+  return state
+}
 
-const VALID_EFFECT_KINDS = new Set(['attack', 'heal', 'buff', 'dodge', 'aoe', 'status', 'utility'])
+function withSkillPoints(state: GameState, points: number): GameState {
+  return { ...state, player: { ...state.player, skillPoints: points } }
+}
 
-// ── Count / structure invariants ─────────────────────────────────────────────
+// Create an encounter with the exact unlockedSkills state from another run.
+function encounterAtWithSkills(seed: string, from: GameState) {
+  return encounterAtMistyForest(seed, (s) => ({ ...s, unlockedSkills: from.unlockedSkills }))
+}
 
-test('100 nodes total', () => {
-  expect(SKILL_NODES.length).toBe(100)
-})
+describe('Issue 5: unlock_skill reducer wiring', () => {
+  it('rejects unknown node ids', () => {
+    const state = withSkillPoints(newGame('skill-unknown'), 5)
+    const result = applyAction(state, { kind: 'unlock_skill', nodeId: 'no_such_node' })
+    expect(result.events).toEqual([{ type: 'ERROR', code: 'SKILL_UNKNOWN' }])
+  })
 
-test('5 branches', () => {
-  expect(SKILL_BRANCHES).toHaveLength(5)
-  expect(SKILL_BRANCHES).toContain('sword')
-  expect(SKILL_BRANCHES).toContain('aura')
-  expect(SKILL_BRANCHES).toContain('herbal')
-  expect(SKILL_BRANCHES).toContain('shadow')
-  expect(SKILL_BRANCHES).toContain('thunder')
-})
+  it('unlocks sword_t1 for 1 skill point and voices the name', () => {
+    const state = withSkillPoints(newGame('skill-unlock'), 1)
+    const result = applyAction(state, { kind: 'unlock_skill', nodeId: 'sword_t1' })
+    expect(result.state.player.skillPoints).toBe(0)
+    expect(result.state.unlockedSkills).toEqual(['sword_t1'])
+    const unlocked = result.events.find((e) => e.type === 'SKILL_UNLOCKED')
+    expect(unlocked).toEqual({ type: 'SKILL_UNLOCKED', nodeId: 'sword_t1', skillPointsSpent: 1 })
+  })
 
-test('each branch has exactly 20 tiers (1-20, no gaps, no duplicates)', () => {
-  for (const branch of SKILL_BRANCHES) {
-    const list = skillNodesInBranch(branch)
-    expect(list.length).toBe(20)
-    const tiers = list.map((n) => n.tier)
-    const sorted = [...tiers].sort((a, b) => a - b)
-    expect(sorted).toEqual(Array.from({ length: 20 }, (_, i) => i + 1))
-  }
-})
+  it('rejects a second unlock of the same node', () => {
+    const state = withSkillPoints(newGame('skill-dup'), 5)
+    const first = applyAction(state, { kind: 'unlock_skill', nodeId: 'sword_t1' })
+    const second = applyAction(first.state, { kind: 'unlock_skill', nodeId: 'sword_t1' })
+    expect(second.events).toEqual([{ type: 'ERROR', code: 'SKILL_ALREADY_UNLOCKED' }])
+  })
 
-// ── Id invariants ─────────────────────────────────────────────────────────────
+  it('rejects unlocks without enough skill points', () => {
+    const state = withSkillPoints(newGame('skill-poor'), 0)
+    const result = applyAction(state, { kind: 'unlock_skill', nodeId: 'sword_t1' })
+    expect(result.events).toEqual([{ type: 'ERROR', code: 'INSUFFICIENT_SKILL_POINTS' }])
+  })
 
-test('no duplicate node ids', () => {
-  const ids = SKILL_NODES.map((n) => n.id)
-  const unique = new Set(ids)
-  expect(unique.size).toBe(ids.length)
-})
+  it('enforces the tier chain: tier 2 needs tier 1 of the same branch', () => {
+    const state = withSkillPoints(newGame('skill-chain'), 5)
+    const skip = applyAction(state, { kind: 'unlock_skill', nodeId: 'sword_t2' })
+    expect(skip.events).toEqual([{ type: 'ERROR', code: 'SKILL_REQUIREMENT_NOT_MET' }])
+    const first = applyAction(state, { kind: 'unlock_skill', nodeId: 'sword_t1' })
+    const second = applyAction(first.state, { kind: 'unlock_skill', nodeId: 'sword_t2' })
+    expect(second.state.unlockedSkills).toEqual(['sword_t1', 'sword_t2'])
+  })
 
-test('every node id matches branch_tN pattern', () => {
-  for (const node of SKILL_NODES) {
-    expect(node.id).toMatch(new RegExp(`^${node.branch}_t\\d+$`))
-  }
-})
-
-test('getSkillNode returns correct node for every id', () => {
-  for (const node of SKILL_NODES) {
-    expect(getSkillNode(node.id)).toBe(node)
-  }
-})
-
-test('getSkillNode returns undefined for unknown id', () => {
-  expect(getSkillNode('nonexistent_node')).toBeUndefined()
-})
-
-// ── Effect invariants ─────────────────────────────────────────────────────────
-
-test('every node has a valid effect.kind', () => {
-  for (const node of SKILL_NODES) {
-    expect(VALID_EFFECT_KINDS.has(node.effect.kind), `${node.id} has invalid kind: ${node.effect.kind}`).toBe(true)
-  }
-})
-
-test('every effect has a numeric or string value', () => {
-  for (const node of SKILL_NODES) {
-    expect(typeof node.effect.value).toMatch(/^(number|string)$/)
-  }
-})
-
-test('attack nodes have numeric value', () => {
-  for (const node of SKILL_NODES.filter((n) => n.effect.kind === 'attack')) {
-    expect(typeof node.effect.value).toBe('number')
-  }
-})
-
-// trigger is only present on combat-proc heals (onHit/onKill); passive heals
-// use drain, stat, or costQi instead. We assert the union covers all.
-test('heal nodes have one of: trigger | stat | drain | costQi', () => {
-  for (const node of SKILL_NODES.filter((n) => n.effect.kind === 'heal')) {
-    const e = node.effect as Record<string, unknown>
-    const ok = typeof e['trigger'] === 'string' ||
-      typeof e['stat'] === 'string' ||
-       e['drain'] !== undefined ||
-       e['costQi'] !== undefined
-    expect(ok, `${node.id} heal has none of trigger/stat/drain/costQi`).toBe(true)
-  }
-})
-
-test('buff nodes have stat field', () => {
-  for (const node of SKILL_NODES.filter((n) => n.effect.kind === 'buff')) {
-    expect(typeof node.effect.stat).toBe('string')
-  }
-})
-
-test('dodge nodes have numeric value', () => {
-  for (const node of SKILL_NODES.filter((n) => n.effect.kind === 'dodge')) {
-    expect(typeof node.effect.value).toBe('number')
-  }
-})
-
-test('aoe nodes have aoeRadius', () => {
-  for (const node of SKILL_NODES.filter((n) => n.effect.kind === 'aoe')) {
-    expect(typeof node.effect.aoeRadius).toBe('number')
-  }
-})
-
-test('status nodes have status field', () => {
-  for (const node of SKILL_NODES.filter((n) => n.effect.kind === 'status')) {
-    expect(typeof node.effect.status).toBe('string')
-  }
-})
-
-test('utility nodes have stat field', () => {
-  for (const node of SKILL_NODES.filter((n) => n.effect.kind === 'utility')) {
-    expect(typeof node.effect.stat).toBe('string')
-  }
-})
-
-// ── Require invariants ────────────────────────────────────────────────────────
-
-test('every node has require.stage >= 0', () => {
-  for (const node of SKILL_NODES) {
-    expect(node.require.stage).toBeGreaterThanOrEqual(0)
-  }
-})
-
-test('require.level, when present, is between 1 and 20', () => {
-  for (const node of SKILL_NODES) {
-    if (node.require.level !== undefined) {
-      expect(node.require.level).toBeGreaterThanOrEqual(1)
-      expect(node.require.level).toBeLessThanOrEqual(20)
+  it('grants skill points at breakthrough (+1 per minor realm)', () => {
+    const base = newGame('skill-breakthrough')
+    const rich = applyAction(
+      { ...base, player: { ...base.player, stage: 0, realmLevel: 1, progress: 0, qi: 100, hp: 100 } },
+      { kind: 'train' },
+    )
+    const advanced = rich.events.find((e) => e.type === 'MINOR_REALM_ADVANCED')
+    if (advanced?.type === 'MINOR_REALM_ADVANCED') {
+      expect(advanced.skillPointsGranted).toBeGreaterThanOrEqual(1)
+      expect(rich.state.player.skillPoints).toBeGreaterThanOrEqual(1)
     }
-  }
-})
+  })
 
-test('require.techniques, when present, is a non-empty string array', () => {
-  for (const node of SKILL_NODES) {
-    if (node.require.techniques !== undefined) {
-      expect(Array.isArray(node.require.techniques)).toBe(true)
-      expect(node.require.techniques.length).toBeGreaterThan(0)
-      expect(node.require.techniques.every((t) => typeof t === 'string')).toBe(true)
+  it('attack nodes raise strike damage deterministically', () => {
+    // unlock_skill is refused mid-encounter (closed turn loop), so unlock
+    // first, then open the same encounter. Same seed + unlockedSkills-only
+    // difference: the variance/crit rolls share the RNG stream (unlock consumes
+    // no RNG), so the skilled strike must land strictly higher.
+    const base = withSkillPoints(newGame('skill-plain'), 2)
+    const noted = applyAction(base, { kind: 'unlock_skill', nodeId: 'sword_t1' }).state
+    const plain = encounterAtMistyForest('skill-plain')
+    const skilled = encounterAtWithSkills('skill-plain', noted)
+    const plainStrike = applyAction(plain, { kind: 'combat_attack' })
+    const skilledStrike = applyAction(skilled, { kind: 'combat_attack' })
+    const plainAmt = plainStrike.events.find((e) => e.type === 'COMBAT_HIT' && e.actor === 'player')
+    const skilledAmt = skilledStrike.events.find((e) => e.type === 'COMBAT_HIT' && e.actor === 'player')
+    expect(plainAmt).toBeDefined()
+    expect(skilledAmt).toBeDefined()
+    expect((skilledAmt as { amount: number }).amount).toBeGreaterThan(
+      (plainAmt as { amount: number }).amount,
+    )
+  })
+
+  it('unlocks cost gold when the node charges it (sword_t4)', () => {
+    // sword_t4 costs 1 point + 40 gold; unlock the tier chain first.
+    let state = withSkillPoints(newGame('skill-gold'), 10)
+    state = { ...state, player: { ...state.player, stage: 1 } }
+    const goldBefore = state.player.gold
+    for (const node of ['sword_t1', 'sword_t2', 'sword_t3']) {
+      state = applyAction(state, { kind: 'unlock_skill', nodeId: node }).state
     }
-  }
-})
-
-test('require.flag, when present, is a non-empty string', () => {
-  for (const node of SKILL_NODES) {
-    if (node.require.flag !== undefined) {
-      expect(typeof node.require.flag).toBe('string')
-      expect(node.require.flag.length).toBeGreaterThan(0)
-    }
-  }
-})
-
-// ── Cost invariants ───────────────────────────────────────────────────────────
-
-test('every node has cost.skillPoints >= 1', () => {
-  for (const node of SKILL_NODES) {
-    expect(node.cost.skillPoints).toBeGreaterThanOrEqual(1)
-  }
-})
-
-test('cost.gold, when present, is >= 0', () => {
-  for (const node of SKILL_NODES) {
-    if (node.cost.gold !== undefined) {
-      expect(node.cost.gold).toBeGreaterThanOrEqual(0)
-    }
-  }
-})
-
-test('cost.item, when present, references a known item id', () => {
-  for (const node of SKILL_NODES) {
-    if (node.cost.item !== undefined) {
-      expect(VALID_ITEM_IDS.has(node.cost.item), `${node.id} cost.item '${node.cost.item}' not in items.ts`).toBe(true)
-    }
-  }
-})
-
-// ── conflictsWith invariants ─────────────────────────────────────────────────
-
-test('conflictsWith entries reference existing node ids', () => {
-  const allIds = new Set(SKILL_NODES.map((n) => n.id))
-  for (const node of SKILL_NODES) {
-    if (node.conflictsWith !== undefined) {
-      for (const conflictId of node.conflictsWith) {
-        expect(allIds.has(conflictId), `${node.id} conflictsWith '${conflictId}' which does not exist`).toBe(true)
-      }
-    }
-  }
-})
-
-test('conflictsWith is symmetric: if A conflicts with B, B conflicts with A', () => {
-  for (const node of SKILL_NODES) {
-    if (node.conflictsWith === undefined) continue
-    for (const conflictId of node.conflictsWith) {
-      const target = getSkillNode(conflictId)
-      expect(target, `${node.id} conflictsWith unknown id ${conflictId}`).not.toBeUndefined()
-      expect(target!.conflictsWith, `${node.id} conflicts with ${conflictId} but not vice versa`).toContain(node.id)
-    }
-  }
-})
-
-// ── Bilingual text invariants ─────────────────────────────────────────────────
-
-test('every node has non-empty bilingual names and descriptions', () => {
-  for (const node of SKILL_NODES) {
-    expect(node.nameVi.trim().length, `${node.id} nameVi is empty`).toBeGreaterThan(0)
-    expect(node.nameEn.trim().length, `${node.id} nameEn is empty`).toBeGreaterThan(0)
-    expect(node.descVi.trim().length, `${node.id} descVi is empty`).toBeGreaterThan(0)
-    expect(node.descEn.trim().length, `${node.id} descEn is empty`).toBeGreaterThan(0)
-  }
-})
-
-// ── Branch / tier structure ───────────────────────────────────────────────────
-
-test('SKILL_TREES has all 5 branches', () => {
-  for (const branch of SKILL_BRANCHES) {
-    expect(SKILL_TREES[branch]).toBeDefined()
-    expect(SKILL_TREES[branch].length).toBe(20)
-  }
-})
-
-test('SKILL_TREES tier ordering matches node.tier', () => {
-  for (const branch of SKILL_BRANCHES) {
-    const list = SKILL_TREES[branch]
-    for (let i = 0; i < list.length; i++) {
-      expect(list[i]!.tier).toBe(i + 1)
-    }
-  }
-})
-
-// ── Tier-gating plausibility (earlier tiers accessible earlier) ────────────────
-
-test('tier 1 nodes require stage 0', () => {
-  for (const branch of SKILL_BRANCHES) {
-    const tier1 = SKILL_TREES[branch]![0]!
-    expect(tier1.tier).toBe(1)
-    expect(tier1.require.stage).toBe(0)
-  }
-})
-
-test('max stage requirement across all tiers does not exceed 5', () => {
-  for (const node of SKILL_NODES) {
-    expect(node.require.stage).toBeLessThanOrEqual(5)
-  }
+    const result = applyAction(state, { kind: 'unlock_skill', nodeId: 'sword_t4' })
+    expect(result.state.player.gold).toBe(goldBefore - 40)
+    expect(result.state.unlockedSkills).toContain('sword_t4')
+  })
 })

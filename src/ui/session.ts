@@ -1,4 +1,4 @@
-import { validateGameState } from '../engine'
+import { migrateGameState } from '../engine'
 import { DEFAULT_GLOBAL_PROFILE, parseGlobalProfile } from '../engine/globalProfile'
 import type { GlobalProfile } from '../engine/globalProfile'
 import type { GameDifficulty, GameState, Locale } from '../engine'
@@ -80,7 +80,12 @@ function parseSession(raw: string): GameSession | null {
     const candidate = JSON.parse(raw) as Partial<GameSession>
     if (candidate.locale !== 'vi' && candidate.locale !== 'en') return null
     if (!Array.isArray(candidate.chronicle) || !candidate.chronicle.every((line) => typeof line === 'string')) return null
-    return { game: validateGameState(candidate.game), locale: candidate.locale, chronicle: candidate.chronicle.slice(-80) }
+    // Issue 8: route through migrate() first so a v0 save (missing `version`)
+    // upgrades to v1 before the schema's z.literal(1) gate, instead of being
+    // silently dropped by the catch. Falls back to validateGameState when the
+    // payload already parses cleanly.
+    const game = migrateGameState(candidate.game)
+    return { game, locale: candidate.locale, chronicle: candidate.chronicle.slice(-80) }
   } catch {
     return null
   }

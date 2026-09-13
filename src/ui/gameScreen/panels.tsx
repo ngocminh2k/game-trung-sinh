@@ -293,6 +293,13 @@ export function DockPanelMarket({
         >
           {word(locale, 'Đổi 10 bạc → 1 vàng', 'Exchange 10 silver → 1 gold')}
         </button>
+        <button
+          disabled={game.terminal || encounterLocked || game.player.locationId !== 'market' || game.player.gold < 10}
+          onClick={() => onAction({ kind: 'convert_currency', from: 'gold', qty: 1 })}
+          type="button"
+        >
+          {word(locale, 'Đổi 10 vàng → 1 linh thạch', 'Exchange 10 gold → 1 spirit stone')}
+        </button>
       </div>
       <div className="shop-list">
         {SHOP_STOCK.map((id) => {

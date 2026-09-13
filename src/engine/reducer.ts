@@ -1,6 +1,7 @@
 import {
   ARENA_FLOOR_COUNT,
   arenaEnemyForFloor,
+  BEASTS,
   coercionFor,
   enemyAt,
   entryPositionFor,
@@ -10,16 +11,21 @@ import {
   getNpc,
   getRecipe,
   getQuest,
+  getSkillNode,
   getTalent,
   getTechnique,
   locationDanger,
   newEncounter,
 } from '../content'
+import { weatherFor, WEATHER_EFFECTS } from './weather'
+import { companionBuff } from './companion'
+import { marketPriceFor } from './shopStock'
 import { newlyQualifiedAchievements } from './achievements'
 import {
   ATTRIBUTE_MAX,
   ATTRIBUTE_POINTS_PER_BREAKTHROUGH,
   BASIC_STRIKE_QI_COST,
+  CULTIVATION_TAX,
   DEADLINE_DAYS,
   HIGH_DANGER_LEVEL,
   ITEM_TALISMAN,
@@ -32,6 +38,7 @@ import {
   REST_HEAL_HP,
   RETREAT_HP_COST,
   RETREAT_PROGRESS_COST,
+  SKILL_POINTS_PER_BREAKTHROUGH,
   STORAGE_CAPACITY,
   TRAIN_HP_COST,
   TRAIN_QI_COST,
@@ -41,6 +48,16 @@ import {
   techniqueGuard,
   techniqueQiCost,
 } from './constants'
+import {
+  skillAttackBonus,
+  skillCritBonus,
+  skillDefenseBonus,
+  skillGuardBonus,
+  skillDodgeChance,
+  skillOnHitHeal,
+  skillOnKillHeal,
+  skillUnlockGate,
+} from './skills'
 import { parseFreeText } from './corrections'
 import { isEquippedItem, sanitizeRpgState } from './rpg-state'
 import { LOW_HP_WARNING, damageRoll, dangerWarning } from './danger'
@@ -163,8 +180,17 @@ function applyFreeText(state: GameState, raw: string): TransitionResult {
 // day-trip whose price is paid at start_encounter.
 function spendDay(state: GameState, events: GameEvent[]): GameState {
   const day = state.day + 1
-  events.push({ type: 'DAY_PASSED', day })
-  return { ...state, day }
+  // Issue 11: late-game gold sink — a cultivation tax that scales with major
+  // realm stage, so every outing has a maintenance cost once the player is
+  // strong. Older realms (stage 0–1) are exempt so early game stays free.
+  const tax = CULTIVATION_TAX[state.player.stage] ?? 0
+  const gold = Math.max(0, state.player.gold - tax)
+  // Issue 6: every day has deterministic weather (a pure function of seed+day)
+  // so the narrator can voice the season/sky; it never touches state.rng.
+  const weather = weatherFor(state.seed, day)
+  events.push({ type: 'DAY_PASSED', day, weather })
+  const s: GameState = { ...state, day, player: { ...state.player, gold } }
+  return s
 }
 
 // Phase 2: the story talks about "the twelfth night"; now the calendar enforces
@@ -371,6 +397,8 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doCombatRetreat(state)
     case 'combat_focus':
       return doCombatFocus(state)
+    case 'unlock_skill':
+      return doUnlockSkill(state, action.nodeId)
     case 'resolve_route_event':
       return doResolveRouteEvent(state, action.approach)
     case 'story_choice':
@@ -486,9 +514,10 @@ function doMove(state: GameState, direction: Direction): R {
 
 function doRest(state: GameState): R {
   const hpHeal = Math.min(REST_HEAL_HP, MAX_HP - state.player.hp)
+  const day = state.day + 1
   const s: GameState = {
     ...state,
-    day: state.day + 1,
+    day,
     player: {
       ...state.player,
       hp: clamp(state.player.hp + REST_HEAL_HP, 0, MAX_HP),
@@ -500,7 +529,7 @@ function doRest(state: GameState): R {
     state: s,
     events: [
       { type: 'RESTED', hpHeal },
-      { type: 'DAY_PASSED', day: s.day },
+      { type: 'DAY_PASSED', day, weather: weatherFor(state.seed, day) },
     ],
   }
 }
@@ -508,8 +537,10 @@ function doRest(state: GameState): R {
 function doTrain(state: GameState): R {
   if (state.player.qi < TRAIN_QI_COST) return err('INSUFFICIENT_QI')
   // P0-6: training can kill (TRAIN_HP_COST + 0..2 variance). The death gate
-  // rejects the action when HP is too low to survive even the best variance.
-  if (state.player.hp <= TRAIN_HP_COST + 1) return err('INSUFFICIENT_HP')
+  // rejects the action when HP is too low to survive even the WORST variance
+  // (nextInt(rng, 0, 2) can return 2), so the player never dies on a turn they
+  // reasonably expected to survive.
+  if (state.player.hp <= TRAIN_HP_COST + 2) return err('INSUFFICIENT_HP')
   const events: GameEvent[] = []
   state = spendDay(state, events)
   const [hpLossVariance, rngAfter] = nextInt(state.rng, 0, 2)
@@ -546,6 +577,8 @@ function doTrain(state: GameState): R {
   }
 
   const pointsGranted = progress.breakthroughs * ATTRIBUTE_POINTS_PER_BREAKTHROUGH
+  // Issue 5: each breakthrough also grants skill points for the skill tree.
+  const skillPointsGranted = progress.breakthroughs * SKILL_POINTS_PER_BREAKTHROUGH
   const s: GameState = {
     ...state,
     rng: rngAfter,
@@ -557,7 +590,9 @@ function doTrain(state: GameState): R {
       realmLevel: progress.realmLevel,
       progress: progress.progress,
       pendingAttributePoints: state.player.pendingAttributePoints + pointsGranted,
+      skillPoints: (state.player.skillPoints ?? 0) + skillPointsGranted,
     },
+    unlockedSkills: state.unlockedSkills ?? [],
   }
   events.push({ type: 'TRAINED', gain, stage: progress.stage, sceneId })
   if (progress.breakthroughs > 0) {
@@ -566,6 +601,7 @@ function doTrain(state: GameState): R {
       stage: progress.stage,
       realmLevel: progress.realmLevel,
       pointsGranted,
+      skillPointsGranted,
     })
   }
   return { ok: true, state: s, events }
@@ -637,37 +673,54 @@ function doBuy(state: GameState, itemId: string, qty: number): R {
   if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   const def = getItem(itemId)
-  const price = def?.buyPrice ?? null
-  if (price === null || state.player.stage < (def?.requiredStage ?? 0)) return err('ITEM_UNAVAILABLE')
-  const totalCost = Math.max(0, price - charmPriceDiscount(state.player.attrs.charm)) * qty
-  // Silver fallback (T02 economy): gold is spent first; any shortfall is
-  // covered from silver at the authored 10-per-gold rate.
-  let goldSpent = 0
-  let silverSpent = 0
-  if (state.player.gold >= totalCost) {
-    goldSpent = totalCost
-  } else {
-    const shortfallSilver = (totalCost - state.player.gold) * 10
-    if ((state.player.silver ?? 0) < shortfallSilver) return err('INSUFFICIENT_GOLD')
-    goldSpent = state.player.gold
-    silverSpent = shortfallSilver
-  }
+  if (def === undefined || state.player.stage < (def.requiredStage ?? 0)) return err('ITEM_UNAVAILABLE')
+  // Issue 7: pay the price the NPC stalls actually list (shopStock.ts), not the
+  // stale static item.buyPrice. A good may appear at several stalls in
+  // different tiers (gold / silver / Linh Thạch); we take the cheapest
+  // gold-normalised offer. Goods with no shop entry AND no static buyPrice
+  // (e.g. quest-only items like old_manual) are unstocked.
+  const shop = marketPriceFor(itemId, WEATHER_EFFECTS[weatherFor(state.seed, state.day).id]?.herbPriceMod ?? 1)
+  if (shop === null && def.buyPrice == null) return err('ITEM_UNAVAILABLE')
+  const tier: 'gold' | 'silver' | 'ls' = shop?.tier ?? 'gold'
+  const unit = shop !== null ? shop.price : (def.buyPrice ?? 0)
+  const charmDiscount = charmPriceDiscount(state.player.attrs.charm)
+  const total = Math.max(0, unit - charmDiscount) * qty
   const events: GameEvent[] = []
+  let { gold, silver, spiritStones } = state.player
+  silver ??= 0
+  spiritStones ??= 0
+  if (tier === 'gold') {
+    // Gold first; any shortfall is covered from silver at the 10:1 rate (T02).
+    if (gold >= total) {
+      gold -= total
+    } else if (silver >= (total - gold) * 10) {
+      silver -= (total - gold) * 10
+      gold = 0
+    } else {
+      // With gold in hand the fallback tier (silver) is what actually ran
+      // short; a player broke on both is fundamentally out of gold.
+      return err(gold > 0 ? 'INSUFFICIENT_SILVER' : 'INSUFFICIENT_GOLD')
+    }
+  } else if (tier === 'silver') {
+    if (silver < total) return err('INSUFFICIENT_SILVER')
+    silver -= total
+  } else {
+    if (spiritStones < total) return err('INSUFFICIENT_SPIRIT_STONES')
+    spiritStones -= total
+  }
   state = spendDay(state, events)
   const s: GameState = {
     ...state,
-    player: {
-      ...state.player,
-      gold: state.player.gold - goldSpent,
-      silver: (state.player.silver ?? 0) - silverSpent,
-    },
+    player: { ...state.player, gold, silver, spiritStones },
     inventory: bump(state.inventory, itemId, qty),
     flags: { ...state.flags, buyCount: flagNum(state.flags, 'buyCount') + qty },
   }
+  // goldPaid reports the gold-equivalent cost for UI parity across tiers.
+  const goldPaid = tier === 'ls' ? total * 10 : tier === 'silver' ? Math.floor(total / 10) : total
   return {
     ok: true,
     state: s,
-    events: [...events, { type: 'BOUGHT', itemId, qty, goldPaid: totalCost }],
+    events: [...events, { type: 'BOUGHT', itemId, qty, goldPaid }],
   }
 }
 
@@ -678,9 +731,11 @@ function systemIsActive(state: GameState): boolean {
 
 /**
  * Currency exchange at the market (T02 economy, 3 layers).
- * Authored rates: 1 spirit stone = 10 gold = 100 silver.
+ * Authored rates: 1 spirit stone = 10 gold = 100 silver. Issue 7 made the
+ * counter two-way in every direction: gold buys LS back (the true late-game
+ * sink) and gold buys silver for stall goods priced in Bạc.
  */
-function doConvertCurrency(state: GameState, from: 'spiritStone' | 'silver', qty: number): R {
+function doConvertCurrency(state: GameState, from: 'spiritStone' | 'silver' | 'gold', qty: number): R {
   if (state.player.locationId !== LOCATION_MARKET) return err('NOT_AT_LOCATION')
   if (!Number.isInteger(qty) || qty <= 0) return err('INVALID_QTY')
   if (from === 'spiritStone') {
@@ -694,6 +749,26 @@ function doConvertCurrency(state: GameState, from: 'spiritStone' | 'silver', qty
         player: { ...state.player, spiritStones: have - qty, gold: state.player.gold + goldGain },
       },
       events: [{ type: 'CURRENCY_CONVERTED', from, qty, goldGain }],
+    }
+  }
+  if (from === 'gold') {
+    // Reverse exchange (issue 7): `qty` spirit stones cost `qty * 10` gold.
+    // The stone path is the true late-game sink — it burns gold for a tier
+    // that only rare stalls accept.
+    const have = state.player.gold
+    const cost = qty * 10
+    if (have < cost) return err('INSUFFICIENT_GOLD')
+    return {
+      ok: true,
+      state: {
+        ...state,
+        player: {
+          ...state.player,
+          gold: have - cost,
+          spiritStones: (state.player.spiritStones ?? 0) + qty,
+        },
+      },
+      events: [{ type: 'CURRENCY_CONVERTED', from, qty, goldGain: -cost }],
     }
   }
   const have = state.player.silver ?? 0
@@ -717,6 +792,10 @@ function doSell(state: GameState, itemId: string, qty: number): R {
   const price = def?.sellPrice ?? null
   if (price === null) return err('ITEM_UNAVAILABLE')
   if (countOf(state.inventory, itemId) < qty) return err('NO_ITEM')
+  // Issue 6 note: only the BUY side moves with the day's weather (doBuy).
+  // Sell prices stay at the authored base so a gather-and-flip round trip
+  // never turns a profit; the market mod is a shopping cost, not an income
+  // exploit.
   // Phase 3 (design review 2026-08): scholarly techniques earn more progress
   // but haggle badly; Bao's favour (Hồi I choice `sell_pin`) pays it back.
   const sellPenalty = techniqueSellPenalty(state)
@@ -817,6 +896,28 @@ function doLearnTechnique(state: GameState, techniqueId: string): R {
   }
 }
 
+// Issue 5: unlock a skill-tree node by spending skillPoints (+ optional gold
+// and a consumed item). Gates live in skills.ts (skillUnlockGate); this is the
+// single write path that records the node and deducts every cost.
+function doUnlockSkill(state: GameState, nodeId: string): R {
+  const gate = skillUnlockGate(state, nodeId)
+  if (gate !== null) return err(gate)
+  const node = getSkillNode(nodeId)
+  if (node === undefined) return err('SKILL_UNKNOWN')
+  const player = { ...state.player, skillPoints: (state.player.skillPoints ?? 0) - node.cost.skillPoints }
+  if (node.cost.gold !== undefined) player.gold = Math.max(0, player.gold - node.cost.gold)
+  return {
+    ok: true,
+    state: {
+      ...state,
+      player,
+      inventory: node.cost.item === undefined ? state.inventory : bump(state.inventory, node.cost.item, -1),
+      unlockedSkills: [...(state.unlockedSkills ?? []), nodeId],
+    },
+    events: [{ type: 'SKILL_UNLOCKED', nodeId, skillPointsSpent: node.cost.skillPoints }],
+  }
+}
+
 function doEquipItem(state: GameState, itemId: string): R {
   const equipment = getEquipmentByItem(itemId)
   const item = getItem(itemId)
@@ -869,6 +970,14 @@ function doArenaChallenge(state: GameState): R {
   const events: GameEvent[] = []
   state = spendDay(state, events)
   const floor = enemy.arena ?? cleared + 1
+  // Each challenge already costs a day; the sect tends your wounds and you
+  // meditate back to full qi between rounds — a fresh morning per bout.
+  // Without it the tower is one gaunt HP/qi pool (the handoff flagged floors
+  // 4–5 as seed-critical): climbers reached the summit at qi 0 and had to
+  // defend-bank 5 qi per strike until the Senior Brother finished them.
+  const hpHeal = Math.min(REST_HEAL_HP, MAX_HP - state.player.hp)
+  state = { ...state, player: { ...state.player, hp: state.player.hp + hpHeal, qi: MAX_QI } }
+  events.push({ type: 'RESTED', hpHeal })
   return {
     ok: true,
     state: { ...state, encounter: newEncounter(enemy) },
@@ -906,50 +1015,74 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
   // out-hits a non-crit strike. The skill-tree also grants critBonus which
   // adds a flat +critChance, raising the effective cap.
   const critBonus = typeof state.flags['critBonus'] === 'number' ? state.flags['critBonus'] : 0
-  const effectiveCritChance = Math.min(1.0, critChance + critBonus / 100)
+  // Issue 5: skill-tree crit nodes add a flat +critChance on top of luck/critBonus.
+  const effectiveCritChance = Math.min(1.0, critChance + critBonus / 100 + skillCritBonus(state) / 100)
   const [critRoll, rngAfter] = nextInt(rng, 0, 99)
   const critFires = critRoll < effectiveCritChance * 100
   // Focus stacks (combat_focus) consume on the next strike — +FOCUS_STACK_DAMAGE
   // per stack and reset. The base hit includes variance; a crit drops it and doubles.
   const focus = (state.encounter.focusDamage ?? 0)
-  const baseHit = Math.max(1, 5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state) + variance)
-  const critHit = Math.max(1, (5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state)) * 2)
+  // Issue 5: unlocked attack nodes add a flat bonus to every strike (crit and non-crit).
+  const skillAtk = skillAttackBonus(state)
+  // Issue 6: an attack companion adds its flat bonus to every strike.
+  const companion = companionBuff(state.companionId, BEASTS)
+  const companionAtk = companion?.kind === 'attack' ? companion.value : 0
+  const baseHit = Math.max(1, 5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state) + skillAtk + companionAtk + variance)
+  const critHit = Math.max(1, (5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state) + skillAtk + companionAtk) * 2)
   const rawAmount = critFires ? critHit : baseHit
   const amount = rawAmount + focus
   // Combat 9+: behavior hooks evaluated on the player turn BEFORE the strike
   // resolves. The reducer keeps the change next-turn (phase2) or one-shot
   // (boss heal) at the encounter level so resolveEnemyTurn picks them up.
   let behaviorBonus = state.encounter.behaviorBonus ?? 0
-  let behaviorHealFlag = state.encounter.behaviorHealUsed ?? false
+  // Issue 9: the heal itself no longer pre-arms here — it fires only after the
+  // telegraph turn. behaviorHealFlag now just carries an already-fired heal.
+  const behaviorHealFlag = state.encounter.behaviorHealUsed ?? false
   if (enemy.behavior === 'phase2' && state.encounter.hp / enemy.maxHp <= 0.5) behaviorBonus += 2
-  if (enemy.behavior === 'boss' && state.encounter.hp / enemy.maxHp <= 0.33 && !(state.encounter.behaviorHealUsed ?? false)) {
-    behaviorHealFlag = true
-  }
   const hp = Math.max(0, state.encounter.hp - amount)
   // Combo counter: consecutive player hits without an enemy reply. Fires
   // COMBO_TRIGGERED on odd counts (3, 5, 7, 9, …) for a more frequent payoff
   // so the audio layer's bell-tree accent lands often enough to feel earned.
   const playerHits = (state.encounter.playerHits ?? 0) + 1
   const comboFires = playerHits >= 3 && playerHits % 2 === 1
+  // Issue 9: 1-turn telegraph. When the boss first drops to ≤33% HP the heal
+  // does NOT fire yet — the boss announces it (WARNING) and the player keeps
+  // this turn to react; the full heal lands on the NEXT strike (or when the
+  // telegraph flag is already set). Rage (×1.5 in resolveEnemyTurn) follows
+  // the heal automatically via behaviorHealUsed.
+  const lowHp = state.encounter.hp / enemy.maxHp <= 0.33
+  const healArmed = enemy.behavior === 'boss' && lowHp && !(state.encounter.behaviorHealUsed ?? false)
+  const willHeal = healArmed && state.encounter.telegraphedHeal === true
+  const willTelegraph = healArmed && state.encounter.telegraphedHeal !== true
+  // Issue 5: onHit heal nodes restore HP on every landing strike (capped at MAX_HP).
+  const onHitHeal = Math.min(MAX_HP - state.player.hp, skillOnHitHeal(state))
   const s: GameState = {
     ...state,
     rng: rngAfter,
-    player: { ...state.player, qi: state.player.qi - qiCost },
-    encounter: { ...state.encounter, hp, guard, focusStacks: 0, focusDamage: 0, behaviorBonus, behaviorHealUsed: behaviorHealFlag, playerHits },
+    player: {
+      ...state.player,
+      qi: state.player.qi - qiCost,
+      hp: Math.min(MAX_HP, state.player.hp + onHitHeal),
+    },
+    encounter: { ...state.encounter, hp, guard, focusStacks: 0, focusDamage: 0, behaviorBonus, behaviorHealUsed: behaviorHealFlag || willHeal, telegraphedHeal: willTelegraph ? true : state.encounter.telegraphedHeal, playerHits },
   }
   const events: GameEvent[] = [
     { type: 'QI_SPENT', amount: qiCost },
     { type: 'COMBAT_HIT', actor: 'player', amount, enemyId: enemy.id },
   ]
+  if (critFires) events.push({ type: 'COMBAT_CRIT', amount, enemyId: enemy.id })
   if (comboFires) events.push({ type: 'COMBO_TRIGGERED', hits: playerHits })
-  // Combat 9+ boss heal: at ≤33% HP, one-shot full heal. If this strike would
-  // also kill the boss, the heal resolves first and the boss lives at maxHp.
+  // Combat 9+ boss heal: fires only the turn AFTER the telegraph. If this
+  // strike would kill the boss after the telegraph, the heal resolves first
+  // and the boss lives at maxHp.
   let liveHp = hp
   let sAfterStrike = s
-  if (enemy.behavior === 'boss' && state.encounter.hp / enemy.maxHp <= 0.33 && !(state.encounter.behaviorHealUsed ?? false)) {
+  if (willHeal) {
     liveHp = state.encounter.maxHp
-    sAfterStrike = { ...s, encounter: { ...state.encounter, hp: liveHp, behaviorHealUsed: true, enemyTurns: state.encounter.enemyTurns ?? 0, statusEffects: state.encounter.statusEffects ?? [], playerHits } }
+    sAfterStrike = { ...s, encounter: { ...state.encounter, hp: liveHp, behaviorHealUsed: true, telegraphedHeal: true, enemyTurns: state.encounter.enemyTurns ?? 0, statusEffects: state.encounter.statusEffects ?? [], playerHits } }
     events.push({ type: 'BOSS_HEAL', enemyId: enemy.id, hpRestored: liveHp })
+  } else if (willTelegraph) {
+    events.push({ type: 'WARNING', level: 2, locationId: state.player.locationId, messageVi: `Yêu khí quanh ${enemy.nameVi ?? enemy.id} cuộn lên — nó sắp hồi toàn bộ khí huyết ở lượt sau!`, messageEn: `Malice coils around ${enemy.nameEn ?? enemy.id} — it will restore all HP next turn!` })
   }
   if (liveHp <= 0) {
     let inventory = { ...s.inventory }
@@ -961,6 +1094,9 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
       playerState = applyPoison(playerState, 2)
       events.push({ type: 'POISON_APPLIED', amount: 2 })
     }
+// Issue 5: onKill heal nodes restore HP when a strike kills the enemy.
+    const onKillHeal = Math.min(MAX_HP - playerState.hp, skillOnKillHeal(state))
+    playerState = { ...playerState, hp: Math.min(MAX_HP, playerState.hp + onKillHeal) }
     // Lôi Đài (Issue #19): clearing a tower floor advances the ladder pointer
     // and announces the seizure of that disciple's stores. The floor index
     // only ever moves forward (Math.max) so a rematch cannot rewind it.
@@ -996,7 +1132,8 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
 
 function doCombatDefend(state: GameState): R {
   if (state.encounter === null) return err('NOT_AT_LOCATION')
-  const guard = 4 + talentDefenseBonus(state)
+  // Issue 5: skillGuardBonus adds to the guard amount when defending.
+  const guard = 4 + talentDefenseBonus(state) + skillGuardBonus(state)
   const s: GameState = { ...state, encounter: { ...state.encounter, guard } }
   return resolveEnemyTurn(s, [{ type: 'COMBAT_GUARDED', amount: guard }])
 }
@@ -1051,7 +1188,10 @@ function doCombatFocus(state: GameState): R {
       focusStacks: nextStacks,
     },
   }
-  return { ok: true, state: s, events: [{ type: 'COMBAT_GUARDED', amount: guardAmount }] }
+  // Issue 12: focus reports its stacking damage (stacks + per-stack bonus),
+  // not just the guard it grants, so the UI can show the growing threat and
+  // the narrator can voice it.
+  return { ok: true, state: s, events: [{ type: 'COMBAT_FOCUSED', guard: guardAmount, damage: FOCUS_STACK_DAMAGE * nextStacks, stacks: nextStacks }] }
 }
 
 // Combat 9+ qi regen: every 3rd enemy reply inside the same encounter, the
@@ -1063,14 +1203,51 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
   if (state.encounter === null) return { ok: true, state, events }
   const enemy = getEnemy(state.encounter.enemyId)
   if (enemy === undefined) return err('ITEM_UNAVAILABLE')
+  // Issue 6: companion buffs for this day's encounter.
+  const companion = companionBuff(state.companionId, BEASTS)
+  const companionDodge = companion?.kind === 'dodge' ? companion.value / 100 : 0
+  const companionDef = companion?.kind === 'defense' ? companion.value : 0
+  const companionHeal = companion?.kind === 'heal' ? companion.value : 0
+  const companionQi = companion?.kind === 'qi' ? companion.value : 0
   const [variance, rng] = nextInt(state.rng, 0, 2)
+  // Issue 5: shadow-branch dodge nodes grant evasion. A dodge draw consumes
+  // no RNG when the chance is 0, keeping pre-skill save RNG streams identical.
+  // Issue 6: a dodge companion stacks its evasion on top of the skill dodge.
+  const dodgeChance = Math.min(0.9, skillDodgeChance(state) + companionDodge)
+  const [dodgeRoll, rngAfterDodge] = dodgeChance > 0 ? nextInt(rng, 0, 99) : [100, rng]
+  if (dodgeRoll < dodgeChance * 100) {
+    const turn = (state.encounter.enemyTurns ?? 0) + 1
+    const qiRegen = turn % ENCOUNTER_QI_REGEN_TURN === 0
+      ? Math.min(ENCOUNTER_QI_REGEN_AMOUNT, MAX_QI - state.player.qi)
+      : 0
+    // Issue 6: dodge avoids the blow, but a qi/heal companion still buffs this
+    // turn — keep the reply consistent with the non-dodge path.
+    const s: GameState = {
+      ...state,
+      rng: rngAfterDodge,
+      player: { ...state.player, qi: Math.min(MAX_QI, state.player.qi + qiRegen + companionQi), hp: Math.min(MAX_HP, state.player.hp + companionHeal) },
+      encounter: { ...state.encounter, guard: 0, behaviorBonus: 0, enemyTurns: turn, playerHits: 0 },
+    }
+    const out: GameEvent[] = [...events, { type: 'COMBAT_HIT', actor: 'enemy', amount: 0, enemyId: enemy.id }]
+    if (qiRegen > 0) out.push({ type: 'QI_REGEN', amount: qiRegen, turn })
+    if (companionQi > 0) out.push({ type: 'QI_REGEN', amount: companionQi, turn })
+    return { ok: true, state: s, events: out }
+  }
   // Combat 9+ behavior hooks on the enemy reply: phase2 adds a stored +2 to
   // attack, boss adds +50% damage when its one-shot heal already fired.
   const behaviorAtk = state.encounter.behaviorBonus ?? 0
   const bossRage = enemy.behavior === 'boss' && state.encounter.behaviorHealUsed === true ? 1.5 : 1
+  // Issue 6: the day's weather strengthens the boss (mist +30%, storm +50%).
+  // Gated to `behavior:'boss'` — the field name is bossPowerMod, and Lôi Đài's
+  // arena disciples are ordinary foes: applying it to every enemy made floor 3+
+  // lethal in a storm and broke the tower climb. Pure from (seed, day), so it
+  // never disturbs the rng stream.
+  const bossMod = enemy.behavior === 'boss' ? WEATHER_EFFECTS[weatherFor(state.seed, state.day).id]?.bossPowerMod ?? 1 : 1
+  // Issue 6: a defense companion soaks part of every incoming blow.
   // Difficulty scales only what the enemy deals, after defences — one central
   // knob (damageMultiplier) for the whole combat path.
-  const raw = (enemy.attack + variance + behaviorAtk - equippedDefenseBonus(state) - talentDefenseBonus(state) - state.encounter.guard) * damageMultiplier(state.difficulty ?? 'balanced') * bossRage
+  // Issue 5: skill-tree defense nodes subtract from incoming damage.
+  const raw = (enemy.attack + variance + behaviorAtk - equippedDefenseBonus(state) - talentDefenseBonus(state) - skillDefenseBonus(state) - companionDef - state.encounter.guard) * damageMultiplier(state.difficulty ?? 'balanced') * bossRage * bossMod
   const amount = Math.max(1, Math.round(raw))
   const hp = Math.max(0, state.player.hp - amount)
   // Combat 9+ poison stacks: each stack drains 3 HP on the player's next reply.
@@ -1086,19 +1263,20 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
     : 0
   const s: GameState = {
     ...state,
-    rng,
+    rng: rngAfterDodge,
     player: {
       ...state.player,
-      hp: hpAfterPoison,
+      hp: Math.min(MAX_HP, hpAfterPoison + companionHeal),
       alive: hpAfterPoison > 0,
       poison: nextStacks,
-      qi: Math.min(MAX_QI, state.player.qi + qiRegen),
+      qi: Math.min(MAX_QI, state.player.qi + qiRegen + companionQi),
     },
     encounter: { ...state.encounter, guard: 0, behaviorBonus: 0, enemyTurns: turn, playerHits: 0 },
   }
   const out: GameEvent[] = [...events, { type: 'COMBAT_HIT', actor: 'enemy', amount, enemyId: enemy.id }]
   if (poisonDrain > 0) out.push({ type: 'POISON_TICK', amount: poisonDrain, stacks: nextStacks })
   if (qiRegen > 0) out.push({ type: 'QI_REGEN', amount: qiRegen, turn })
+if (companionQi > 0) out.push({ type: 'QI_REGEN', amount: companionQi, turn })
   if (hpAfterPoison <= 0) {
     const fallen = die(s, `combat:${enemy.id}`)
     out.push(fallen.event)

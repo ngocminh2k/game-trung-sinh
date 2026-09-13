@@ -118,14 +118,18 @@ describe('positive failure: death cause and legacy inheritance', () => {
     expect(narrateLine(death!, 'vi')).not.toContain('combat:')
   })
 
-  it('a training death stamps qi_deviation', () => {
-    // hp 8 / qi 10 pass the train guards but the -6±2 hp drain can kill.
+  it('training no longer kills by dice variance (Issue #10)', () => {
+    // Pre-#10, hp 8 passed the old `<= hpCost+1` gate but the -6±2 drain could
+    // hit 0 — a "surprise" death. #10 raises the guard to hpCost+range+1 (=9),
+    // so the worst dice roll still leaves hp >= 1: the action is rejected, not fatal.
     let state = newGame('qi-probe-1')
     state = { ...state, player: { ...state.player, hp: 8, qi: 10 } }
     const result = applyAction(state, { kind: 'train' })
-    expect(result.state.player.alive).toBe(false)
-    expect(readDeathCause(result.state)).toBe('qi_deviation')
-    expect(deathKind(String(readDeathCause(result.state)))).toBe('qi_deviation')
+    expect(result.state.player.alive).toBe(true)
+    expect(result.events).toContainEqual({ type: 'ERROR', code: 'INSUFFICIENT_HP' })
+    // qi_deviation remains a live, classifiable death cause (see below); #10
+    // only removes training's ability to reach it, not its narration/legacy.
+    expect(deathKind('qi_deviation')).toBe('qi_deviation')
   })
 
   it('the cause survives a save/reload roundtrip and reaches DeathScreen', () => {

@@ -113,4 +113,13 @@ describe('three-layer currency exchange (T02 economy)', () => {
     const result = transition(state, { kind: 'buy', itemId: 'pill_qi' })
     expect(result.code).toBe('INSUFFICIENT_GOLD')
   })
+
+  it('names silver when a gold buy fails on the silver fallback', () => {
+    const base = battleGame('buy-silver-short')
+    // Gold present but insufficient; the 10:1 silver fallback cannot cover the
+    // shortfall either — the missing tier is silver.
+    const state = { ...base, player: { ...base.player, locationId: 'market', gold: 5, silver: 20, stage: 2 } }
+    const result = transition(state, { kind: 'buy', itemId: 'pill_qi' })
+    expect(result.code).toBe('INSUFFICIENT_SILVER')
+  })
 })
