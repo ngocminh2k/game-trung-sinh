@@ -182,7 +182,8 @@ function App() {
     const slot = slots[activeSlot]
     if (slot === undefined) return null
     const now = Date.now()
-    return applyOfflineGains(slot.session, now - slot.savedAt, now).session
+    return applyOfflineGains(slot.session, now - slot.savedAt, now, (hours, progress) =>
+      t(slot.session.locale, 'ui.offline.gained', { hours, progress })).session
   })
   const [locale, setLocale] = useState<Locale>(() => session?.locale ?? settings.locale)
   const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
@@ -246,7 +247,8 @@ function App() {
       // AC3: settle offline gains before we hand the session to the UI so the
       // chronicle line is already baked into the first render.
       const now = Date.now()
-      const settled = applyOfflineGains(slot.session, now - slot.savedAt, now)
+      const settled = applyOfflineGains(slot.session, now - slot.savedAt, now, (hours, progress) =>
+        t(slot.session.locale, 'ui.offline.gained', { hours, progress }))
       const next = settled.session
       // The save-on-session-change effect persists `next` to this slot with
       // savedAt reset to now, so offline gains apply exactly once per absence
@@ -273,11 +275,26 @@ function App() {
     }
     const slotId = pendingSlot ?? firstFreeSlot(slots)
     const local = browserStorage()
-    const next = freshSession(locale, { systemId, difficulty: runDifficulty })
+    // AC2 across slots: a relic queued by *some other* slot's finished run
+    // (profile.inheritedRelicId, written in restart) seeds this fresh run and
+    // is consumed — same-slot rebirth paths pass the relic directly and never
+    // touch the queue. (review #28 LOW: field was write-only.)
+    const queuedRelic = globalProfileRef.current.inheritedRelicId
+    const next = freshSession(locale, {
+      systemId,
+      difficulty: runDifficulty,
+      ...(queuedRelic !== null ? { inheritedRelicId: queuedRelic } : {}),
+    })
     saveSlot(local, slotId, next)
     setActiveSlot(local, slotId)
     setActiveSlotState(slotId)
     setSlots(loadSaveSlots(local))
+    if (queuedRelic !== null) {
+      const cleared: GlobalProfile = { ...globalProfileRef.current, inheritedRelicId: null }
+      globalProfileRef.current = cleared
+      setGlobalProfile(cleared)
+      saveGlobalProfile(local, cleared)
+    }
     sessionRef.current = next
     setSession(next)
     setPendingSlot(null)
@@ -460,7 +477,7 @@ const local = browserStorage()
   if (phase === 'loading') return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
   return <>
     {storyOpen && <div className="story-backdrop" onClick={() => setStoryOpen(false)} aria-hidden="true" />}
-    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} onExitToMenu={exitToMenu} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} unlockedEndingIds={globalProfile.unlockedEndingIds} />
+    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} onExitToMenu={exitToMenu} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} unlockedEndingIds={globalProfile.unlockedEndingIds} unlockedAchievementIds={globalProfile.unlockedAchievementIds} />
     {session.game.terminal && telemetryId !== null && (
       <PlaytestSurveyCard game={session.game} locale={session.locale} runId={telemetryId} onSubmit={submitSurvey} />
     )}

@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { newGame } from '../src/engine'
 import { calculateOfflineGains, applyOfflineGains } from '../src/engine/offline'
+import { t } from '../src/i18n'
 import type { GameSession } from '../src/ui/session'
 
 const HOUR = 60 * 60 * 1000
 // Fixed clock so the pure helper stays deterministic; the caller (UI) supplies
 // this in production.
 const NOW = 1_700_000_000_000
+// Mirrors the production call in App.tsx: the caller localizes the chronicle
+// line, keeping the engine free of the i18n layer (review #28 LOW).
+const lineFor = (session: GameSession) => (hours: number, progress: number) =>
+  t(session.locale, 'ui.offline.gained', { hours, progress })
 
 function makeSession(): GameSession {
   return { game: newGame('offline-test'), locale: 'vi', chronicle: ['start'] }
@@ -36,20 +41,20 @@ describe('applyOfflineGains (issue #14 — AC3)', () => {
   it('returns untouched session on a terminal game', () => {
     const session = makeSession()
     session.game.terminal = true
-    const result = applyOfflineGains(session, 10 * HOUR, NOW)
+    const result = applyOfflineGains(session, 10 * HOUR, NOW, lineFor(session))
     expect(result.gains).toBeNull()
     expect(result.session).toBe(session)
   })
 
   it('returns untouched session when elapsed < OFFLINE_MIN_MS', () => {
     const session = makeSession()
-    const result = applyOfflineGains(session, 2 * HOUR, NOW)
+    const result = applyOfflineGains(session, 2 * HOUR, NOW, lineFor(session))
     expect(result.gains).toBeNull()
   })
 
   it('appends a Vietnamese chronicle line, newest last', () => {
     const session = makeSession()
-    const result = applyOfflineGains(session, 8 * HOUR, NOW)
+    const result = applyOfflineGains(session, 8 * HOUR, NOW, lineFor(session))
     expect(result.gains).not.toBeNull()
     expect(result.gains!.progress).toBe(8)
     expect(result.session.chronicle).toHaveLength(2)
@@ -60,14 +65,14 @@ describe('applyOfflineGains (issue #14 — AC3)', () => {
   it('keeps chronicleKinds index-aligned when present', () => {
     const session = makeSession()
     session.chronicleKinds = ['game_started']
-    const result = applyOfflineGains(session, 8 * HOUR, NOW)
+    const result = applyOfflineGains(session, 8 * HOUR, NOW, lineFor(session))
     expect(result.session.chronicleKinds).toEqual(['game_started', 'trained'])
   })
 
   it('applies English chronicle line when locale is en', () => {
     const session = makeSession()
     session.locale = 'en'
-    const result = applyOfflineGains(session, 6 * HOUR, NOW)
+    const result = applyOfflineGains(session, 6 * HOUR, NOW, lineFor(session))
     expect(result.session.chronicle[1]).toContain('6')
     expect(result.session.chronicle[1]).toContain('hour')
   })
@@ -77,7 +82,7 @@ describe('applyOfflineGains (issue #14 — AC3)', () => {
     // Stage-0 minor-realm thresholds are all 2. 8 progress → 4 breakthroughs
     // at 2pts each = 8 pendingAttributePoints.
     const session = makeSession()
-    const result = applyOfflineGains(session, 8 * HOUR, NOW)
+    const result = applyOfflineGains(session, 8 * HOUR, NOW, lineFor(session))
     expect(result.gains!.breakthroughs).toBeGreaterThan(0)
     expect(result.session.game.player.pendingAttributePoints).toBe(
       result.gains!.breakthroughs * 2,

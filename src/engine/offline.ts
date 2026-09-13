@@ -1,7 +1,6 @@
 import { ATTRIBUTE_POINTS_PER_BREAKTHROUGH } from './constants'
 import { applyProgress } from './stats'
-import { t } from '../i18n'
-import type { GameState, Locale } from './types'
+import type { GameState } from './types'
 
 // Issue #14 (AC3): reward returning players for time away. 1 progress/hour
 // intentionally mirrors ~0.25 training sessions: TRAIN_BASE_PROGRESS=4 and
@@ -26,11 +25,11 @@ export interface OfflineGains {
 }
 
 // Minimal shape the helper needs; a full GameSession satisfies it structurally
-// (keeping engine free of the ui/ layer). chronicleKinds is carried alongside
+// (keeping engine free of the ui/ layer). Deliberately locale-free — the chronicle
+// line arrives pre-localized via `lineFor`. chronicleKinds is carried alongside
 // chronicle when present so the parallel array stays aligned.
 export interface OfflineSession {
   game: GameState
-  locale: Locale
   chronicle: string[]
   chronicleKinds?: string[]
 }
@@ -46,17 +45,15 @@ export function calculateOfflineGains(
   return { hoursAway, progressGain: hoursAway * OFFLINE_PROGRESS_PER_HOUR }
 }
 
-function offlineLine(locale: Locale, hoursAway: number, progress: number): string {
-  return t(locale, 'ui.offline.gained', { hours: hoursAway, progress })
-}
-
-/** Settle one slot-load: applies realm cascade + attribute points, appends a
- *  localized chronicle line. Terminal games and short absences pass through
- *  untouched (gains null). */
+/** Settle one slot-load: applies realm cascade + attribute points, appends the
+ *  chronicle line built by `lineFor`. The engine stays locale-free (no i18n
+ *  import — caller injects the localized line, review #28 LOW). Terminal games
+ *  and short absences pass through untouched (gains null, no line built). */
 export function applyOfflineGains<T extends OfflineSession>(
   session: T,
   elapsedMs: number,
   now: number,
+  lineFor: (hoursAway: number, progress: number) => string,
 ): { session: T; gains: OfflineGains | null } {
   if (session.game.terminal || elapsedMs < OFFLINE_MIN_MS) {
     return { session, gains: null }
@@ -88,7 +85,7 @@ export function applyOfflineGains<T extends OfflineSession>(
       // Append (newest last, like act()) and keep chronicleKinds index-aligned
       // with chronicle — the feed colors each line by its kind at that index.
       // 'trained' reuses the existing cultivation-gain styling.
-      chronicle: [...session.chronicle, offlineLine(session.locale, calc.hoursAway, calc.progressGain)],
+      chronicle: [...session.chronicle, lineFor(calc.hoursAway, calc.progressGain)],
       ...(session.chronicleKinds === undefined
         ? {}
         : { chronicleKinds: [...session.chronicleKinds, 'trained'] }),

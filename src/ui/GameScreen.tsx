@@ -66,6 +66,9 @@ export interface GameScreenProps {
   /** Endings unlocked across all runs (AC1). When present the Codex ending
    *  gallery reveals these in addition to this run's own ending. */
   unlockedEndingIds?: readonly string[]
+  /** Achievements earned in past lives (AC1). The market panel stamps these on
+   *  its deed list so cross-slot persistence is visible, not just stored. */
+  unlockedAchievementIds?: readonly string[]
 }
 
 function word(locale: Locale, vi: string, en: string): string {
@@ -177,7 +180,7 @@ function cellDirection(px: number, py: number, x: number, y: number): 'n' | 's' 
   return `${ns}${ew}` as 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | 'here'
 }
 
-export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, chronicleKinds, onAction, onLocaleChange, onRestart = () => {}, onExitToMenu, storyOpen = false, onStoryClose = () => {}, unlockedEndingIds }: GameScreenProps) {
+export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, chronicleKinds, onAction, onLocaleChange, onRestart = () => {}, onExitToMenu, storyOpen = false, onStoryClose = () => {}, unlockedEndingIds, unlockedAchievementIds }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
   const [journalOpen, setJournalOpen] = useState(false)
@@ -1049,6 +1052,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             game={game}
             locale={locale}
             onAction={onAction}
+            unlockedAchievementIds={unlockedAchievementIds}
           />,
           path: <DockPanelPath
             encounterLocked={encounterLocked}
