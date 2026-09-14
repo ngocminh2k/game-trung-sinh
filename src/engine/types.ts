@@ -166,6 +166,10 @@ export type Action =
   | { kind: 'withdraw'; itemId: string; qty: number }
   | { kind: 'draw_lottery' }
   | { kind: 'talk'; npcId: string }
+  /** Issue #39: one item handed to one NPC in your place. Consumes inventory,
+   *  moves the same affinity counter talk does, and is refused when the item
+   *  has no market value (junk, manuals and evidence are not gifts). */
+  | { kind: 'gift'; npcId: string; itemId: string }
   | { kind: 'accept_quest'; questId: string }
   | { kind: 'turn_in_quest'; questId: string }
   /** System Layer: accept/turn-in from the System panel (no NPC/location). */
@@ -260,6 +264,10 @@ export type GameEvent =
   | { type: 'WITHDRAWN'; itemId: string; qty: number }
   | { type: 'DRAW_RESULT'; tier: 'grand' | 'major' | 'minor' | 'herb' | 'none'; goldDelta: number; itemId?: string }
   | { type: 'TALKED'; npcId: string; lineVi?: string; lineEn?: string }
+  /** Issue #39: a gift landed. Carries the affinity swing (`delta`), the new
+   *  counter (`total`) so the ♥ readout has its number, and the NPC's own
+   *  authored reaction in both locales. */
+  | { type: 'GIFTED'; npcId: string; itemId: string; delta: number; total: number; lineVi: string; lineEn: string }
   | { type: 'AFFINITY'; npcId: string; level: number }
   | { type: 'ROUTE_EVENT_RESOLVED'; route: 'mercy' | 'wealth' | 'truth'; approach: 'present' | 'withhold'; proofVi: string; proofEn: string; progressDelta: number; qiDelta: number; goldDelta: number }
   | { type: 'STORY_CHOICE'; sceneId: string; choiceId: string; nextSceneId: string | null }

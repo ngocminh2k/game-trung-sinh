@@ -11,8 +11,18 @@ import {
   getTalent,
   getTechnique,
   getStoryScene,
+  systemById,
 } from '../content'
 import { describeDeath } from '../content/death-legacy'
+import {
+  ITEM_HERB,
+  LOTTERY_COST,
+  LOTTERY_GRAND_GOLD,
+  LOTTERY_MAJOR_GOLD,
+  LOTTERY_MINOR_GOLD,
+  LOTTERY_ROLL_MAX,
+} from './constants'
+import { GOLD_TO_SILVER } from './economy'
 import { TIME_OF_DAY_EN, TIME_OF_DAY_VI } from './time'
 import type { GameEvent, Locale } from './types'
 
@@ -32,6 +42,69 @@ function nameOf(kind: 'item' | 'npc' | 'quest' | 'talent' | 'technique' | 'enemy
   if (kind === 'enemy') return localizedName(getEnemy(id), id, locale)
   if (kind === 'location') return localizedName(getLocation(id), id, locale)
   return localizedName(ENDINGS.find((ending) => ending.id === id), id, locale)
+}
+
+// Issue 36: a currency exchange used to render as FALLBACK_TEXT — the player
+// watched silver vanish and the chronicle said only "something happened".
+// Both sides of every trade are recoverable from {from, qty, goldGain} plus the
+// fixed 1 stone = 10 gold = 100 silver contract (economy.ts), so no new event
+// field is needed. Note `qty` counts the source tier on the stone paths and
+// the gold received on the silver path (see doConvertCurrency).
+function conversionSides(
+  from: 'spiritStone' | 'silver' | 'gold',
+  qty: number,
+  goldGain: number,
+  l: Locale,
+): [string, string] {
+  const gold = (n: number): string => (l === 'vi' ? `${String(n)} lượng` : `${String(n)} gold`)
+  const stones = (n: number): string => (l === 'vi' ? `${String(n)} linh thạch` : `${String(n)} spirit stone(s)`)
+  const silver = (n: number): string => (l === 'vi' ? `${String(n)} bạc` : `${String(n)} silver`)
+  if (from === 'spiritStone') return [stones(qty), gold(goldGain)]
+  if (from === 'gold') return [gold(-goldGain), stones(qty)]
+  return [silver(goldGain * GOLD_TO_SILVER), gold(qty)]
+}
+
+// Issue 36: the lottery takes 20 lượng a ticket and gives back nothing but a
+// tier name, so a losing draw read like a free spin. The odds are exact
+// integers over LOTTERY_ROLL_MAX (see lottery.ts rollLottery thresholds) and
+// the EV follows from the published prizes alone — constants only, no RNG, so
+// the line stays reproducible from the event.
+const LOTTERY_HERB_PRICE = getItem(ITEM_HERB)?.sellPrice ?? 0
+
+/** Winning outcomes per tier over LOTTERY_ROLL_MAX rolls, mirroring
+ *  rollLottery's thresholds (0 grand / ≤2 major / ≤5 minor / ≤9 herb / rest blank). */
+const LOTTERY_COUNTS = { grand: 1, major: 2, minor: 3, herb: 4 } as const
+const LOTTERY_BLANKS =
+  LOTTERY_ROLL_MAX - LOTTERY_COUNTS.grand - LOTTERY_COUNTS.major - LOTTERY_COUNTS.minor - LOTTERY_COUNTS.herb
+
+/** Expected gold returned per ticket, from the prize table (19.25 today).
+ *  Exported so an odds chip in the UI reads the number the chronicle says. */
+export const LOTTERY_EXPECTED_VALUE: number =
+  (LOTTERY_COUNTS.grand * LOTTERY_GRAND_GOLD +
+    LOTTERY_COUNTS.major * LOTTERY_MAJOR_GOLD +
+    LOTTERY_COUNTS.minor * LOTTERY_MINOR_GOLD +
+    LOTTERY_COUNTS.herb * LOTTERY_HERB_PRICE) /
+  LOTTERY_ROLL_MAX
+
+function lotteryOddsLine(l: Locale): string {
+  const ev = String(LOTTERY_EXPECTED_VALUE)
+  const rolls = String(LOTTERY_ROLL_MAX)
+  if (l === 'vi') {
+    return (
+      `Vé ${String(LOTTERY_COST)} lượng — đặc biệt ${String(LOTTERY_COUNTS.grand)}/${rolls} (+${String(LOTTERY_GRAND_GOLD)}), ` +
+      `nhì ${String(LOTTERY_COUNTS.major)}/${rolls} (+${String(LOTTERY_MAJOR_GOLD)}), ` +
+      `khuyến khích ${String(LOTTERY_COUNTS.minor)}/${rolls} (+${String(LOTTERY_MINOR_GOLD)}), ` +
+      `linh thảo ${String(LOTTERY_COUNTS.herb)}/${rolls}, trắng ${String(LOTTERY_BLANKS)}/${rolls}. ` +
+      `Trung bình mỗi vé chỉ lại ${ev} lượng.`
+    )
+  }
+  return (
+    `A ${String(LOTTERY_COST)}-gold ticket — grand ${String(LOTTERY_COUNTS.grand)}/${rolls} (+${String(LOTTERY_GRAND_GOLD)}), ` +
+    `second ${String(LOTTERY_COUNTS.major)}/${rolls} (+${String(LOTTERY_MAJOR_GOLD)}), ` +
+    `consolation ${String(LOTTERY_COUNTS.minor)}/${rolls} (+${String(LOTTERY_MINOR_GOLD)}), ` +
+    `herb ${String(LOTTERY_COUNTS.herb)}/${rolls}, blank ${String(LOTTERY_BLANKS)}/${rolls}. ` +
+    `Expected value is only ${ev} gold per ticket.`
+  )
 }
 
 // One naming source for death causes: the classifier that owns them
@@ -210,17 +283,45 @@ const TEMPLATES: Record<string, Handler> = {
       ? `Ngươi dùng ${nameOf('item', ev.itemId, l)}.`
       : `Used ${nameOf('item', ev.itemId, l)}.`
   },
+  // Issue 36: the line must carry the whole transaction. `goldPaid` is already
+  // the gold-equivalent the reducer charged (any tier), so qty + price together
+  // state exactly what the player gave for what they got.
   BOUGHT: (ev, l) => {
     if (ev.type !== 'BOUGHT') return ''
+    const qty = String(ev.qty)
     return l === 'vi'
-      ? `Ngươi đổi ${String(ev.goldPaid)} lượng lấy ${nameOf('item', ev.itemId, l)}.`
-      : `Bought ${nameOf('item', ev.itemId, l)} for ${String(ev.goldPaid)} gold.`
+      ? `Ngươi đổi ${String(ev.goldPaid)} lượng lấy ${qty} ${nameOf('item', ev.itemId, l)}.`
+      : `Bought ${qty} × ${nameOf('item', ev.itemId, l)} for ${String(ev.goldPaid)} gold.`
   },
+  // A sale states proceeds per unit too, so a penalty taken at the counter is
+  // visible instead of the player having to diff the gold bar.
   SOLD: (ev, l) => {
     if (ev.type !== 'SOLD') return ''
+    const qty = String(ev.qty)
     return l === 'vi'
-      ? `Ngươi bán ${nameOf('item', ev.itemId, l)}, nhận ${String(ev.goldGain)} lượng.`
-      : `Sold ${nameOf('item', ev.itemId, l)} for ${String(ev.goldGain)} gold.`
+      ? `Ngươi bán ${qty} ${nameOf('item', ev.itemId, l)}, nhận ${String(ev.goldGain)} lượng.`
+      : `Sold ${qty} × ${nameOf('item', ev.itemId, l)} for ${String(ev.goldGain)} gold.`
+  },
+  CURRENCY_CONVERTED: (ev, l) => {
+    if (ev.type !== 'CURRENCY_CONVERTED') return ''
+    const [given, got] = conversionSides(ev.from, ev.qty, ev.goldGain, l)
+    return l === 'vi'
+      ? `Ngươi đổi ${given} lấy ${got} tại quầy tiền.`
+      : `You exchange ${given} for ${got} at the money counter.`
+  },
+  AFFINITY: (ev, l) => {
+    if (ev.type !== 'AFFINITY') return ''
+    return l === 'vi'
+      ? `${nameOf('npc', ev.npcId, l)} đã coi ngươi ra người tử tế — hảo cảm lên bậc ${String(ev.level)}.`
+      : `${nameOf('npc', ev.npcId, l)} now treats you as a friend — rapport level ${String(ev.level)}.`
+  },
+  SYSTEM_CHOSEN: (ev, l) => {
+    if (ev.type !== 'SYSTEM_CHOSEN') return ''
+    const def = systemById(ev.systemId)
+    const name = localizedName(def, ev.systemId, l)
+    return l === 'vi'
+      ? `Khế ước ký xong — ${name} ở lại với ngươi đến hết kiếp này.`
+      : `The pact is sealed — ${name} stays with you for the rest of this life.`
   },
   STORED: (ev, l) => {
     if (ev.type !== 'STORED') return ''
@@ -234,29 +335,35 @@ const TEMPLATES: Record<string, Handler> = {
       ? `Lấy ${String(ev.qty)} ${nameOf('item', ev.itemId, l)} ra khỏi kho.`
       : `Withdrew ${String(ev.qty)} ${nameOf('item', ev.itemId, l)} from the warehouse.`
   },
+  // Issue 36: the ticket costs 20 lượng but every result line used to read like
+  // a free spin — a blank ticket said "try again tomorrow" and hid the loss.
+  // Each tier now states the prize actually paid (`goldDelta` is the gross
+  // winnings, the cost is separate) and the draw closes with the exact odds and
+  // expected value, both derived from the published constants.
   DRAW_RESULT: (ev, l) => {
     if (ev.type !== 'DRAW_RESULT') return ''
+    const odds = lotteryOddsLine(l)
     switch (ev.tier) {
       case 'grand':
         return l === 'vi'
-          ? `Vé số trúng giải đặc biệt! ${String(ev.goldDelta)} lượng rơi vào tay ngươi như từ trên trời xuống!`
-          : `Grand prize! Heaven drops ${String(ev.goldDelta)} gold into your lap!`
+          ? `Vé số trúng giải đặc biệt! ${String(ev.goldDelta)} lượng rơi vào tay ngươi như từ trên trời xuống! ${odds}`
+          : `Grand prize! Heaven drops ${String(ev.goldDelta)} gold into your lap! ${odds}`
       case 'major':
         return l === 'vi'
-          ? `Giải nhì! +${String(ev.goldDelta)} lượng.`
-          : `Second prize! +${String(ev.goldDelta)} gold.`
+          ? `Giải nhì! +${String(ev.goldDelta)} lượng. ${odds}`
+          : `Second prize! +${String(ev.goldDelta)} gold. ${odds}`
       case 'minor':
         return l === 'vi'
-          ? `Giải khuyến khích. +${String(ev.goldDelta)} lượng.`
-          : `Consolation prize. +${String(ev.goldDelta)} gold.`
+          ? `Giải khuyến khích. +${String(ev.goldDelta)} lượng. ${odds}`
+          : `Consolation prize. +${String(ev.goldDelta)} gold. ${odds}`
       case 'herb':
         return l === 'vi'
-          ? 'Trúng... một bó linh thảo tươi.'
-          : 'You win... a fresh bundle of spirit herbs.'
+          ? `Trúng... một bó ${nameOf('item', ev.itemId ?? ITEM_HERB, l)} — bán được ${String(LOTTERY_HERB_PRICE)} lượng. ${odds}`
+          : `You win... a fresh bundle of ${nameOf('item', ev.itemId ?? ITEM_HERB, l)}, worth ${String(LOTTERY_HERB_PRICE)} gold at the counter. ${odds}`
       default:
         return l === 'vi'
-          ? 'Vé số trắng tay. Mai thử lại.'
-          : 'The ticket wins nothing. Try again tomorrow.'
+          ? `Vé số trắng tay — mất ${String(LOTTERY_COST)} lượng. ${odds}`
+          : `The ticket wins nothing — ${String(LOTTERY_COST)} gold gone. ${odds}`
     }
   },
   TALKED: (ev, l) => {
@@ -264,6 +371,14 @@ const TEMPLATES: Record<string, Handler> = {
     return l === 'vi'
       ? `${nameOf('npc', ev.npcId, l)}: “${ev.lineVi ?? getNpc(ev.npcId)?.greetVi ?? '...'}”`
       : `${nameOf('npc', ev.npcId, l)}: “${ev.lineEn ?? getNpc(ev.npcId)?.greetEn ?? '...'}”`
+  },
+  // Issue #39: the chronicle states the gift's cost to the giver in numbers —
+  // swing and running total — then lets the NPC answer in their own voice.
+  GIFTED: (ev, l) => {
+    if (ev.type !== 'GIFTED') return ''
+    return l === 'vi'
+      ? `Ngươi tặng ${nameOf('npc', ev.npcId, l)} ${nameOf('item', ev.itemId, l)} — hảo cảm +${String(ev.delta)}, lên ${String(ev.total)}. ${ev.lineVi}`
+      : `You gift ${nameOf('item', ev.itemId, l)} to ${nameOf('npc', ev.npcId, l)} — rapport +${String(ev.delta)}, now ${String(ev.total)}. ${ev.lineEn}`
   },
   ROUTE_EVENT_RESOLVED: (ev, l) => {
     if (ev.type !== 'ROUTE_EVENT_RESOLVED') return ''
@@ -513,6 +628,65 @@ const TEMPLATES: Record<string, Handler> = {
       ATTRIBUTE_ALLOCATION_REQUIRED: ['Hãy phân hết điểm thuộc tính vừa nhận trước khi tiếp tục.', 'Spend your new attribute points before continuing.'],
       NO_ATTRIBUTE_POINTS: ['Không còn điểm thuộc tính để phân.', 'No attribute points remain to spend.'],
       ATTRIBUTE_MAXED: ['Thuộc tính này đã đạt mức tối đa.', 'That attribute is already at its maximum.'],
+      // Issue 36: the codes below all rendered the same shrug ("Ý định ấy chưa
+      // thể thành lúc này"), which reads as a bug rather than a refusal. Each
+      // now names what was missing and what fixes it.
+      INSUFFICIENT_SILVER: [
+        'Bạc không đủ cho trả giá này — vàng đã dồn hết vào rồi. Đổi linh thạch lấy bạc ở quầy tiền.',
+        'Not enough silver to cover the rest of this price — your gold went first. Exchange stones for silver at the money counter.',
+      ],
+      INSUFFICIENT_SPIRIT_STONES: [
+        'Món này chỉ quầy sang bán bằng linh thạch, và túi ngươi không đủ. Đổi vàng lấy linh thạch ở quầy tiền.',
+        'This good is priced in spirit stones, which you do not have enough of. Trade gold for stones at the money counter.',
+      ],
+      INSUFFICIENT_HP: [
+        'Thương thế quá nặng để tu luyện — một chu thiên nữa là kiệt. Hãy dùng dược hoặc nghỉ.',
+        'You are hurt past training — one more circulation would finish you. Use medicine or rest first.',
+      ],
+      // ponytail: the 22/24 thresholds are duplicated from spendDay's lock
+      // flags (reducer.ts). Ceiling: they drift if the dates move. Upgrade
+      // path: stamp the closing day onto the STORAGE_LOCKED / REGION_LOCKED
+      // events and read it from there.
+      STORAGE_LOCKED: [
+        'Nhà kho đã đóng cửa từ ngày 22 — Cụ Mai Hoa không nhận gửi nữa. Đồ phải mang theo người.',
+        'The warehouse shut on day 22 — Elder Meihua takes no more deposits. Carry your goods with you.',
+      ],
+      REGION_LOCKED: [
+        'Hang Phong Ấn đã bị niêm phong — từ ngày 24 không vào được nữa. Con đường khác vẫn còn.',
+        'The Sealed Cave is shut — from day 24 there is no entering. Other roads remain open.',
+      ],
+      SYSTEM_LOCKED: [
+        'Chiêu này thuộc một Hệ Thống khác; khế ước của ngươi chỉ mở đường ngươi đã chọn.',
+        'That technique belongs to another System; your pact unlocks only the road you chose.',
+      ],
+      ARENA_CLOSED: [
+        'Lôi Đài đã cạn người — ngươi quét sạch mọi tầng rồi. Không còn gì để thắng ở đây.',
+        'The Arena has no one left — you cleared every floor. There is nothing more to win here.',
+      ],
+      COERCION_UNAVAILABLE: [
+        'Uy hiếp chỉ ăn với kẻ trái tính, và mỗi kẻ chỉ một lần. Người này không chịu hoặc đã bị ngươi dồn rồi.',
+        'Coercion only works on an opposite temperament, once per person. This one will not yield, or you already pressed them.',
+      ],
+      SKILL_UNKNOWN: [
+        'Không có mắt xích ấy trong cây công pháp — nhìn bảng kỹ năng để chọn đúng tên.',
+        'That node is not in your skill tree — check the skill panel for the real names.',
+      ],
+      SKILL_ALREADY_UNLOCKED: [
+        'Mắt xích này ngươi đã lĩnh ngộ rồi — điểm kỹ năng để dành cho nhánh khác.',
+        'You already unlocked that node — save your skill points for another branch.',
+      ],
+      SKILL_REQUIREMENT_NOT_MET: [
+        'Căn cơ chưa tới: cần đúng cảnh giới, công pháp nền, hoặc mắt xích trước trong cùng nhánh.',
+        'Not ready yet: it needs the right realm, a prerequisite technique, or the previous node in its branch.',
+      ],
+      SKILL_CONFLICT: [
+        'Hai nhánh này loại nhau — đã chọn đường trước thì không đi ngược lại được.',
+        'These two branches exclude each other — having taken one road, you cannot walk the other.',
+      ],
+      INSUFFICIENT_SKILL_POINTS: [
+        'Điểm kỹ năng không đủ. Mỗi lần đột phá tầng nhỏ mới cho thêm điểm.',
+        'Not enough skill points. Each minor-realm breakthrough grants more.',
+      ],
     }
     const message = explanations[ev.code]
     return message === undefined ? (l === 'vi' ? 'Ý định ấy chưa thể thành lúc này.' : 'That intent cannot happen right now.') : message[l === 'vi' ? 0 : 1]

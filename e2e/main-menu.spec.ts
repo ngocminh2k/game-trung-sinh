@@ -30,11 +30,16 @@ test.describe('Main menu & setup journeys', () => {
     // 5. Loading screen -> begin
     await page.getByRole('button', { name: /nhấn|press/i }).click()
 
-    // 6. Gameplay entered on letter_at_dawn; System panel visible for chosen System
+    // 6. Gameplay entered on letter_at_dawn. At ≥921px the legacy .world-content
+    // (and its #system-panel-title) is hidden behind ProtoShell — the System is
+    // on screen via the left rail. Expand it and switch to the covenant tab.
     await expect(page.getByTestId('game-screen')).toBeVisible()
     await expect(page.getByTestId('location-label')).toHaveText(/Làng Thanh Mộc|Greenwood Village/)
     await expect(page.getByTestId('narration-panel')).toHaveCount(0)
-    await expect(page.getByText(/【Hệ Thống Chiến Đấu】|【Battle System】/)).toBeVisible()
+    await page.locator('.proto-leftrail button[data-tab="system"]').click()
+    const rail = page.getByTestId('leftrail-system-panel')
+    await expect(rail).toBeVisible()
+    await expect(rail.getByText(/【Hệ Thống Chiến Đấu】|【Battle System】/).first()).toBeVisible()
   })
 
   test('Settings: toggles difficulty and narration proxy intent, persisting to device', async ({ page }) => {

@@ -125,6 +125,7 @@ export const EN: Dict = {
   },
   chronicle: {
     kind: {
+      crit: 'Critical',
       combat: 'Combat',
       defend: 'Defend',
       train: 'Train',

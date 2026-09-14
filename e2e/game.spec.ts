@@ -33,15 +33,15 @@ async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): 
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
-  await page.getByTestId('menu-load-game').click()
-  await page.getByTestId('save-slot-1').click()
   await beginPlaying(page)
 }
 
 async function openDialogue(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Open Journey journal' }).click()
   await page.getByRole('tab', { name: /People here/ }).click()
-  await page.getByRole('button', { name: 'Talk' }).first().click()
+  // Scope to the journal: the map pins are labelled "Talk to <NPC>" and match
+  // the same substring, but they sit behind the modal and swallow the click.
+  await page.getByTestId('journal-screen').getByRole('button', { name: 'Talk' }).first().click()
   await expect(page.getByTestId('narration-panel')).toBeVisible()
 }
 
@@ -57,8 +57,6 @@ test('starts as exploration, travels without losing a day, and persists', async 
   await expect(page.getByTestId('location-label')).toHaveText('Cloudgather Market')
   await expect(page.locator('.day-chip')).toContainText('Day 3')
   await page.reload()
-  await page.getByTestId('menu-load-game').click()
-  await page.getByTestId('save-slot-1').click()
   await beginPlaying(page)
   await expect(page.getByTestId('location-label')).toHaveText('Cloudgather Market')
 })

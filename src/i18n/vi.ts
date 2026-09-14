@@ -123,6 +123,7 @@ export const VI = {
   },
   chronicle: {
     kind: {
+      crit: 'Chí mạng',
       combat: 'Giao tranh',
       defend: 'Phòng thủ',
       train: 'Tu luyện',

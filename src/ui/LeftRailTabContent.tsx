@@ -4,8 +4,10 @@ import {
   activeSystem,
   canCompleteQuest,
   currentStepIndex,
+  getAffection,
   isQuestUnlocked,
   queueDrain,
+  TECHNIQUES,
 } from '../engine'
 import { getItem, getLocation, NPCS, QUESTS } from '../content'
 import { itemArtFor } from './rpgArt'
@@ -156,14 +158,21 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
           ? <div className="proto-npc"><div /><div><div className="proto-npc__name">—</div><div className="proto-npc__meta">{vi ? 'Không có ai ở đây' : 'No one around'}</div></div><div /></div>
           : localNpcs.map((n) => {
             const initial = vi ? n.nameVi.charAt(0) : n.nameEn.charAt(0)
+            // Issue #39: the heart shows the real counter (talk and gifts both
+            // move it) — it used to be a hardcoded "—", which made every
+            // relationship look dead no matter what the player did.
+            const aff = getAffection(game, n.id)
+            // Issue #38: the avatar letter must be aria-hidden — screen readers
+            // read the whole button, so "T" + "Thương nhân" came out as
+            // "TThương nhân". Same reason the items/path glyphs hide.
             return (
               <button key={n.id} type="button" data-npc-btn={n.id} className="proto-npc" onClick={() => { if (typeof window !== 'undefined') (window as unknown as { __openChat?: (id: string) => void }).__openChat?.(n.id) }} style={{ background: 'var(--surface)', cursor: 'pointer', textAlign: 'left' }}>
-                <div className="proto-npc__avatar">{initial}</div>
+                <div className="proto-npc__avatar" aria-hidden="true">{initial}</div>
                 <div>
                   <div className="proto-npc__name">{vi ? n.nameVi : n.nameEn}</div>
                   <div className="proto-npc__meta">{vi ? n.roleVi : n.roleEn}</div>
                 </div>
-                <div className="proto-npc__heart">♥ —</div>
+                <div className="proto-npc__heart" aria-label={vi ? `Hảo cảm ${String(aff)}` : `Rapport ${String(aff)}`}>♥ {String(aff)}</div>
               </button>
             )
           })}
@@ -309,15 +318,23 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
 
   if (tab === 'path') {
     const techniques = Object.entries(game.techniques).filter(([, lvl]) => lvl > 0)
+    // Issue #38: rows showed the raw technique id ("basic_staff_form") as the
+    // display name and an uppercased first letter in the avatar — through a
+    // screen reader the two ran together ("TTh..."). Use the authored
+    // TECHNIQUES name; keep the decorative glyph aria-hidden.
+    const techName = (techId: string) => {
+      const def = TECHNIQUES.find((t) => t.id === techId)
+      return def === undefined ? techId : (vi ? def.nameVi : def.nameEn)
+    }
     return (
       <div className="proto-npc-list">
         {techniques.length === 0
           ? <div className="proto-npc"><div /><div><div className="proto-npc__name">—</div><div className="proto-npc__meta">{vi ? 'Chưa học công pháp' : 'No techniques learned'}</div></div><div /></div>
           : techniques.map(([id, lvl]) => (
             <div key={id} className="proto-npc">
-              <div className="proto-npc__avatar">{id.charAt(0).toUpperCase()}</div>
+              <div className="proto-npc__avatar" aria-hidden="true">{techName(id).charAt(0)}</div>
               <div>
-                <div className="proto-npc__name">{id}</div>
+                <div className="proto-npc__name">{techName(id)}</div>
                 <div className="proto-npc__meta">{vi ? 'Cấp' : 'Level'} {lvl}</div>
               </div>
               <div className="proto-npc__heart">{vi ? 'Đã học' : 'Learned'}</div>

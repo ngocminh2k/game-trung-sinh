@@ -16,7 +16,7 @@ import {
   getLocation,
   getRegionMap,
 } from '../content'
-import { BASIC_STRIKE_QI_COST,
+import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST,
   activeSystem,
   canCompleteQuest,
   currentStoryScene,
@@ -34,6 +34,8 @@ import { BASIC_STRIKE_QI_COST,
   techniqueQiCost,
   TIME_OF_DAY_EN,
   TIME_OF_DAY_VI,
+  travelRisk,
+  travelRiskLabel,
 } from '../engine'
 import type { Action, GameState, Locale } from '../engine'
 import worldMapArt from '../assets/art/world-map-inkwash.webp'
@@ -49,7 +51,7 @@ import { playerArtFor, type PlayerActionKey } from './playerArt'
 import { requestSuggestion } from '../ai/narration'
 import { requestSystemReply, type SystemReply } from '../ai/system'
 import { t } from '../i18n'
-import { AttributeAllocation, EquipmentSummary, HoiDots } from './gameScreen/components'
+import { allocationLabel, ATTRIBUTE_OPTIONS, AttributeAllocation, EquipmentSummary, HoiDots, pointsWord } from './gameScreen/components'
 import { type DockPanel } from './gameScreen/constants'
 import {
   ChronicleFeed,
@@ -287,9 +289,17 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     if (!storyOpen && prevStoryOpen.current) storyLauncherRef.current?.focus()
     prevStoryOpen.current = storyOpen
   }, [storyOpen])
+  // Issue #34: only steal focus when the allocation panel is the surface the
+  // user is actually working. While the banner is the visible affordance — HUD
+  // column hidden at >=921px (screens.css .proto-shell-wrap ~ .world-content),
+  // or the story overlay up — focusing an off-screen/inert heading throws the
+  // caret away from the banner buttons the player needs to hit.
+  // ponytail: offsetParent covers display:none ancestors only; ceiling = a
+  // panel scrolled out of a clipping container can still take focus. Upgrade
+  // path: IntersectionObserver check if the HUD column ever gains its own scroll.
   useEffect(() => {
-    if (game.player.pendingAttributePoints > 0) allocationHeading.current?.focus()
-  }, [game.player.pendingAttributePoints])
+    if (game.player.pendingAttributePoints > 0 && !storyOpen && allocationHeading.current?.offsetParent != null) allocationHeading.current.focus()
+  }, [game.player.pendingAttributePoints, storyOpen])
   const backgroundRegion = (element: HTMLElement | null) => {
     if (element !== null && !backgroundRefs.current.includes(element)) backgroundRefs.current.push(element)
   }
@@ -545,14 +555,36 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     <main className={`game-shell action-${actionKind ?? 'idle'} ${journalOpen ? 'journal-open' : ''} ${storyOpen ? 'story-open' : ''}`} data-testid="game-screen" lang={locale}>
       <a className="skip-link" href="#world-map">{word(locale, 'Bỏ qua đến bản đồ', 'Skip to map')}</a>
       <a className="skip-link" href="#dock-panel-inventory">{word(locale, 'Bỏ qua đến hành trang', 'Skip to inventory')}</a>
-      {game.player.pendingAttributePoints > 0 && (
-        <div
-          aria-live="polite"
-          className="attribute-banner"
-          data-testid="attribute-banner"
-          role="status"
-        >
-          {word(locale, `Phân bố ${String(game.player.pendingAttributePoints)} điểm trước khi tiếp tục`, `Allocate ${String(game.player.pendingAttributePoints)} points before continuing`)}
+      {/* Issue #34 round 5 (reviewer MEDIUM 2): the engine refuses
+          allocate_attribute while an encounter is open (reducer.ts:421), so the
+          +1 buttons here were clickable lies mid-fight. Same reason the gate
+          exempts this banner; hide the actions until combat ends. */}
+      {game.player.pendingAttributePoints > 0 && !game.encounter && (
+        <div className="attribute-banner" data-testid="attribute-banner">
+          {/* Issue #34 (softlock): the side panel carrying the real allocation
+              control sits inside a scrollable, tab-switchable HUD column that the
+              story overlay also marks inert — so when it could not be reached
+              (issue #31) the run had no clickable action left. These +1 buttons are
+              a direct child of <main>: always rendered, never inert, reachable by
+              Tab before the shell, and the engine accepts allocate_attribute while
+              gated. `attribute-allocation` is the panel's anchor target.
+              Issue #34 round 2: the live region is the text-only <p>, NOT the
+              wrapper — an aria-live container holding buttons re-announces (and
+              can steal focus from) every control inside it on each point spent. */}
+          <p aria-live="polite" className="attribute-banner-text" role="status">{word(locale, `Phân bố ${String(game.player.pendingAttributePoints)} điểm trước khi tiếp tục`, `Allocate ${pointsWord(game.player.pendingAttributePoints)} before continuing`)}</p>
+          <span className="attribute-banner-actions" data-testid="attribute-banner-actions">
+            {ATTRIBUTE_OPTIONS.map(({ attribute, vi, en }) => (
+              <button
+                aria-label={allocationLabel(locale, word(locale, vi, en), game.player.attrs[attribute])}
+                data-testid={`attribute-banner-${attribute}`}
+                disabled={game.player.attrs[attribute] >= ATTRIBUTE_MAX}
+                key={attribute}
+                onClick={() => onAction({ kind: 'allocate_attribute', attribute })}
+                type="button"
+              >+1 {word(locale, vi, en)}</button>
+            ))}
+            <a className="attribute-banner-link" href="#attribute-allocation">{word(locale, 'Mở bảng phân bổ', 'Open allocation panel')}</a>
+          </span>
         </div>
       )}
       <div className="proto-shell-wrap">
@@ -699,6 +731,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 const leftPct = ((cell.x + 0.5) / MAP_WIDTH) * 100
                 const topPct = ((cell.y + 0.5) / MAP_HEIGHT) * 100
                 const exitIcon = cell.node?.kind === 'exit' && cell.exitTo !== undefined ? locationIconFor(cell.exitTo) : undefined
+                // Issue #37 — show the predicted entry tax on the pin before the
+                // player commits. Danger nodes roll the CURRENT region's damage
+                // (doMove's `cell.node?.kind === 'danger'` branch); exits roll
+                // the target region. Same source as the actual hit.
+                const riskTargetId = cell.exitTo ?? (cell.node?.kind === 'danger' ? game.player.locationId : undefined)
+                const riskLine = riskTargetId === undefined ? '' : travelRiskLabel(travelRisk(game, riskTargetId), locale)
                 return (
                   <button
                     aria-label={cellLabel}
@@ -711,7 +749,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                     key={`${String(cell.x)}-${String(cell.y)}`}
                     onKeyDown={(event) => handleCellKeyDown(event, cell.x, cell.y)}
                     style={{ left: `${leftPct}%`, top: `${topPct}%` }}
-                    title={cell.node === undefined ? '' : word(locale, `${cell.node.kind === 'exit' ? 'Lối ra' : cell.node.kind === 'npc' ? 'Người' : cell.node.kind === 'danger' ? 'Hiểm họa' : 'Sự kiện'}: ${cell.node.nameVi}`, `${cell.node.kind === 'exit' ? 'Exit' : cell.node.kind === 'npc' ? 'NPC' : cell.node.kind === 'danger' ? 'Danger' : 'Event'}: ${cell.node.nameEn}`)}
+                    title={cell.node === undefined ? '' : word(locale, `${cell.node.kind === 'exit' ? 'Lối ra' : cell.node.kind === 'npc' ? 'Người' : cell.node.kind === 'danger' ? 'Hiểm họa' : 'Sự kiện'}: ${cell.node.nameVi}`, `${cell.node.kind === 'exit' ? 'Exit' : cell.node.kind === 'npc' ? 'NPC' : cell.node.kind === 'danger' ? 'Danger' : 'Event'}: ${cell.node.nameEn}`) + (riskLine === '' ? '' : `\n${riskLine}`)}
                     type="button"
                   >
                     <span className="map-pin-glyph" aria-hidden="true">{cell.node === undefined ? '' : mapNodeGlyph(cell.node.kind)}</span>
@@ -935,7 +973,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             </span>
           </aside>}
 
-      </section>}      {routeEncounter !== undefined && <section className="route-encounter-screen parchment-panel" ref={backgroundRegion} aria-labelledby="route-encounter-title" data-testid="route-encounter-screen">
+      </section>}
+      {routeEncounter !== undefined && <section className="route-encounter-screen parchment-panel" ref={backgroundRegion} aria-labelledby="route-encounter-title" data-testid="route-encounter-screen">
         <InkCorner corner="top-left" />
         <div className="route-encounter-copy">
           <p className="eyebrow">{word(locale, 'Sự kiện tuyến truyện · tại chỗ', 'Story route encounter · on site')}</p>

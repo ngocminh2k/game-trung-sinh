@@ -89,7 +89,13 @@ function parseSession(raw: string): GameSession | null {
     // silently dropped by the catch. Falls back to validateGameState when the
     // payload already parses cleanly.
     const game = migrateGameState(candidate.game)
-    return { game, locale: candidate.locale, chronicle: candidate.chronicle.slice(-80) }
+    // Issue #35: preserve the index-aligned kind track through load, otherwise
+    // a resumed save loses every chronicle colour class (crit/combat/defend).
+    const chronicleKinds =
+      Array.isArray(candidate.chronicleKinds) && candidate.chronicleKinds.every((kind) => typeof kind === 'string')
+        ? candidate.chronicleKinds.slice(-80)
+        : undefined
+    return { game, locale: candidate.locale, chronicle: candidate.chronicle.slice(-80), ...(chronicleKinds === undefined ? {} : { chronicleKinds }) }
   } catch {
     return null
   }

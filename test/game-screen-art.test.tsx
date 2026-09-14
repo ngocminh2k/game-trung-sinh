@@ -299,12 +299,14 @@ describe('illustrated RPG UI', () => {
     const onAction = vi.fn()
     render(<GameScreen game={{ ...base, player: { ...base.player, pendingAttributePoints: 2 } }} locale="vi" chronicle={[]} onAction={onAction} onLocaleChange={() => undefined} />)
 
-    expect(screen.getByRole('region', { name: 'Phân bổ thuộc tính' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Thân.*3\/100/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Tâm.*4\/100/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Mị.*3\/100/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Vận.*2\/100/ })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Thân.*3\/100/ }))
+    const alloc = screen.getByRole('region', { name: 'Phân bổ thuộc tính' })
+    expect(alloc).toBeTruthy()
+    // Issue #34: the banner duplicates these controls, so scope to the panel.
+    expect(within(alloc).getByRole('button', { name: /Thân.*3\/100/ })).toBeTruthy()
+    expect(within(alloc).getByRole('button', { name: /Tâm.*4\/100/ })).toBeTruthy()
+    expect(within(alloc).getByRole('button', { name: /Mị.*3\/100/ })).toBeTruthy()
+    expect(within(alloc).getByRole('button', { name: /Vận.*2\/100/ })).toBeTruthy()
+    fireEvent.click(within(alloc).getByRole('button', { name: /Thân.*3\/100/ }))
     expect(onAction).toHaveBeenCalledWith({ kind: 'allocate_attribute', attribute: 'body' })
   })
 

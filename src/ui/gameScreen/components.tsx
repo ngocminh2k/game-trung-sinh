@@ -123,7 +123,7 @@ function HoiDots({ current, total, locale, onOpenCodex }: HoiDotsProps) {
   )
 }
 
-export { ChapterProgress, HoiDots, InkCorner, Meter, RealmLadder }
+export { ATTRIBUTE_OPTIONS, allocationLabel, ChapterProgress, HoiDots, InkCorner, Meter, pointsWord, RealmLadder }
 export type { ChapterProgressProps, HoiDotsProps, MeterProps, RealmLadderProps }
 
 interface AttributeAllocationProps {
@@ -134,23 +134,41 @@ interface AttributeAllocationProps {
   onAllocate: (attribute: AttributeName) => void
 }
 
+// Shared by the side panel and the issue-#34 banner so their labels can never
+// drift apart.
+const ATTRIBUTE_OPTIONS: ReadonlyArray<{ attribute: AttributeName; vi: string; en: string }> = [
+  { attribute: 'body', vi: 'Thân', en: 'Body' },
+  { attribute: 'mind', vi: 'Tâm', en: 'Mind' },
+  { attribute: 'charm', vi: 'Mị', en: 'Charm' },
+  { attribute: 'luck', vi: 'Vận', en: 'Luck' },
+]
+
+// Issue #34: English "1 point" vs "2 points" — shared so banner and panel agree.
+const pointsWord = (n: number): string => `${String(n)} ${n === 1 ? 'point' : 'points'}`
+
+// One label factory for BOTH +1 affordances (side panel and issue-#34 banner) so
+// their accessible names can never drift, and a disabled button says why.
+function allocationLabel(locale: Locale, name: string, value: number): string {
+  return value >= ATTRIBUTE_MAX
+    ? word(locale, `${name} đã đạt tối đa (${String(value)}/${String(ATTRIBUTE_MAX)})`, `${name} is maxed out (${String(value)}/${String(ATTRIBUTE_MAX)})`)
+    : word(locale, `Tăng ${name} (${String(value)}/${String(ATTRIBUTE_MAX)}), tốn 1 điểm`, `Increase ${name} (${String(value)}/${String(ATTRIBUTE_MAX)}), costs 1 point`)
+}
+
 function AttributeAllocation({ attrs, headingRef, locale, points, onAllocate }: AttributeAllocationProps) {
-  const options: ReadonlyArray<{ attribute: AttributeName; vi: string; en: string }> = [
-    { attribute: 'body', vi: 'Thân', en: 'Body' },
-    { attribute: 'mind', vi: 'Tâm', en: 'Mind' },
-    { attribute: 'charm', vi: 'Mị', en: 'Charm' },
-    { attribute: 'luck', vi: 'Vận', en: 'Luck' },
-  ]
-  return <section aria-label={word(locale, 'Phân bổ thuộc tính', 'Allocate attribute points')} className="attribute-allocation" role="region">
+  // Issue #34: `id="attribute-allocation"` is the jump target of the banner's
+  // escape-route link, so the full panel is reachable by keyboard even when the
+  // HUD column starts scrolled elsewhere.
+  return <section aria-label={word(locale, 'Phân bổ thuộc tính', 'Allocate attribute points')} className="attribute-allocation" data-testid="attribute-allocation" id="attribute-allocation" role="region">
     <h3 ref={headingRef} tabIndex={-1}>{word(locale, 'Phân bổ thuộc tính', 'Allocate attribute points')}</h3>
-    <p role="status">{word(locale, `Còn ${String(points)} điểm`, `${String(points)} points remaining`)}</p>
+    <p role="status">{word(locale, `Còn ${String(points)} điểm`, `${pointsWord(points)} remaining`)}</p>
     <div>
-      {options.map(({ attribute, vi, en }) => {
+      {ATTRIBUTE_OPTIONS.map(({ attribute, vi, en }) => {
         const name = word(locale, vi, en)
         const value = attrs[attribute]
         const capped = value >= ATTRIBUTE_MAX
         return <button
-          aria-label={word(locale, `Tăng ${name} (${String(value)}/${String(ATTRIBUTE_MAX)}), tốn 1 điểm`, `Increase ${name} (${String(value)}/${String(ATTRIBUTE_MAX)}), costs 1 point`)}
+          aria-label={allocationLabel(locale, name, value)}
+          data-testid={`attribute-allocate-${attribute}`}
           disabled={capped}
           key={attribute}
           onClick={() => onAllocate(attribute)}

@@ -10,8 +10,10 @@ interface SlotEnvelope {
 }
 
 async function bootSlots(page: Page): Promise<void> {
+  // Issue #17 auto-resume boots straight into the run when a resume marker is
+  // set; these specs are about slot management, so start from the menu.
+  await page.addInitScript((key) => window.localStorage.removeItem(key), ACTIVE_KEY)
   await page.goto('/')
-  // The app opens on the main menu; Load Game reveals the five-slot screen.
   await page.getByTestId('menu-load-game').click()
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
 }
@@ -23,6 +25,14 @@ async function readSlots(page: Page): Promise<Record<string, SlotEnvelope>> {
 
 async function readActive(page: Page): Promise<string | null> {
   return page.evaluate((key) => window.localStorage.getItem(key), ACTIVE_KEY)
+}
+
+// After a reload the app resumes the marked run (issue #17), so get back to the
+// menu through the in-game exit before opening the slot screen.
+async function backToSlots(page: Page): Promise<void> {
+  await page.getByTestId('game-exit-menu').click()
+  await page.getByTestId('menu-load-game').click()
+  await expect(page.getByTestId('save-slots-screen')).toBeVisible()
 }
 
 test('W1 save-slots: shows the slot screen on first boot and a fresh slot is empty', async ({ page }) => {
@@ -52,8 +62,7 @@ test('W1 save-slots: selecting an empty slot starts a new game, travel advances 
 
   // Reload and verify the same slot remains active and the autosave captured the move.
   await page.reload()
-  await page.getByTestId('menu-load-game').click()
-  await expect(page.getByTestId('save-slots-screen')).toBeVisible()
+  await backToSlots(page)
   expect(await readActive(page)).toBe('1')
   const slots = await readSlots(page)
   expect(slots['1']?.slotId).toBe(1)
@@ -82,8 +91,7 @@ test('W1 save-slots: deleting the active slot removes it and clears the active p
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
   await page.reload()
-  await page.getByTestId('menu-load-game').click()
-  await expect(page.getByTestId('save-slots-screen')).toBeVisible()
+  await backToSlots(page)
   // First click switches the delete button into confirm state; second click deletes.
   await page.getByRole('button', { name: /xóa lưu|delete save/i }).click()
   await page.getByRole('button', { name: /bấm lần nữa để xóa|press again to delete/i }).click({ force: true })

@@ -49,6 +49,10 @@ const WITHDRAW_WORDS = ['withdraw', 'lay kho', 'rut kho', 'lay ra kho']
 const ACCEPT_WORDS = ['accept quest', 'nhan nhiem vu', 'nhan nhiem', 'nhan viec']
 const COMPLETE_WORDS = ['complete quest', 'hoan thanh nhiem vu', 'tra nhiem vu', 'hoan nhiem']
 const TALK_WORDS = ['talk to', 'talk', 'noi chuyen voi', 'noi chuyen', 'gap ']
+// Issue #39: gifting names both an object and a recipient. If either half is
+// missing the branch falls through instead of failing the utterance — "gap
+// bao" stays a talk even if some other sentence grazed a gift word.
+const GIFT_WORDS = ['gift', 'tang qua', 'qua tang', 'tang cho', 'bieu', 'give ']
 const ENCOUNTER_WORDS = ['start encounter', 'engage enemy', 'fight enemy', 'giao chien', 'khai chien', 'vao tran']
 const ATTACK_WORDS = ['attack', 'strike', 'tan cong', 'ra don', 'danh ']
 const DEFEND_WORDS = ['defend', 'guard', 'phong thu', 'thu the', 'do don']
@@ -207,6 +211,13 @@ export function parseFreeText(raw: string): ParsedIntent | FailedIntent {
     const questId = findQuestIdIn(text)
     if (questId !== undefined) return { ok: true, action: { kind: 'complete_quest', questId } }
     return { ok: false }
+  }
+  if (includesAny(text, GIFT_WORDS)) {
+    const npcId = findNpcIdIn(text)
+    const itemId = findItemIdIn(text)
+    if (npcId !== undefined && itemId !== undefined) return { ok: true, action: { kind: 'gift', npcId, itemId } }
+    // A half-specified gift is not a failure — keep reading the sentence so
+    // "give me a talk" style grazes still reach the verb they actually mean.
   }
   if (includesAny(text, TALK_WORDS)) {
     const npcId = findNpcIdIn(text)

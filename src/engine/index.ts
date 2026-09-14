@@ -110,6 +110,14 @@ export function validateGameState(state: unknown): GameState {
 // before validation so pre-version saves survive the schema's version gate.
 export { migrateGameState, migrate } from './migration'
 
+// Issue #37/#38 — read-only danger prediction, plus the #38 resume context line.
+export {
+  resumeContextLine,
+  travelRisk,
+  travelRiskLabel,
+  type TravelRisk,
+} from './telegraph'
+
 export type {
   Action,
   AttributeName,

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import type { Action, AttributeName, Direction, GameState, Locale } from '../engine'
-import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, MAX_HP, MAX_QI, RETREAT_HP_COST, checkMoveFrom, currentBeat, nextStageThreshold } from '../engine'
+import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, MAX_HP, MAX_QI, RETREAT_HP_COST, checkMoveFrom, currentBeat, nextStageThreshold, travelRisk, travelRiskLabel } from '../engine'
 import { CHAPTERS, ENEMIES, MAP_HEIGHT, MAP_WIDTH, NPCS, TECHNIQUES, getLocation, getRegionMap } from '../content'
 import { REALM_STAGES } from './gameScreen/constants'
+import { SkillTreePanel } from './gameScreen/panels'
 import { deriveObjective } from './objective'
 import { LeftRailTabContent, LEFT_TAB_LABELS, type LeftTab } from './LeftRailTabContent'
 import { NpcChatModal } from './NpcChatModal'
@@ -12,6 +13,7 @@ import { attrIconArt, tabIconArt, HUD_ICONS } from './uiIconArt'
 import { playerArtFor, type PlayerActionKey } from './playerArt'
 import { locationBackdropFor } from './locationArt'
 import './proto-shell.css'
+import './skillTree.css'
 
 /* =========================================================================
  *  ProtoShell — Render UI giống prototype (5176 /?prototype=1) nhưng
@@ -64,6 +66,7 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
   const [chatNpcId, setChatNpcId] = useState<string | null>(null)
   const [command, setCommand] = useState('')
   const [showcaseOpen, setShowcaseOpen] = useState(false)
+  const [skillTreeOpen, setSkillTreeOpen] = useState(false)
   // Combat FX: HP của bên nào tụt = bên đó ăn đòn (recoil), bên kia lao vào
   // (lunge). Derive trong effect so both player- and enemy-turn hits animate.
   const [fx, setFx] = useState<{ attacker: 'player' | 'enemy' | null; pulse: number }>({ attacker: null, pulse: 0 })
@@ -162,6 +165,7 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
       }
       const k = e.key.toLowerCase()
       if (e.key === 'Escape') {
+        if (skillTreeOpen) { setSkillTreeOpen(false); return }
         if (showcaseOpen) { setShowcaseOpen(false); return }
         if (chatNpcId !== null) { setChatNpcId(null); return }
         if (journalOpen) { onJournalToggle?.(); return }
@@ -179,12 +183,13 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
       if (k === 'b') { setLeftTab('items'); setLeftMode('expanded'); return }
       if (k === 'p') { setLeftTab('people'); setLeftMode('expanded'); return }
       if (k === 'm') { setLeftTab('market'); setLeftMode('expanded'); return }
+      if (k === 'k') { setSkillTreeOpen(true); return }
       if (k === 'c') { setRightMode((m) => m === 'expanded' ? 'mini' : 'expanded'); return }
       if (k === 'l') { setTickerMode((m) => m === 'full' ? '1' : 'full'); return }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [chatNpcId, journalOpen, leftMode, zen, showcaseOpen, onJournalToggle])
+  }, [chatNpcId, journalOpen, leftMode, zen, showcaseOpen, skillTreeOpen, onJournalToggle])
 
   // === Derived data ===
   const vi = locale === 'vi'
@@ -297,6 +302,11 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
         <span className="proto-topbar__stat" data-testid="currency-silver"><span aria-hidden="true">◉</span> <span className="v">{game.player.silver ?? 0}</span></span>
         <span className="proto-topbar__sep">·</span>
         <span className="proto-topbar__stat" data-testid="currency-spirit-stones"><span aria-hidden="true">✦</span> <span className="v">{game.player.spiritStones ?? 0}</span></span>
+        <span className="proto-topbar__sep">·</span>
+        {/* Issue #33: playtest 20/20 chưa từng thấy điểm kỹ năng nhúc nhích —
+            cho nó hiện ngay trên topbar, cạnh nút mở cây công pháp. */}
+        <span className="proto-topbar__stat" data-testid="currency-skill-points"><span aria-hidden="true">技</span> <span className="v">{game.player.skillPoints ?? 0}</span></span>
+        <button className="iconbtn" type="button" onClick={() => setSkillTreeOpen(true)} title={vi ? 'Cây công pháp (K)' : 'Skill tree (K)'} data-testid="skill-tree-btn">🌳</button>
         <button className="iconbtn" type="button" onClick={() => setShowcaseOpen(true)} title={vi ? 'Phòng trưng bày icon' : 'Icon showcase'} data-testid="icon-showcase-btn">🖼</button>
         <button className="iconbtn" type="button" onClick={() => onLocaleChange(locale === 'vi' ? 'en' : 'vi')} title={vi ? 'Đổi ngôn ngữ' : 'Switch language'}>{locale.toUpperCase()}</button>
         <button className="iconbtn" type="button" title={vi ? 'Thiết lập' : 'Settings'} onClick={() => onJournalToggle?.()}>⚙</button>
@@ -378,6 +388,10 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
               const label = vi ? cell.node.nameVi : cell.node.nameEn
               const path = paths.get(`${String(cell.x)},${String(cell.y)}`)
               const dest = cell.exitTo !== undefined ? getLocation(cell.exitTo) : undefined
+              // Issue #37 — the pin's tooltip must carry the predicted entry tax
+              // (same numbers doMove rolls), or the mist still kills invisibly.
+              const riskTargetId = cell.exitTo ?? (cell.node.kind === 'danger' ? game.player.locationId : undefined)
+              const riskLine = riskTargetId === undefined ? '' : travelRiskLabel(travelRisk(game, riskTargetId), locale)
               const kindLabel = cell.node.kind === 'danger'
                 ? (vi ? 'Nguy hiểm' : 'Danger')
                 : isExitCell
@@ -402,11 +416,14 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
                   data-pin-walkable={path !== undefined ? path[0] : undefined}
                   data-testid={`map-pin-${String(cell.x)}-${String(cell.y)}`}
                   onClick={handleClick}
-                  aria-label={path === undefined
+                  aria-label={(path === undefined
                     ? (vi ? `${label} — chưa có đường nối từ vị trí hiện tại` : `${label} — no path from your current position`)
                     : (isExitCell
                       ? (vi ? `Đi tới ${label} (${String(path.length)} bước)` : `Travel to ${label} (${String(path.length)} steps)`)
-                      : (vi ? `Đi ${String(path.length)} bước tới ${label}` : `Walk ${String(path.length)} steps to ${label}`))}
+                      : (vi ? `Đi ${String(path.length)} bước tới ${label}` : `Walk ${String(path.length)} steps to ${label}`)))
+                    // Issue #37: the risk estimate must reach a screen reader too —
+                    // the pin-tip is a visual tooltip only.
+                    + (riskLine === '' ? '' : ` — ${riskLine}`)}
                 >
                   {iconSrc !== undefined
                     ? <img className="g" src={iconSrc} alt="" aria-hidden="true" />
@@ -427,6 +444,7 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
                       : isExitCell
                         ? (vi ? `${String(path.length)} bước · đổi vùng` : `${String(path.length)} steps · new region`)
                         : (vi ? `${String(path.length)} bước · lại gần để kích hoạt` : `${String(path.length)} steps · walk close to trigger`)}</span>
+                    {riskLine !== '' && <span className="d" data-testid={`pin-risk-${String(cell.x)}-${String(cell.y)}`}>{riskLine}</span>}
                   </span>
                 </button>
               )
@@ -674,6 +692,12 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
 
       {/* Icon Showcase Modal (nút 🖼 trên topbar) */}
       <IconShowcaseModal show={showcaseOpen} onClose={() => setShowcaseOpen(false)} />
+
+      {/* Skill Tree (issue #33) — rendered only while open: the panel owns no
+          closed state, and deriveSkillTree walks 101 nodes per render. */}
+      {skillTreeOpen && (
+        <SkillTreePanel game={game} locale={locale} onAction={onAction} onClose={() => setSkillTreeOpen(false)} />
+      )}
     </>
   )
 }

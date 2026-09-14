@@ -36,6 +36,13 @@ import {
   word,
 } from './helpers'
 
+// Issue #33: the skill tree lives with the other panels but is opened from the
+// proto-shell topbar (GameScreen's dock has a fixed 6-tab list in constants.ts,
+// which is not this issue's file to grow). Re-exported here so every panel the
+// shells render has one registration point.
+export { SkillTreePanel } from './skillTree/SkillTreePanel'
+export type { SkillTreePanelProps } from './skillTree/SkillTreePanel'
+
 interface DockTabBarProps {
   activeDock: DockPanel
   entriesCount: number
@@ -611,11 +618,12 @@ export function ChronicleFeed({
         {visible.map((line, index) => {
           const absoluteIndex = visibleStartIndex + index
           const kind = chronicleKinds?.[absoluteIndex]
+          const isCrit = kind === 'combat_crit'
           const isCombat = kind === 'encounter_started' || kind === 'combat_hit' || kind === 'combat_won' || kind === 'combat_retreated'
           const isDefend = kind === 'combat_guarded'
           const isTrain = kind === 'trained'
-          const colorClass = isCombat ? 'is-combat' : isDefend ? 'is-defend' : isTrain ? 'is-train' : undefined
-          const kindKey = isCombat ? 'chronicle.kind.combat' : isDefend ? 'chronicle.kind.defend' : isTrain ? 'chronicle.kind.train' : undefined
+          const colorClass = isCrit ? 'is-crit' : isCombat ? 'is-combat' : isDefend ? 'is-defend' : isTrain ? 'is-train' : undefined
+          const kindKey = isCrit ? 'chronicle.kind.crit' : isCombat ? 'chronicle.kind.combat' : isDefend ? 'chronicle.kind.defend' : isTrain ? 'chronicle.kind.train' : undefined
           const ariaLabel = kindKey === undefined ? undefined : `${i18n(locale, kindKey)}: ${line}`
           return (
             <li

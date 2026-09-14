@@ -15,7 +15,9 @@ describe('P0-7: attribute allocation banner', () => {
     )
     const banner = container.querySelector('[data-testid="attribute-banner"]')
     expect(banner).toBeTruthy()
-    expect(banner?.getAttribute('aria-live')).toBe('polite')
+    // Issue #34 round 2: the live region moved to the text-only <p> — the
+    // wrapper also contains the +1 buttons, which must not live Announce.
+    expect(banner?.querySelector('.attribute-banner-text')?.getAttribute('aria-live')).toBe('polite')
     expect(banner?.textContent).toContain('3')
   })
 
@@ -57,6 +59,6 @@ describe('P0-7: attribute allocation banner', () => {
       <GameScreen chronicle={[]} game={game} locale="en" onAction={() => undefined} onLocaleChange={() => undefined} />,
     )
     const banner = container.querySelector('[data-testid="attribute-banner"]')
-    expect(banner?.textContent).toMatch(/Allocate 1 points/)
+    expect(banner?.textContent).toMatch(/Allocate 1 point before continuing/)
   })
 })

@@ -82,6 +82,7 @@ import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
 import { FLAG_AFF, FLAG_AFF_GATE, FLAG_ARENA_CLEARED, FLAG_ARENA_FLOOR, FLAG_COERCED, FLAG_COERCED_BACKOFF, FLAG_DEFEATED, FLAG_INFAMY, FLAG_KEYS, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
+import { giftReactionFor } from '../content/npc-gifts'
 import type {
   Action,
   ConcreteAction,
@@ -157,12 +158,21 @@ export function applyAction(state: GameState, action: Action): TransitionResult 
     const fresh = newGame(action.seed, { legacyCause: readDeathCause(state) })
     return finalize(fresh, [{ type: 'GAME_STARTED', seed: action.seed }])
   }
-  const safeState = sanitizeRpgState(state)
-  if (safeState.terminal) return { state: safeState, events: [{ type: 'ERROR', code: 'TERMINAL' }] }
-  if (action.kind === 'free_text') return applyFreeText(safeState, action.raw)
+  const sanitized = dropUnspendablePoints(sanitizeRpgState(state))
+  // The points are gone before any action runs, so this is the only place their
+  // removal can be narrated — round 2 review caught finalize never seeing them.
+  const lead: GameEvent[] =
+    sanitized.dropped > 0 ? [pointsDiscardedEvent(sanitized.dropped, sanitized.state.player.locationId)] : []
+  const safeState = sanitized.state
+  if (safeState.terminal) return { state: safeState, events: [...lead, { type: 'ERROR', code: 'TERMINAL' }] }
+  if (action.kind === 'free_text') {
+    const result = applyFreeText(safeState, action.raw)
+    return { ...result, events: [...lead, ...result.events] }
+  }
   const result = execAction(safeState, action)
-  if (!result.ok) return { state: safeState, events: [errorEvent(result, action.kind)] }
-  return finalize(result.state, result.events)
+  if (!result.ok) return { state: safeState, events: [...lead, errorEvent(result, action.kind)] }
+  const done = finalize(result.state, result.events)
+  return lead.length > 0 ? { ...done, events: [...lead, ...done.events] } : done
 }
 
 function applyFreeText(state: GameState, raw: string): TransitionResult {
@@ -326,9 +336,45 @@ function forgottenNameFor(state: GameState): string {
   return 'village'
 }
 
+// Issue #34 (softlock): the gate must never leave a run with zero legal
+// actions. Progression (move / rest / train / story / combat entry / trade) still
+// requires the points to be spent first, but self-preservation stays reachable:
+// drinking a pill or swapping gear is not a build decision deferred, and the
+// free-text path re-checks the parsed kind, so "use pill_hp" works too.
+const ATTRIBUTE_GATE_ALLOWED: readonly ConcreteAction['kind'][] = ['allocate_attribute', 'use_item', 'equip_item']
+
+// Issue #34 dead-end: points earned while all four attributes sit at
+// ATTRIBUTE_MAX can never be spent — clearing them here (inside every
+// successful transition) stops the gate from stranding the run.
+// ponytail: ceiling — such points are silently discarded; upgrade path is a
+// convert-to-skill-points rule once skillPoint sinks exist post-cap.
+function allAttributesMaxed(state: GameState): boolean {
+  const { body, mind, charm, luck } = state.player.attrs
+  return body >= ATTRIBUTE_MAX && mind >= ATTRIBUTE_MAX && charm >= ATTRIBUTE_MAX && luck >= ATTRIBUTE_MAX
+}
+
+// Reports how many points it cleared so callers can say so — the banner
+// vanishing with no word looked like a bug to playtesters (round 2 review).
+function dropUnspendablePoints(state: GameState): { state: GameState; dropped: number } {
+  if (state.player.pendingAttributePoints <= 0 || !allAttributesMaxed(state)) return { state, dropped: 0 }
+  return { state: { ...state, player: { ...state.player, pendingAttributePoints: 0 } }, dropped: state.player.pendingAttributePoints }
+}
+
+function pointsDiscardedEvent(dropped: number, locationId: string): GameEvent {
+  return {
+    type: 'WARNING',
+    level: 0,
+    locationId,
+    messageVi: `Toàn bộ tứ hải đã viên mãn — ${String(dropped)} điểm phân bổ tan đi, không còn chỗ chứa.`,
+    messageEn: `All four attributes are capped — ${String(dropped)} allocation point${dropped === 1 ? '' : 's'} dissolved, with nowhere to go.`,
+  }
+}
+
 function finalize(state: GameState, events: GameEvent[]): TransitionResult {
-  let s = state
+  const dropped = dropUnspendablePoints(state)
+  let s = dropped.state
   const out = [...events]
+  if (dropped.dropped > 0) out.push(pointsDiscardedEvent(dropped.dropped, s.player.locationId))
   // W7 (Quest Engine): tick multi-step quest progress after every action.
   s = tickQuestSteps(s)
   const achieved = newlyQualifiedAchievements(s)
@@ -349,7 +395,24 @@ function finalize(state: GameState, events: GameEvent[]): TransitionResult {
 }
 
 function execAction(state: GameState, action: ConcreteAction): R {
-  if (state.player.pendingAttributePoints > 0 && action.kind !== 'allocate_attribute') {
+  // Issue #34 (softlock): the gate used to refuse EVERY action, so a player who
+  // could not reach the allocation panel (issue #31 stacking) lost the run —
+  // playtest p04 and p12 died exactly this way. Now only progression is
+  // deferred; healing, gear swaps, and the free-text path (which re-checks the
+  // parsed kind here) stay legal, and dropUnspendablePoints guarantees the gate
+  // can never outlive points it is able to spend.
+  // Issue #34 (softlock) round 2: the gate ran BEFORE the encounter gate, so a
+  // player holding unspendable-right-now points inside an encounter had zero
+  // legal moves — combat kinds died here, allocate/equip died in the encounter
+  // gate, and use_item died once the pills ran out. Reachable from a save quit
+  // mid-fight plus >=4h offline (offline.ts adds points without the reducer).
+  // Encounter actions form a closed loop, so deferring allocation until the
+  // fight ends costs nothing and re-arms the gate on the way out.
+  if (
+    state.encounter === null &&
+    state.player.pendingAttributePoints > 0 &&
+    !ATTRIBUTE_GATE_ALLOWED.includes(action.kind)
+  ) {
     return err('ATTRIBUTE_ALLOCATION_REQUIRED')
   }
   // An encounter is a closed deterministic turn loop. Preventing unrelated
@@ -394,6 +457,8 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doDraw(state)
     case 'talk':
       return doTalk(state, action.npcId)
+    case 'gift':
+      return doGift(state, action.npcId, action.itemId)
     case 'accept_quest':
       return doAcceptQuest(state, action.questId)
     case 'turn_in_quest':
@@ -531,8 +596,12 @@ function doMove(state: GameState, direction: Direction): R {
         events.push({ type: 'WARD_USED', itemId: ITEM_TALISMAN })
       } else {
         const timeDamageMod = TIME_MODS[currentTimeOfDay(s)].dangerDamage
+        // Issue #37: the mist/storm travel tax (WEATHER_EFFECTS.travelCostMod)
+        // was authored but never applied — the "invisible step damage" the
+        // playtest died to. Telegraph (travelRisk) mirrors THIS line.
+        const weatherMod = WEATHER_EFFECTS[weatherFor(s.seed, s.day).id]?.travelCostMod ?? 1
         const [rolled, nextRng] = damageRoll(s.rng, danger)
-        const damage = Math.max(1, Math.round(rolled * damageMultiplier(s.difficulty ?? 'balanced') * timeDamageMod))
+        const damage = Math.max(1, Math.round(rolled * damageMultiplier(s.difficulty ?? 'balanced') * timeDamageMod * weatherMod))
         s = { ...s, rng: nextRng }
         const newHp = Math.max(0, s.player.hp - damage)
         s = { ...s, player: { ...s.player, hp: newHp } }
@@ -1008,6 +1077,20 @@ function doStartEncounter(state: GameState): R {
   if (enemy === undefined) return err('NOT_AT_LOCATION')
   const events: GameEvent[] = []
   state = spendSlots(state, events)
+  // Issue #37 — the fight must announce its odds before it takes a turn.
+  // `requiredStage` is authored in content/rpg.ts; when the pool fell back to
+  // stage-ineligible enemies (the ponytail branch above), this is exactly the
+  // case that used to read as an unfair death. Reuses WARNING so the chronicle
+  // gets one line in both locales with no new event type.
+  if ((enemy.requiredStage ?? 0) > state.player.stage) {
+    events.push({
+      type: 'WARNING',
+      level: 0,
+      locationId: state.player.locationId,
+      messageVi: `⚠ ${enemy.nameVi} vượt xa cảnh giới của ngươi (yêu cầu tầng ${String(enemy.requiredStage ?? 0)}, ngươi đang tầng ${String(state.player.stage)}) — rút lui là một nước đi.`,
+      messageEn: `⚠ ${enemy.nameEn} outclasses you (requires stage ${String(enemy.requiredStage ?? 0)}, you are stage ${String(state.player.stage)}) — retreating is a valid move.`,
+    })
+  }
   return {
     ok: true,
     state: { ...state, encounter: newEncounter(enemy) },
@@ -1499,6 +1582,57 @@ function doTalk(state: GameState, npcId: string): R {
   }
   const line = dialogueForNpc(s, npcId)
   return { ok: true, state: s, events: [...events, { type: 'TALKED', npcId, lineVi: line.vi, lineEn: line.en }] }
+}
+
+// Issue #39: gifts speak in market terms the player already understands. The
+// swing is derived from the item's own sell price — nothing bought is worthless,
+// but junk/evidence/manuals (sellPrice null) carry no market value and are
+// refused rather than silently absorbed. Affinity moves the SAME counter talk
+// does (aff_<id> flag + affection twin + 3/6/9 gates), so one progression
+// channel cannot be split into two disagreeing sources of truth.
+const GIFT_TIER_FINE_PRICE = 90
+const GIFT_TIER_DECENT_PRICE = 26
+
+function giftAffinityDelta(sellPrice: number): number {
+  if (sellPrice >= GIFT_TIER_FINE_PRICE) return 3
+  if (sellPrice >= GIFT_TIER_DECENT_PRICE) return 2
+  return 1
+}
+
+function doGift(state: GameState, npcId: string, itemId: string): R {
+  const npc = getNpc(npcId)
+  if (npc === undefined) return err('NPC_UNKNOWN')
+  if (state.player.locationId !== npc.locationId) return err('NPC_NOT_HERE')
+  const item = getItem(itemId)
+  if (item === undefined || item.sellPrice === null) return err('ITEM_UNAVAILABLE')
+  if (countOf(state.inventory, itemId) < 1) return err('NO_ITEM')
+  const affKey = FLAG_AFF(npcId)
+  const before = flagNum(state.flags, affKey)
+  const delta = giftAffinityDelta(item.sellPrice)
+  const after = before + delta
+  const flags: Record<string, boolean | number | string> = { ...state.flags, [affKey]: after }
+  const affection = { ...(state.affection ?? {}) }
+  affection[npcId] = (affection[npcId] ?? 0) + delta
+  for (const gateLevel of [3, 6, 9]) {
+    if (before < gateLevel && after >= gateLevel) flags[FLAG_AFF_GATE(npcId)] = true
+  }
+  const s: GameState = {
+    ...state,
+    flags,
+    affection,
+    inventory: bump(state.inventory, itemId, -1),
+  }
+  const events: GameEvent[] = []
+  for (const level of [3, 6, 9]) {
+    if (before < level && after >= level) events.push({ type: 'AFFINITY', npcId, level })
+  }
+  // The reaction is authored per NPC in BOTH locales (npc-gifts.ts, coverage
+  // enforced by test) — a gift can never answer with the shared talk chain.
+  const reaction = giftReactionFor(npcId)
+  const lineVi = (reaction?.vi ?? '“{item}… ta nhận.”').replaceAll('{item}', item.nameVi)
+  const lineEn = (reaction?.en ?? '“{item}… it is accepted.”').replaceAll('{item}', item.nameEn)
+  events.push({ type: 'GIFTED', npcId, itemId, delta, total: after, lineVi, lineEn })
+  return { ok: true, state: s, events }
 }
 
 function doResolveRouteEvent(state: GameState, approach: 'present' | 'withhold'): R {

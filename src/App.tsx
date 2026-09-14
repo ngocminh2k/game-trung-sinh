@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PrototypeApp } from './ui/prototype/PrototypeApp'
-import { DEFAULT_GLOBAL_PROFILE, DEFAULT_SEED, applyAction, applyOfflineGains, chooseInheritedRelic, currentStoryScene, mergeGlobalProfile, narrate, newGame, readDeathCause, recordTerminal, storyRouteEncounter } from './engine'
+import { DEFAULT_GLOBAL_PROFILE, DEFAULT_SEED, applyAction, applyOfflineGains, chooseInheritedRelic, currentStoryScene, mergeGlobalProfile, narrate, newGame, readDeathCause, recordTerminal, resumeContextLine, storyRouteEncounter } from './engine'
 import type { Action, GameDifficulty, GameEvent, GameState, GlobalProfile, Locale } from './engine'
 import { ENDINGS } from './content'
 import { requestNarration } from './ai/narration'
@@ -39,6 +39,26 @@ function browserStorage(): SessionStorage {
   }
 }
 
+/**
+ * Issue #38 — every resume path lands the player back in a run with no memory
+ * of where they stood (p18 churned through reloads). Prepend nothing; APPEND
+ * a one-line "where you left off" to the chronicle (newest-last, like act())
+ * so the feed's tail is the context line. Keeps chronicleKinds index-aligned
+ * and the 80-line cap. Idempotent guard: skips if the tail already is a
+ * context line (double settle from offline gains + explicit pick).
+ */
+function withResumeContext(session: GameSession): GameSession {
+  const line = resumeContextLine(session.game, session.locale)
+  if (session.chronicle[session.chronicle.length - 1] === line) return session
+  return {
+    ...session,
+    chronicle: [...session.chronicle, line].slice(-80),
+    ...(session.chronicleKinds === undefined
+      ? {}
+      : { chronicleKinds: [...session.chronicleKinds, 'resumed'].slice(-80) }),
+  }
+}
+
 function freshSession(
   locale: Locale = 'vi',
   options: {
@@ -61,6 +81,12 @@ function freshSession(
     chronicle: locale === 'vi'
       ? ['Ngươi tỉnh dậy tại làng Thanh Mộc. Linh căn phế vẫn đó, nhưng kiếp này, con đường do chính ngươi chọn.']
       : ['You wake in Greenwood Village. The crooked spirit root remains, but the road is new.'],
+    // Issue #35: chronicle[i] must pair with chronicleKinds[i]. The seeded
+    // wake-up line needs its kind counted here — omitting it makes `act`'s
+    // `?? []` materialize a one-short kinds array, and every later line (crit
+    // styling included) gets the previous line's kind. 'game_started' renders
+    // unstyled in ChronicleFeed, matching what the line always looked like.
+    chronicleKinds: ['game_started'],
   }
 }
 
@@ -188,8 +214,10 @@ function App() {
     const slot = slots[activeSlot]
     if (slot === undefined) return null
     const now = Date.now()
-    return applyOfflineGains(slot.session, now - slot.savedAt, now, (hours, progress) =>
-      t(slot.session.locale, 'ui.offline.gained', { hours, progress })).session
+    // Issue #38 — the auto-resume boot path gets the same "where you left off"
+    // line an explicit slot pick does (applyOfflineGains may have appended too).
+    return withResumeContext(applyOfflineGains(slot.session, now - slot.savedAt, now, (hours, progress) =>
+      t(slot.session.locale, 'ui.offline.gained', { hours, progress })).session)
   })
   const [locale, setLocale] = useState<Locale>(() => session?.locale ?? settings.locale)
   const [motion, setMotion] = useState<{ kind: Action['kind'] | null; nonce: number }>({ kind: null, nonce: 0 })
@@ -255,7 +283,7 @@ function App() {
       const now = Date.now()
       const settled = applyOfflineGains(slot.session, now - slot.savedAt, now, (hours, progress) =>
         t(slot.session.locale, 'ui.offline.gained', { hours, progress }))
-      const next = settled.session
+      const next = withResumeContext(settled.session)
       // The save-on-session-change effect persists `next` to this slot with
       // savedAt reset to now, so offline gains apply exactly once per absence
       // (a later reload settles from *this* point, not the original absence).
@@ -499,7 +527,7 @@ function App() {
   if (phase === 'loading') return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
   return <>
     {storyOpen && <div className="story-backdrop" onClick={() => setStoryOpen(false)} aria-hidden="true" />}
-    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} onAction={act} onLocaleChange={changeLocale} onRestart={restart} onExitToMenu={exitToMenu} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} unlockedEndingIds={globalProfile.unlockedEndingIds} unlockedAchievementIds={globalProfile.unlockedAchievementIds} />
+    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} chronicleKinds={session.chronicleKinds} onAction={act} onLocaleChange={changeLocale} onRestart={restart} onExitToMenu={exitToMenu} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} unlockedEndingIds={globalProfile.unlockedEndingIds} unlockedAchievementIds={globalProfile.unlockedAchievementIds} />
     {session.game.terminal && telemetryId !== null && (
       <PlaytestSurveyCard game={session.game} locale={session.locale} runId={telemetryId} onSubmit={submitSurvey} />
     )}
