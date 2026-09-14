@@ -43,7 +43,7 @@ export function isQuestUnlocked(state: GameState, questId: string): boolean {
 export function canAcceptQuest(
   state: GameState,
   questId: string,
-): { ok: true; giverLocationId: string } | { ok: false; code: QuestCheckErr } {
+): { ok: true; giverLocationId: string } | { ok: false; code: QuestCheckErr; at?: string | undefined } {
   const def = getQuest(questId)
   if (def === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
   if (questStatus(state, questId) !== 'available') return { ok: false, code: 'QUEST_WRONG_STATE' }
@@ -60,7 +60,7 @@ export function canAcceptQuest(
   }
   const giver = def.giverNpcId === null ? undefined : getNpc(def.giverNpcId)
   if (giver === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
-  if (state.player.locationId !== giver.locationId) return { ok: false, code: 'NOT_AT_LOCATION' }
+  if (state.player.locationId !== giver.locationId) return { ok: false, code: 'NOT_AT_LOCATION', at: giver.locationId }
   return { ok: true, giverLocationId: giver.locationId }
 }
 
@@ -107,7 +107,7 @@ export function isTurnInReady(state: GameState, questId: string): boolean {
 export function canCompleteQuest(
   state: GameState,
   questId: string,
-): { ok: true } | { ok: false; code: QuestCheckErr } {
+): { ok: true } | { ok: false; code: QuestCheckErr; at?: string | undefined } {
   const def = getQuest(questId)
   if (def === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
   if (questStatus(state, questId) !== 'active') return { ok: false, code: 'QUEST_WRONG_STATE' }
@@ -117,7 +117,7 @@ export function canCompleteQuest(
   if (def.requiredSystemId === undefined) {
     const giver = def.giverNpcId === null ? undefined : getNpc(def.giverNpcId)
     if (giver === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
-    if (state.player.locationId !== giver.locationId) return { ok: false, code: 'NOT_AT_LOCATION' }
+    if (state.player.locationId !== giver.locationId) return { ok: false, code: 'NOT_AT_LOCATION', at: giver.locationId }
   }
   if (!isTurnInReady(state, questId)) return { ok: false, code: 'QUEST_WRONG_STATE' }
   return { ok: true }

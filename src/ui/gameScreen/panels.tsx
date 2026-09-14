@@ -8,12 +8,10 @@ import {
   SHOP_STOCK,
   TALENTS,
   TECHNIQUES,
-  coercionFor,
   getItem,
   getEquipmentByItem,
   getLocation,
 } from '../../content'
-import { FLAG_COERCED, FLAG_COERCED_BACKOFF } from '../../content/flag-keys'
 import {
   activeSystem,
   canCompleteQuest,
@@ -45,16 +43,19 @@ interface DockTabBarProps {
   locale: Locale
   onSelect: (panel: DockPanel) => void
   localNpcsCount: number
+  chronicleLength: number
 }
 
-export function DockTabBar({ activeDock, game, locale, onSelect, localNpcsCount }: DockTabBarProps): JSX.Element {
+export function DockTabBar({ activeDock, game, locale, onSelect, localNpcsCount, chronicleLength }: DockTabBarProps): JSX.Element {
   const completedQuests = QUESTS.filter((quest) => game.quests[quest.id]?.status === 'completed').length
+  const chronicleCount = chronicleLength
   const tabs: ReadonlyArray<readonly [DockPanel, string, string | number]> = [
     ['people', word(locale, 'Người ở đây', 'People here'), localNpcsCount],
     ['quests', word(locale, 'Nhiệm vụ', 'Quests'), `${completedQuests}/${QUESTS.length}`],
     ['inventory', word(locale, 'Túi đồ & kho', 'Bag & storage'), 0 /* filled by parent */],
     ['market', word(locale, 'Chợ & thành tựu', 'Market & deeds'), `${game.achievements.length}/${ACHIEVEMENTS.length}`],
     ['path', word(locale, 'Đạo đồ & trang bị', 'Path & equipment'), word(locale, 'tu vi', 'cultivation')],
+    ['chronicle', word(locale, 'Biên niên', 'Chronicle'), chronicleCount],
   ]
   void completedQuests
   return (
@@ -185,6 +186,7 @@ export function DockPanelInventory({
           )}
         </div>
         <aside className="inventory-inspector" data-testid="inventory-inspector">
+          <h3 className="inventory-inspector-title">{word(locale, 'Chi tiết vật phẩm', 'Item details')}</h3>
           {!selected
             ? <p className="muted">{word(locale, 'Chọn một vật phẩm để xem chi tiết.', 'Choose an item to inspect it.')}</p>
             : (() => {
@@ -292,13 +294,6 @@ export function DockPanelMarket({
           type="button"
         >
           {word(locale, 'Đổi 10 bạc → 1 vàng', 'Exchange 10 silver → 1 gold')}
-        </button>
-        <button
-          disabled={game.terminal || encounterLocked || game.player.locationId !== 'market' || game.player.gold < 10}
-          onClick={() => onAction({ kind: 'convert_currency', from: 'gold', qty: 1 })}
-          type="button"
-        >
-          {word(locale, 'Đổi 10 vàng → 1 linh thạch', 'Exchange 10 gold → 1 spirit stone')}
         </button>
       </div>
       <div className="shop-list">
@@ -570,51 +565,22 @@ export function DockPanelPeople({
         ? <p className="muted">{word(locale, 'Chỉ có gió trả lời.', 'Only the wind answers.')}</p>
         : (
           <div className="npc-gallery">
-            {localNpcs.map((npc) => {
-              // Cưỡng đoạt (Issue #19): pressure the temperamental opposites.
-              // Plunder and back_off are each one-shot per NPC per run.
-              const coercible = coercionFor(npc.id) !== undefined
-              const coerced = game.flags[FLAG_COERCED(npc.id)] === true
-              const backedOff = game.flags[FLAG_COERCED_BACKOFF(npc.id)] === true
-              return (
-                <article className={`npc-portrait-card ${actionKind === 'talk' ? 'is-speaking' : ''}`} data-npc-id={npc.id} key={npc.id}>
-                  <img alt={`${word(locale, 'Chân dung', 'Portrait of')} ${localized(locale, npc)}`} src={npcPortraitFor(npc.id)} />
-                  <div>
-                    <strong>{localized(locale, npc)}</strong>
-                    <span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span>
-                    <button
-                      disabled={game.terminal || encounterLocked}
-                      onClick={() => { onCloseJournal(); onAction({ kind: 'talk', npcId: npc.id }) }}
-                      type="button"
-                    >
-                      {word(locale, 'Nói chuyện', 'Talk')}
-                    </button>
-                    {coercible && (
-                      <div className="coercion-choices">
-                        <button
-                          disabled={game.terminal || encounterLocked || coerced}
-                          onClick={() => { onCloseJournal(); onAction({ kind: 'coerce_npc', npcId: npc.id, approach: 'plunder' }) }}
-                          type="button"
-                        >
-                          {coerced
-                            ? word(locale, 'Cạn kiệt sau một lần cướp', 'Plundered already')
-                            : word(locale, 'Uy hiếp, cưỡng đoạt', 'Intimidate & plunder')}
-                        </button>
-                        <button
-                          disabled={game.terminal || encounterLocked}
-                          onClick={() => { onCloseJournal(); onAction({ kind: 'coerce_npc', npcId: npc.id, approach: 'back_off' }) }}
-                          type="button"
-                        >
-                          {backedOff
-                            ? word(locale, 'Ân huệ đã một lần ban', 'Grace already granted')
-                            : word(locale, 'Hạ tay bỏ qua', 'Back off')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </article>
-              )
-            })}
+            {localNpcs.map((npc) => (
+              <article className={`npc-portrait-card ${actionKind === 'talk' ? 'is-speaking' : ''}`} data-npc-id={npc.id} key={npc.id}>
+                <img alt={`${word(locale, 'Chân dung', 'Portrait of')} ${localized(locale, npc)}`} src={npcPortraitFor(npc.id)} />
+                <div>
+                  <strong>{localized(locale, npc)}</strong>
+                  <span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span>
+                  <button
+                    disabled={game.terminal || encounterLocked}
+                    onClick={() => { onCloseJournal(); onAction({ kind: 'talk', npcId: npc.id }) }}
+                    type="button"
+                  >
+                    {word(locale, 'Nói chuyện', 'Talk')}
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         )}
     </section>
@@ -645,7 +611,7 @@ export function ChronicleFeed({
         {visible.map((line, index) => {
           const absoluteIndex = visibleStartIndex + index
           const kind = chronicleKinds?.[absoluteIndex]
-          const isCombat = kind === 'encounter_started' || kind === 'combat_hit' || kind === 'combat_won' || kind === 'combat_retreated' || kind === 'arena_challenged' || kind === 'arena_floor_cleared' || kind === 'arena_tower_topped'
+          const isCombat = kind === 'encounter_started' || kind === 'combat_hit' || kind === 'combat_won' || kind === 'combat_retreated'
           const isDefend = kind === 'combat_guarded'
           const isTrain = kind === 'trained'
           const colorClass = isCombat ? 'is-combat' : isDefend ? 'is-defend' : isTrain ? 'is-train' : undefined
@@ -656,7 +622,7 @@ export function ChronicleFeed({
               aria-label={ariaLabel}
               className={`${index === chronicle.length - 1 && chronicle.length === chronicleNewAt ? 'is-new ' : ''}${colorClass ?? ''}`.trim()}
               data-kind={kind}
-              key={`${line}-${index}`}
+              key={absoluteIndex}
               ref={index === chronicle.length - 1 ? chronicleEndRef : undefined}
             >
               {line}

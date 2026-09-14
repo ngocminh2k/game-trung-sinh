@@ -177,13 +177,13 @@ describe('deterministic RPG systems', () => {
   })
 
   it('applies crooked circulation’s training benefit and sale cost, then exposes both to the player', () => {
-    const base = newGame('technique-trade-off')
+    const base = { ...newGame('technique-trade-off'), timeOfDay: 'trua' as const }
     const crooked = {
       ...base,
       techniques: { ...base.techniques, crooked_circulation: 1 },
     }
-    expect(applyAction(base, { kind: 'train' }).events).toContainEqual({ type: 'TRAINED', gain: 2, stage: 0 })
-    expect(applyAction(crooked, { kind: 'train' }).events).toContainEqual({ type: 'TRAINED', gain: 3, stage: 0 })
+    expect(applyAction(base, { kind: 'train' }).events).toContainEqual({ type: 'TRAINED', gain: 2, stage: 0, sceneId: 'scene_transmigration' })
+    expect(applyAction(crooked, { kind: 'train' }).events).toContainEqual({ type: 'TRAINED', gain: 3, stage: 0, sceneId: 'scene_transmigration' })
 
     const sale = applyAction(
       at({ ...crooked, inventory: { ...crooked.inventory, spirit_herb: 1 } }, 'market'),

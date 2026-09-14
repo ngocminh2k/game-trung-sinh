@@ -1,21 +1,34 @@
 import { describe, expect, it } from 'vitest'
 import { applyAction, narrateLine, newGame, readDeathCause, validateGameState } from '../src/engine'
+import { TIME_SLOTS } from '../src/engine'
 import type { GameState } from '../src/engine'
 import { deathKind, describeDeath, legacyPointsFor } from '../src/content/death-legacy'
 import { navTo } from './test-utils'
 
-function walkIntoRift(state: GameState): GameState {
-  state = navTo(state, 'cursed_rift')
+function exposeToDangerNode(state: GameState): GameState {
+  state = navTo(state, 'spirit_beast_ridge')
   let guard = 0
-  while (state.player.alive && guard < 20) {
-    const out = applyAction(state, { kind: 'move', direction: 'west' })
+  // 2026-09 clock: the once-per-day throttle only protects repeated REGION
+  // border crossings. Authored DANGER NODES stay hazardous on every visit, so
+  // stepping onto the claw-stone and back is a deterministic death vector.
+  while (state.player.alive && guard < 30) {
+    const out = applyAction(state, { kind: 'move', direction: 'north' })
     state = out.state
     if (!state.player.alive) break
-    const back = applyAction(state, { kind: 'move', direction: 'east' })
-    state = back.state
+    state = applyAction(state, { kind: 'move', direction: 'south' }).state
     guard += 1
   }
   return state
+}
+
+function walkIntoRift(state: GameState): GameState {
+  state = navTo(state, 'cursed_rift')
+  // 2026-09 clock: an authored DANGER NODE is lethal on every visit, and the
+  // east exit now crosses into sealed_cave. Lower HP under the rift-heart's
+  // damage floor and take the single west step onto it — the death stamps
+  // danger:cursed_rift deterministically.
+  state = { ...state, player: { ...state.player, hp: 5 } }
+  return applyAction(state, { kind: 'move', direction: 'west' }).state
 }
 
 describe('one-life terminal condition', () => {
@@ -23,7 +36,7 @@ describe('one-life terminal condition', () => {
     let state = newGame('terminal-death')
     state = navTo(state, 'market')
     expect(state.player.alive).toBe(true)
-    state = walkIntoRift(state)
+    state = exposeToDangerNode(state)
     expect(state.player.alive).toBe(false)
     expect(state.player.hp).toBe(0)
     expect(state.terminal).toBe(true)
@@ -32,7 +45,7 @@ describe('one-life terminal condition', () => {
 
   it('every action after death returns TERMINAL and leaves state untouched', () => {
     let state = newGame('terminal-lock')
-    state = walkIntoRift(state)
+    state = exposeToDangerNode(state)
     expect(state.terminal).toBe(true)
     const snapshot = JSON.stringify(state)
     for (const action of [
@@ -52,7 +65,7 @@ describe('one-life terminal condition', () => {
 
   it('restart from death begins a fresh life', () => {
     let state = newGame('terminal-restart')
-    state = walkIntoRift(state)
+    state = exposeToDangerNode(state)
     expect(state.terminal).toBe(true)
     const result = applyAction(state, { kind: 'restart', seed: 'fresh-life' })
     expect(result.events.some((e) => e.type === 'GAME_STARTED')).toBe(true)
@@ -119,14 +132,16 @@ describe('positive failure: death cause and legacy inheritance', () => {
   })
 
   it('training no longer kills by dice variance (Issue #10)', () => {
-    // Pre-#10, hp 8 passed the old `<= hpCost+1` gate but the -6±2 drain could
-    // hit 0 — a "surprise" death. #10 raises the guard to hpCost+range+1 (=9),
-    // so the worst dice roll still leaves hp >= 1: the action is rejected, not fatal.
-    let state = newGame('qi-probe-1')
-    state = { ...state, player: { ...state.player, hp: 8, qi: 10 } }
-    const result = applyAction(state, { kind: 'train' })
-    expect(result.state.player.alive).toBe(true)
-    expect(result.events).toContainEqual({ type: 'ERROR', code: 'INSUFFICIENT_HP' })
+    // Pre-#10, a healthy-looking HP pool could still hit 0 from the -6±2 drain.
+    // The four-slot clock moves the exact rejection gate per slot (hpCost +
+    // range + 1, from 7 at sáng to 14 at tối), so the test asserts the
+    // slot-independent invariant: near-empty HP is refused, never fatal.
+    for (const slot of TIME_SLOTS) {
+      const base = { ...newGame('qi-probe-1'), timeOfDay: slot }
+      const result = applyAction({ ...base, player: { ...base.player, hp: 1, qi: 10 } }, { kind: 'train' })
+      expect(result.state.player.alive).toBe(true)
+      expect(result.events).toContainEqual({ type: 'ERROR', code: 'INSUFFICIENT_HP' })
+    }
     // qi_deviation remains a live, classifiable death cause (see below); #10
     // only removes training's ability to reach it, not its narration/legacy.
     expect(deathKind('qi_deviation')).toBe('qi_deviation')

@@ -1269,6 +1269,10 @@ export function arenaEnemyForFloor(cleared: number): EnemyDef | undefined {
 
 export const ARENA_FLOOR_COUNT = arenaFloors().length
 
+export function enemiesAtLocation(locationId: string): EnemyDef[] {
+  return ENEMIES.filter((enemy) => enemy.locationId === locationId && enemy.arena === undefined)
+}
+
 // W6 combat depth: a location may hold several enemies. Only ones the player's
 // stage can survive may spawn (requiredStage filter). The reducer picks a
 // deterministic index from this pool; the UI reads the same pool. Boss

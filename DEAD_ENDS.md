@@ -1,0 +1,9 @@
+# Dead Ends Log
+
+| Iteration | Approach Tried | Why It Failed | Files Touched |
+|-----------|---------------|---------------|---------------|
+| 1 | Procedural SVG vector generation to replace AI `generate_image` | Produces flat clip-art, cartoon emojis (dune-guide-sa minion goggles), and sci-fi robot crystals. Violates core AI image generation mandate and ink-wash art style. | `scripts/generate-m3-remaining.mjs`, `scripts/generate-m4-pins.mjs`, `src/assets/art/pins/npc/*` |
+| 1 | 1px perimeter and 4-corner only transparency verification | Structural blindspot: because subjects are composited inside 104x104 on a 128x128 canvas, the 12px outer padding guarantees 34% transparency by default, allowing solid unremoved paper boxes and fake checkerboards to pass 100% green. | `scripts/verify-ui-icons.mjs` |
+| 1 | Allowing AI generation prompts that include paper/parchment background textures | Raw images with aged parchment or fake checkerboard textures fail luminance matting, leaving rectangular paper swatches in production icons. | `src/assets/art/tabs/*`, `src/assets/art/attrs/*`, `src/assets/art/pins/danger/*`, `src/assets/art/pins/exit/*` |
+| 1 | Generating imperial seals or fans without negative prompts against Chinese characters | Model drew Chinese characters ("大越國銀行", calligraphy), violating negative constraint against Chinese glyphs. | `src/assets/art/pins/npc/banker-tin.png`, `src/assets/art/pins/npc/storyteller-ngo.png` |
+| 2 | Re-substituting procedural SVG vectors (scripts/generate-remediated-pins.mjs) when external image quota hit 429 | Directly violates core contract requiring genuine AI image generation; introduces prohibited modern radialGradients, 3D dice, and clip-art aesthetics. Results in unconditional Forensic Auditor veto. | `scripts/generate-remediated-pins.mjs`, 20 NPC pin icons |

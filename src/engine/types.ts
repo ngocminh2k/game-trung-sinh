@@ -1,5 +1,8 @@
 export type Locale = 'vi' | 'en'
 
+/** One beat of the four-slot day clock (see src/engine/time.ts). */
+export type TimeOfDay = 'sang' | 'trua' | 'chieu' | 'toi'
+
 /** Combat-pressure preset. 'balanced' reproduces the pre-menu engine rules
  *  exactly; 'story' softens enemy output; 'hard' sharpens it. Never feeds RNG. */
 export type GameDifficulty = 'story' | 'balanced' | 'hard'
@@ -99,6 +102,8 @@ export interface GameState {
   seed: string
   rng: number
   day: number
+  /** Four-slot day clock ('sang'..'toi'); optional so older saves stay valid. */
+  timeOfDay?: TimeOfDay
   player: PlayerState
   /** Name-memory ids the player has unlocked (T10 data). Optional so older
    *  saves stay valid; the schema default fills [] on parse. */
@@ -239,6 +244,8 @@ export type GameEvent =
   | { type: 'MOVED'; from: string; to: string }
   | { type: 'NODE_REACHED'; nodeId: string; nameVi: string; nameEn: string; kind: 'npc' | 'event' | 'exit' | 'danger' }
   | { type: 'DAY_PASSED'; day: number; weather?: { season: string; kind: string; id: string } }
+  /** Four-slot day clock tick (time.ts): advances sang→trua→chieu→toi. */
+  | { type: 'TIME_ADVANCED'; timeOfDay: TimeOfDay; day: number }
   | { type: 'RESTED'; hpHeal: number }
   | { type: 'TRAINED'; gain: number; stage: number; sceneId?: string }
   | { type: 'MINOR_REALM_ADVANCED'; stage: number; realmLevel: number; pointsGranted: number; skillPointsGranted: number }
@@ -296,7 +303,10 @@ export type GameEvent =
   | { type: 'ACHIEVEMENT_UNLOCKED'; achievementId: string }
   | { type: 'ENDING'; endingId: string }
   | { type: 'CORRECTION_REJECTED'; count: number }
-  | { type: 'ERROR'; code: ErrorCode }
+  // `at` names the location the action requires; `context` is the attempted
+  // action kind — NOT_AT_LOCATION gates a dozen flows, and the narrator needs
+  // both to say WHERE to go instead of a shrug.
+  | { type: 'ERROR'; code: ErrorCode; at?: string | undefined; context?: ConcreteAction['kind'] | undefined }
 
 export interface TransitionResult {
   state: GameState

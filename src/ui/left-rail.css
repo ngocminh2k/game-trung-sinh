@@ -1,0 +1,373 @@
+/* =========================================================================
+ *  left-rail.css — Co-located styling for LeftRailTabContent
+ *  (Item slots, item popover modal, system chat panel, quests, objective)
+ * ========================================================================= */
+
+/* Item slot icons & glyphs */
+.proto-slot__icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 3px;
+  display: block;
+  pointer-events: none;
+}
+
+.proto-slot__glyph {
+  font-family: var(--display, serif);
+  font-size: 14px;
+  color: var(--gold, oklch(78% 0.13 85));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.proto-slot.proto-slot--filled {
+  cursor: pointer;
+  border-style: solid;
+  background: oklch(78% 0.13 85 / 0.18);
+  color: var(--ink, oklch(18% 0.02 60));
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.proto-slot.proto-slot--filled:hover,
+.proto-slot.proto-slot--filled:focus-visible {
+  border-color: var(--wine, oklch(34% 0.10 25));
+  background: oklch(78% 0.13 85 / 0.28);
+  outline: none;
+}
+
+/* Item hover info popover */
+.proto-item-popover {
+  position: fixed;
+  z-index: 1000;
+  width: 220px;
+  background: var(--surface, oklch(97% 0.015 80));
+  border: 1px solid var(--border, oklch(82% 0.03 70));
+  box-shadow: 0 12px 32px -4px oklch(15% 0.04 40 / 0.35);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+  animation: proto-pop 0.18s ease;
+}
+
+.proto-item-popover__header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.proto-item-popover__thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: oklch(92% 0.02 80);
+  border: 1px solid var(--border, oklch(82% 0.03 70));
+  object-fit: contain;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.proto-item-popover__thumb--glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display, serif);
+  font-size: 18px;
+  color: var(--wine, oklch(34% 0.10 25));
+}
+
+.proto-item-popover__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.proto-item-popover__name {
+  font-family: var(--display, serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wine, oklch(34% 0.10 25));
+  line-height: 1.2;
+}
+
+.proto-item-popover__qty {
+  font-size: 11px;
+  color: var(--muted, oklch(48% 0.03 50));
+  font-family: var(--mono, monospace);
+}
+
+.proto-item-popover__desc {
+  font-size: 11px;
+  color: var(--fg, oklch(22% 0.04 40));
+  line-height: 1.4;
+  border-top: 1px solid oklch(82% 0.03 70 / 0.5);
+  padding-top: 6px;
+}
+
+.proto-item-popover__effects {
+  font-size: 10px;
+  font-family: var(--mono, monospace);
+  color: var(--accent, oklch(56% 0.10 175));
+  background: oklch(56% 0.10 175 / 0.08);
+  padding: 3px 6px;
+  border-radius: 3px;
+}
+
+.proto-item-popover__use-btn {
+  margin-top: 2px;
+  background: var(--accent, oklch(56% 0.10 175));
+  border: 0;
+  color: oklch(14% 0.02 60);
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  letter-spacing: 0.04em;
+  transition: background 0.15s;
+}
+
+.proto-item-popover__use-btn:hover {
+  background: oklch(60% 0.11 175);
+}
+
+/* =========================================================================
+ *  Hệ thống Tab (System Chat + Objective + Quests)
+ * ========================================================================= */
+
+.proto-system-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.proto-system-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--surface, oklch(97% 0.015 80));
+  border: 1px solid var(--border, oklch(82% 0.03 70));
+  border-radius: 6px;
+}
+
+.proto-system-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--wine, oklch(34% 0.10 25));
+  color: var(--gold, oklch(78% 0.13 85));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display, serif);
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.proto-system-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.proto-system-name {
+  font-family: var(--display, serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wine, oklch(34% 0.10 25));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.proto-system-status {
+  font-size: 10px;
+  color: var(--muted, oklch(48% 0.03 50));
+}
+
+.proto-system-chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 8px;
+  background: oklch(94% 0.02 80);
+  border: 1px solid var(--border, oklch(82% 0.03 70));
+  border-radius: 6px;
+}
+
+.proto-system-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.proto-system-msg--system {
+  background: var(--surface, oklch(97% 0.015 80));
+  border-left: 3px solid var(--wine, oklch(34% 0.10 25));
+  color: var(--fg, oklch(22% 0.04 40));
+}
+
+.proto-system-msg--player {
+  background: oklch(56% 0.10 175 / 0.12);
+  border-right: 3px solid var(--accent, oklch(56% 0.10 175));
+  color: var(--fg, oklch(22% 0.04 40));
+  align-self: flex-end;
+  max-width: 90%;
+}
+
+.proto-system-msg__sender {
+  font-size: 9px;
+  font-family: var(--mono, monospace);
+  color: var(--muted, oklch(48% 0.03 50));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.proto-system-msg__text {
+  margin: 0;
+  word-break: break-word;
+}
+
+.proto-system-msg__quest-btn {
+  margin-top: 4px;
+  align-self: flex-start;
+  background: var(--accent, oklch(56% 0.10 175));
+  border: 0;
+  color: oklch(14% 0.02 60);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.proto-system-input-form {
+  display: flex;
+  gap: 6px;
+}
+
+.proto-system-input-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  border: 1px solid var(--border, oklch(82% 0.03 70));
+  border-radius: 4px;
+  background: var(--surface, oklch(97% 0.015 80));
+  color: var(--fg, oklch(22% 0.04 40));
+}
+
+.proto-system-input-form input:focus {
+  outline: none;
+  border-color: var(--wine, oklch(34% 0.10 25));
+}
+
+.proto-system-input-form button {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--wine, oklch(34% 0.10 25));
+  color: var(--gold, oklch(78% 0.13 85));
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.proto-system-input-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.proto-system-section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  background: var(--surface, oklch(97% 0.015 80));
+  border: 1px solid var(--border, oklch(82% 0.03 70));
+  border-radius: 6px;
+}
+
+.proto-system-section-title {
+  font-family: var(--display, serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wine, oklch(34% 0.10 25));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.proto-system-objective-text {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--fg, oklch(22% 0.04 40));
+}
+
+.proto-system-quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.proto-system-quest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 8px;
+  background: oklch(94% 0.02 80);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.proto-system-quest-name {
+  font-weight: 600;
+  color: var(--wine, oklch(34% 0.10 25));
+}
+
+.proto-system-quest-step {
+  font-size: 10px;
+  color: var(--muted, oklch(48% 0.03 50));
+  line-height: 1.3;
+}
+
+.proto-system-quest-btn {
+  margin-top: 4px;
+  align-self: flex-start;
+  background: var(--accent, oklch(56% 0.10 175));
+  border: 0;
+  color: oklch(14% 0.02 60);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.proto-system-quest-btn:hover {
+  background: oklch(60% 0.11 175);
+}
+
+.proto-system-empty {
+  font-size: 11px;
+  color: var(--muted, oklch(48% 0.03 50));
+  font-style: italic;
+}

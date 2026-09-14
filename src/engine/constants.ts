@@ -22,10 +22,12 @@ export const ATTRIBUTE_POINTS_PER_BREAKTHROUGH = 2
 // one 20-tier branch (sum ≈ 45), as the skill-tree header calibrates.
 export const SKILL_POINTS_PER_BREAKTHROUGH = 1
 
-// Each row is one major realm. Rows 0–1 are halved (rounded up) so the early
-// game still advances without dead turns; rows 2+ keep the original cadence.
+// Each row is one major realm. Row 0 is no longer halved (2026-09 clock
+// rebalance): a broken root should *feel* broken, so the first nine minor
+// realms take 2–4 training sessions each instead of one session each.
+// Rows 1+ keep the cadence that shipped with the design review.
 export const MINOR_REALM_THRESHOLDS = [
-  [2, 2, 2, 2, 2, 2, 2, 2, 2],
+  [4, 4, 5, 5, 6, 6, 7, 7, 8],
   [3, 3, 4, 4, 4, 5, 5, 6, 6],
   [9, 10, 11, 12, 13, 14, 15, 16, 17],
   [17, 18, 19, 20, 21, 22, 23, 24, 25],
@@ -99,6 +101,7 @@ export function newGame(seed: string, options: NewGameOptions = {}): GameState {
     seed,
     rng: hashSeed(seed),
     day: START_DAY,
+    timeOfDay: 'sang',
     player: {
       hp: MAX_HP,
       qi: MAX_QI,

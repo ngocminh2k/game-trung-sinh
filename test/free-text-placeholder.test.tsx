@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { newGame } from '../src/engine'
@@ -48,7 +49,9 @@ describe('free-text placeholder cycling (P1-7)', () => {
           storyOpen
         />,
       )
-      const match = markup.match(/placeholder="([^"]*)"/)
+      // ProtoShell's topbar chat input also carries a placeholder, so scope the
+      // assertion to the story panel's free-command field.
+      const match = markup.match(/id="free-command"[^>]*?placeholder="([^"]*)"/)
       expect(match).not.toBeNull()
       expect(examples[locale]).toContain(match![1])
     }

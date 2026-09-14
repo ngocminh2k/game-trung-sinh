@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { newGame } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
@@ -28,9 +28,13 @@ describe('S07 System UI', () => {
       />,
     )
 
-    expect(screen.getByTestId('system-panel').textContent).toContain('【Battle System】')
-    expect(screen.getAllByText(/Difficulty/)).toHaveLength(6)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Accept quest' })[0]!)
+    // The merged shell keeps the System pool in the .system-panel HUD card (the
+    // proto-shell left rail has a separate 契 tab); scope to it so the counts below
+    // stay meaningful.
+    const panel = within(screen.getByTestId('system-panel'))
+    expect(panel.getByText('【Battle System】')).toBeTruthy()
+    expect(panel.getAllByText(/Difficulty/)).toHaveLength(6)
+    fireEvent.click(panel.getAllByRole('button', { name: 'Accept quest' })[0]!)
     expect(onAction).toHaveBeenCalledWith({ kind: 'system_accept_quest', questId: 'q_sys_battle_01' })
   })
 
@@ -48,8 +52,11 @@ describe('S07 System UI', () => {
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Battle System' }), { target: { value: 'offer' } })
     fireEvent.click(screen.getByRole('button', { name: 'Talk' }))
-    await waitFor(() => expect(screen.getByText('Quest offer')).toBeTruthy())
-    fireEvent.click(screen.getByText('Quest offer').querySelector('button')!)
+    // The merged shell renders a chat-offered quest as a `role="status"` line inside
+    // .system-chat, with the Accept button nested in it; there is no dedicated testid.
+    const reply = await screen.findByText('Quest offer')
+    expect(reply.getAttribute('role')).toBe('status')
+    fireEvent.click(within(reply).getByRole('button', { name: 'Accept quest' }))
     expect(onAction).toHaveBeenCalledWith({ kind: 'system_accept_quest', questId: 'q_sys_battle_01' })
     expect(screen.queryByText('Quest offer')).toBeNull()
   })

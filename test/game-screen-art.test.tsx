@@ -52,7 +52,10 @@ describe('illustrated RPG UI', () => {
     expect(bagTab.getAttribute('aria-label')).toMatch(/Túi đồ & kho: \d+/)
     expect(bagTab.querySelector('.dock-tab-count')?.getAttribute('aria-hidden')).toBe('true')
     expect(screen.getByRole('tabpanel').getAttribute('id')).toBe('dock-panel-inventory')
-    expect(within(screen.getByTestId('inventory-inspector')).getByRole('heading')).toBeTruthy()
+    // pr4 inspector carries a section title heading above the item-name heading.
+    const headings = within(screen.getByTestId('inventory-inspector')).getAllByRole('heading')
+    expect(headings.length).toBeGreaterThan(0)
+    expect(headings[0]?.textContent).toBe('Chi tiết vật phẩm')
     expect(screen.queryByRole('heading', { name: 'Nhiệm vụ' })).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Đạo đồ & trang bị' })).toBeNull()
 
@@ -175,15 +178,16 @@ describe('illustrated RPG UI', () => {
   it('uses destination artwork only on exit nodes without losing map semantics', () => {
     renderScreen()
 
-    const exits = document.querySelectorAll('.map-node.node-exit')
+    // pr4 illustrated map: nodes are .map-pin buttons keyed by kind class.
+    const exits = document.querySelectorAll('.map-pin--exit')
     expect(exits.length).toBeGreaterThan(0)
     expect(document.querySelectorAll('.map-exit-icon')).toHaveLength(exits.length)
-    expect(document.querySelectorAll('.map-node:not(.node-exit) .map-exit-icon')).toHaveLength(0)
+    expect(document.querySelectorAll('.map-pin:not(.map-pin--exit) .map-exit-icon')).toHaveLength(0)
     expect([...exits].every((node) => node.getAttribute('title')?.includes('Lối ra:'))).toBe(true)
     expect(screen.getByText('Lối ra — sang vùng khác')).toBeTruthy()
     expect(within(screen.getByRole('list', { name: 'Các điểm trên bản đồ' })).getByText(/Cổng chợ Vân Tập/)).toBeTruthy()
-    // All authored nodes render their text label on the regional map
-    expect(document.querySelectorAll('.map-node-label').length).toBeGreaterThanOrEqual(exits.length)
+    // Every authored node carries its label text via the pin title attribute.
+    expect(document.querySelectorAll('.map-pin[title]:not([title=""])').length).toBeGreaterThanOrEqual(exits.length)
   })
 
   it('legend entries carry bilingual aria-labels', () => {
@@ -217,39 +221,40 @@ describe('illustrated RPG UI', () => {
   it('renders every map node inside a labelled icon slot with a placeholder glyph', () => {
     renderScreen()
 
-    // Every authored node is a rounded icon slot styled ≥32px and bordered by its kind.
-    const slots = document.querySelectorAll('.map-icon-slot')
+    // pr4 illustrated map: each authored node is a .map-pin button carrying a
+    // kind-styled placeholder glyph instead of the old .map-icon-slot box.
+    const slots = document.querySelectorAll('.map-pin[title]:not([title=""])')
     expect(slots.length).toBeGreaterThan(0)
     for (const slot of slots) {
-      // The slot is styled with the icon-slot box (width/height set in CSS).
-      expect(slot.className).toContain('map-icon-slot')
-      // Each slot carries a placeholder glyph (all kinds have one).
-      expect(slot.querySelector('.map-icon-placeholder')).toBeTruthy()
-      // Non-exit nodes show only the glyph — never artwork.
-      if (!slot.classList.contains('node-exit')) {
+      // Every node pin renders its glyph span.
+      expect(slot.querySelector('.map-pin-glyph')?.textContent).toBeTruthy()
+      // Non-exit nodes show only the glyph — never destination artwork.
+      if (!slot.classList.contains('map-pin--exit')) {
         expect(slot.querySelector('.map-exit-icon')).toBeNull()
       }
-      // Focusable for keyboard (tabIndex 0).
-      expect(slot.getAttribute('tabindex')).toBe('0')
+      // Focusable for keyboard: pins are native buttons (natively tabbable).
+      expect(slot.tagName).toBe('BUTTON')
     }
   })
 
   it('gives every rendered slot a title matching its node kind', () => {
     renderScreen()
 
-    const slots = [...document.querySelectorAll('.map-icon-slot')]
+    const slots = [...document.querySelectorAll('.map-pin[title]:not([title=""])')]
     expect(slots.length).toBeGreaterThan(0)
     for (const slot of slots) {
       const title = slot.getAttribute('title') ?? ''
-      const kind = [...slot.classList].find((cls) => cls.startsWith('node-'))
-      if (kind === 'node-exit') {
+      const kind = [...slot.classList].find((cls) => cls.startsWith('map-pin--'))
+      if (kind === 'map-pin--exit') {
         expect(title).toContain('Lối ra')
-      } else if (kind === 'node-npc') {
+      } else if (kind === 'map-pin--npc') {
         expect(title).toContain('Người')
-      } else if (kind === 'node-danger') {
+      } else if (kind === 'map-pin--danger') {
         expect(title).toContain('Hiểm họa')
-      } else if (kind === 'node-event') {
+      } else if (kind === 'map-pin--event') {
         expect(title).toContain('Sự kiện')
+      } else {
+        expect(title).toBe('')
       }
     }
   })
@@ -257,9 +262,12 @@ describe('illustrated RPG UI', () => {
   it('orients exploration around the player’s current cell', () => {
     renderScreen()
 
-    expect(screen.getByTestId('map-current-cell').textContent).toContain('Nhà cũ của ngươi')
+    // Both the legacy world-map overlay and the proto-shell overlay render
+    // map-current-cell; the legacy one carries the cell-level label.
+    const overlays = screen.getAllByTestId('map-current-cell')
+    expect(overlays.some((el) => (el.textContent ?? '').includes('Nhà cũ của ngươi'))).toBe(true)
     expect(screen.getByRole('img', { name: 'La bàn: Bắc ở phía trên' })).toBeTruthy()
-    expect(screen.getByTestId('player-map-marker').className).toContain('player-map-marker')
+    expect(screen.getAllByTestId('player-marker').length).toBeGreaterThan(0)
   })
 
   it('uses ink flourishes and a vermilion seal for earned deeds', () => {
@@ -303,39 +311,36 @@ describe('illustrated RPG UI', () => {
   it('renders tooltip on focus with node name and kind', () => {
     renderScreen()
 
-    const slots = [...document.querySelectorAll('.map-icon-slot')]
-    expect(slots.length).toBeGreaterThan(0)
-    const firstSlot = slots[0]! as HTMLElement
-    // The tooltip sibling exists in the DOM but is hidden by CSS until hover/focus.
-    const cell = firstSlot.closest('.map-cell') as HTMLElement
-    const tooltip = cell.querySelector('.map-node-tooltip') as HTMLElement
-    expect(tooltip).toBeTruthy()
-    expect(tooltip.getAttribute('role')).toBe('tooltip')
-    expect(tooltip.getAttribute('data-testid')).toBe('map-node-tooltip')
-    // Tooltip text includes the node name and kind label (from map.tooltip.*).
-    const text = tooltip.textContent ?? ''
-    expect(text.length).toBeGreaterThan(0)
-    // All authored tooltips carry one of the four kind labels (Nhan vat / Su kien / Loi ra / Hiem hoa).
-    const kindLabel = ['Nhân vật', 'Sự kiện', 'Lối ra', 'Hiểm họa'].some((label) => text.includes(label))
-    expect(kindLabel).toBe(true)
-    // Trigger focus to satisfy the keyboard-reachable contract.
-    firstSlot.focus()
-    expect(document.activeElement).toBe(firstSlot)
+    // pr4/proto map: hover-and-focus tooltips are .pin-tip spans inside pins.
+    const tips = [...document.querySelectorAll<HTMLElement>('.proto-map [role="tooltip"]')]
+    expect(tips.length).toBeGreaterThan(0)
+    for (const tip of tips) {
+      const text = tip.textContent ?? ''
+      expect(text.length).toBeGreaterThan(0)
+      // Each tooltip carries the node name plus a kind line (event/npc/exit).
+      expect(tip.querySelector('strong')?.textContent).toBeTruthy()
+      expect(tip.querySelector('.kind')?.textContent).toBeTruthy()
+    }
+    // Keyboard-reachable: the pin owning a tooltip is a focusable button.
+    const firstPin = tips[0]!.closest('button') as HTMLElement
+    firstPin.focus()
+    expect(document.activeElement).toBe(firstPin)
   })
 
   it('fogs cells other than the current location', () => {
     renderScreen()
 
-    const cells = [...document.querySelectorAll('.regional-map .map-cell')]
+    // pr4 pins replace the 49-cell grid; fog semantics ride on data-visited.
+    const cells = [...document.querySelectorAll('.world-map .map-pin')]
     expect(cells.length).toBeGreaterThan(1)
     // The current cell carries data-visited="true"; all others do not.
     const visitedCells = cells.filter((c) => c.getAttribute('data-visited') === 'true')
     const foggedCells = cells.filter((c) => c.getAttribute('data-visited') !== 'true')
     expect(visitedCells.length).toBe(1)
     expect(foggedCells.length).toBe(cells.length - 1)
-    // The fogged cell carries the player's marker (since the player is the current cell's content).
-    const playerCell = cells.find((c) => c.querySelector('.player-map-marker') !== null)
-    expect(playerCell).toBeTruthy()
-    expect(playerCell?.getAttribute('data-visited')).toBe('true')
+    // The player marker lives in the same pin layer as the visited cell.
+    const marker = screen.getAllByTestId('player-marker').find((el) => el.classList.contains('player-pin'))
+    expect(marker).toBeTruthy()
+    expect(marker?.parentElement).toBe(visitedCells[0]?.parentElement)
   })
 })

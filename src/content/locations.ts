@@ -254,7 +254,7 @@ export const REGION_MAPS: RegionMapDef[] = [
     { x: 5, y: 3, terrain: 'road', node: node('village-sect-exit', 'Sơn môn Vân Ẩn', 'Hidden Cloud Sect road', 'exit'), exitTo: 'sect' },
     { x: 3, y: 5, terrain: 'road', node: node('village-herb-exit', 'Bờ ruộng linh thảo', 'Herb terrace path', 'exit'), exitTo: 'herb_field' },
     { x: 5, y: 4, terrain: 'road', node: node('village-moon-exit', 'Đường ven Nguyệt Ảnh Hồ', 'Moonshadow Lake shore road', 'exit'), exitTo: 'moon_lake' },
-    { x: 5, y: 5, terrain: 'water', node: node('village-well', 'Giếng làng', 'Village well', 'event') },
+    { x: 5, y: 5, terrain: 'plain', node: node('village-well', 'Giếng làng', 'Village well', 'event') },
   ]),
   region('market', 'road', { x: 4, y: 3 }, { village: { x: 4, y: 3 }, thousand_herbs_valley: { x: 4, y: 4 } }, [
     ...rim('mountain'),
@@ -273,7 +273,6 @@ export const REGION_MAPS: RegionMapDef[] = [
     { x: 4, y: 3, terrain: 'road', node: node('sect-training', 'Diễn võ trường', 'Training court', 'event') },
     { x: 2, y: 2, terrain: 'road', node: node('sect-hall', 'Chính điện Vân Ẩn', 'Hidden Cloud hall', 'npc') },
     { x: 2, y: 4, terrain: 'road', node: node('sect-storehouse', 'Tàng vật các', 'Storehouse', 'event') },
-    { x: 3, y: 4, terrain: 'mountain' },
     { x: 5, y: 4, terrain: 'forest', node: node('sect-meditation', 'Vách tĩnh tâm', 'Meditation cliff', 'event') },
   ]),
   region('herb_field', 'plain', { x: 3, y: 3 }, { village: { x: 3, y: 3 } }, [
@@ -351,7 +350,7 @@ export const REGION_MAPS: RegionMapDef[] = [
     { x: 3, y: 4, terrain: 'road', node: node('moon-village-exit', 'Đường về Thanh Mộc', 'Trail to Greenwood', 'exit'), exitTo: 'village' },
     { x: 3, y: 3, terrain: 'plain', node: node('moon-reflection', 'Mặt nước phản nguyệt', 'Moon-reflecting water', 'event') },
     { x: 2, y: 2, terrain: 'plain', node: node('moon-fisher', 'Ngư ông áo xanh', 'Blue-robed fisher', 'npc') },
-    { x: 5, y: 3, terrain: 'water', node: node('moon-lotus', 'Bãi sen đêm', 'Night lotus shoal', 'event') },
+    { x: 5, y: 3, terrain: 'plain', node: node('moon-lotus', 'Bãi sen đêm', 'Night lotus shoal', 'event') },
   ]),
   region('bone_ash_ruins', 'plain', { x: 3, y: 4 }, { cursed_rift: { x: 3, y: 4 } }, [
     ...rim('mountain'),

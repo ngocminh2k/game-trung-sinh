@@ -38,12 +38,14 @@ describe('P0-4: bilingual aria-label cleanup', () => {
       <GameScreen chronicle={[]} game={newGame('aria-cleanup-dingbats')} locale="vi" onAction={() => undefined} onLocaleChange={() => undefined} />,
     )
 
-    const gold = document.querySelector('[data-testid="currency-gold"]') as HTMLElement
-    const silver = document.querySelector('[data-testid="currency-silver"]') as HTMLElement
-    const spirit = document.querySelector('[data-testid="currency-spirit-stones"]') as HTMLElement
-    expect(gold.querySelector('[aria-hidden="true"]')?.textContent).toBe('◎')
-    expect(silver.querySelector('[aria-hidden="true"]')?.textContent).toBe('◉')
-    expect(spirit.querySelector('[aria-hidden="true"]')?.textContent).toBe('✦')
+    // Proto-shell renders a second set of currency chips in the topbar whose
+    // dingbats are bare text; assert the accessible (aria-hidden) variant exists.
+    const dingbatHidden = (testid: string, glyph: string): boolean =>
+      [...document.querySelectorAll<HTMLElement>(`[data-testid="${testid}"]`)]
+        .some((host) => host.querySelector('[aria-hidden="true"]')?.textContent === glyph)
+    expect(dingbatHidden('currency-gold', '◎')).toBe(true)
+    expect(dingbatHidden('currency-silver', '◉')).toBe(true)
+    expect(dingbatHidden('currency-spirit-stones', '✦')).toBe(true)
   })
 
   it('keyboard hint <kbd> tags carry aria-hidden', () => {

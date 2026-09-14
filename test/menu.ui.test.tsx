@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../src/App'
@@ -92,7 +93,12 @@ describe('App menu phases', () => {
     expect(screen.getByTestId('game-screen')).toBeTruthy()
     expect(screen.queryByTestId('narration-panel')).toBeNull()
     expect(screen.getByTestId('location-label').textContent).toBe('Làng Thanh Mộc')
-    expect(screen.getByText('Ngày 1')).toBeTruthy()
+    // The proto topbar renders the day counter split across elements:
+    // <span class="proto-topbar__stat">Ngày <span class="v">1</span></span>
+    const dayStat = screen.getAllByText((_, element) =>
+      element?.classList?.contains('proto-topbar__stat') === true
+      && (element?.textContent ?? '').replace(/\s+/g, ' ').trim() === 'Ngày 1')
+    expect(dayStat).toHaveLength(1)
     // The System panel exists for the chosen System.
     expect(screen.getByText('Hệ Thống Chiến Đấu')).toBeTruthy()
     // New Game wrote a save into the slot store.

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "01-initial",
+    "file": "screenshots\\runtime-r11-01-initial.png",
+    "note": "first paint after navigation"
+  },
+  {
+    "name": "02-main-menu",
+    "file": "screenshots\\runtime-r11-02-main-menu.png",
+    "note": "main menu"
+  },
+  {
+    "name": "03-newgame",
+    "file": "screenshots\\runtime-r11-03-newgame.png",
+    "note": "new game setup (system grid, difficulty)"
+  },
+  {
+    "name": "04-after-confirm",
+    "file": "screenshots\\runtime-r11-04-after-confirm.png",
+    "note": "after confirm new game"
+  },
+  {
+    "name": "05-gameplay",
+    "file": "screenshots\\runtime-r11-05-gameplay.png",
+    "note": "initial gameplay after press-to-begin"
+  },
+  {
+    "name": "06-after-move",
+    "file": "screenshots\\runtime-r11-06-after-move.png",
+    "note": "after ArrowLeft x2"
+  },
+  {
+    "name": "07-journal",
+    "file": "screenshots\\runtime-r11-07-journal.png",
+    "note": "journey journal open"
+  },
+  {
+    "name": "08-codex-or-system",
+    "file": "screenshots\\runtime-r11-08-codex-or-system.png",
+    "note": "tried to open side panel (opened=false)"
+  },
+  {
+    "name": "09-encounter",
+    "file": "screenshots\\runtime-r11-09-encounter.png",
+    "note": "after Start encounter click"
+  },
+  {
+    "name": "13-after-reload",
+    "file": "screenshots\\runtime-r11-13-after-reload.png",
+    "note": "after reload (before clicking load)"
+  },
+  {
+    "name": "14-load-menu",
+    "file": "screenshots/runtime-r11-14-load-menu.png",
+    "note": "load menu"
+  },
+  {
+    "name": "15-after-load",
+    "file": "screenshots/runtime-r11-15-after-load.png",
+    "note": "after load + begin"
+  }
+]

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Action } from '../src/engine'
 import { GameScreen } from '../src/ui/GameScreen'
@@ -25,8 +25,10 @@ function renderScreen(onAction: (action: Action) => void) {
   )
 }
 
+// The proto-shell adds its own command bar ("Thử Vận"), so scope the query to the
+// story panel's free-text form — the one that carries the AI suggestion state.
 function submitButton(): HTMLButtonElement {
-  return screen.getByRole('button', { name: /Thử vận|Đang lắng nghe…/ }) as HTMLButtonElement
+  return within(screen.getByTestId('narration-panel')).getByRole('button', { name: /Thử vận|Đang lắng nghe…/ }) as HTMLButtonElement
 }
 
 function typeAndSubmit(utterance: string): void {

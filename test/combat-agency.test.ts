@@ -108,7 +108,7 @@ describe('encounter decision layer (design review 2026-08, Phase 1)', () => {
 
   it('rejects retreat outside an encounter', () => {
     const result = applyAction(newGame('retreat-nowhere'), { kind: 'combat_retreat' })
-    expect(result.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION' }])
+    expect(result.events).toEqual([{ type: 'ERROR', code: 'NOT_AT_LOCATION', context: 'combat_retreat' }])
   })
 
   it('understands retreat in free text, in both languages', () => {

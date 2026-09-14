@@ -87,9 +87,9 @@ export function systemNotificationText(entry: { id: string; vars: Record<string,
 export function mapNodeGlyph(kind: 'npc' | 'event' | 'exit' | 'danger'): string {
   switch (kind) {
     case 'npc': return '人'
-    case 'event': return '缘'
+    case 'event': return '變'
     case 'danger': return '凶'
-    case 'exit': return '关'
+    case 'exit': return '關'
   }
 }
 

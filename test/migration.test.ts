@@ -39,8 +39,12 @@ describe('migrateGameState', () => {
     const player = raw['player'] as Record<string, unknown>
     delete player['silver']
     delete player['spiritStones']
+    // pr/4's time-of-day clock is an additive top-level field: a pre-clock save
+    // must get the schema default rather than fail to parse.
+    delete raw['timeOfDay']
     const migrated = migrateGameState(raw)
     expect(migrated.version).toBe(GAME_STATE_VERSION)
+    expect(migrated.timeOfDay).toBe('sang')
     expect(migrated.player.alive).toBe(true)
     expect(typeof migrated.equipment.weapon === 'string' || migrated.equipment.weapon === null).toBe(true)
     expect(migrated.encounter).toBeNull()
