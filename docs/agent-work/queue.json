@@ -40,10 +40,11 @@
     },
     {
       "id": "e2e-fresh-map-root-cause",
-      "status": "queued",
+      "status": "obsolete",
       "worker": "agy",
       "dependsOn": ["phase4-story-proof-review"],
-      "scope": "e2e/fresh-endings.spec.ts, e2e/debug-map.spec.ts, browser helper/config only",
+      "scope": "e2e/fresh-endings.spec.ts (debug-map.spec.ts deleted in issue #40 Step 5; fresh-endings 12/12 green via spec-endings + Step-2 lift)",
+      "obsoleteReason": "2026-09-15 round 6: root cause was the #40 Step-2 terminal-surface defect (.world-content ≥921px kill), fixed and verified; the scoped diagnostic spec no longer exists.",
       "objective": "Diagnose one fresh-run ending route visibility failure and make the minimal helper or route correction without weakening proof requirements.",
       "acceptance": [
         "Do not inject flags, bypass physical movement, weaken assertions, or change production game rules.",

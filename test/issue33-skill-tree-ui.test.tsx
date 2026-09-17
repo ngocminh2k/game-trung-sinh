@@ -38,7 +38,7 @@ describe('issue 33: the skill tree panel shows the tree', () => {
   })
 
   it('one skill point turns exactly the frontier row into a real button', () => {
-    let game: GameState = { ...newGame('i33-point'), player: { ...newGame('i33-point').player, skillPoints: 1 } }
+    const game: GameState = { ...newGame('i33-point'), player: { ...newGame('i33-point').player, skillPoints: 1 } }
     const markup = render(game)
     expect(markup).toContain('data-testid="skill-unlock-sword_t1"')
     expect(markup).toContain('Lĩnh ngộ')

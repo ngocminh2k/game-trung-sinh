@@ -36,8 +36,11 @@ describe('system-messages data', () => {
 
   it('matches story-canon §5/§8 wording exactly and opens rewards with Đinh!', () => {
     const quest = SYSTEM_MESSAGES.find((m) => m.id === 'sys_quest_loaded')!
-    expect(quest.templateVi).toBe('Nhiệm vụ chính tải xong: {quest}. Hạn: {days} ngày. {objective}')
-    expect(quest.templateEn).toBe('Main quest loaded: {quest}. Time limit: {days} days. {objective}')
+    // P3: neutral wording (side quests are not "nhiệm vụ chính") and no baked
+    // deadline — the reducer prepends "Hạn: N ngày." to {objective} only when
+    // the quest actually declares deadlineDays.
+    expect(quest.templateVi).toBe('Nhiệm vụ tải xong: {quest}. {objective}')
+    expect(quest.templateEn).toBe('Quest loaded: {quest}. {objective}')
     const reward = SYSTEM_MESSAGES.find((m) => m.id === 'sys_reward')!
     expect(reward.templateVi.startsWith('Đinh!')).toBe(true)
     expect(reward.templateEn.startsWith('Ding!')).toBe(true)
@@ -57,16 +60,16 @@ describe('system-messages data', () => {
 })
 
 describe('formatSystemMessage', () => {
-  it('formats quest message with Vi header and correct numbers', () => {
+  it('formats quest message with Vi header, deadline carried by objective', () => {
     expect(
-      formatSystemMessage('sys_quest_loaded', { quest: 'Chuộc danh dự', days: 4, objective: 'Đánh bại Ma Thú Rừng Sương.' }, 'vi'),
-    ).toBe('【Hệ Thống】 Nhiệm vụ chính tải xong: Chuộc danh dự. Hạn: 4 ngày. Đánh bại Ma Thú Rừng Sương.')
+      formatSystemMessage('sys_quest_loaded', { quest: 'Chuộc danh dự', objective: 'Hạn: 4 ngày. Đánh bại Ma Thú Rừng Sương.' }, 'vi'),
+    ).toBe('【Hệ Thống】 Nhiệm vụ tải xong: Chuộc danh dự. Hạn: 4 ngày. Đánh bại Ma Thú Rừng Sương.')
   })
 
-  it('formats with En header and correct numbers', () => {
+  it('formats with En header, deadline carried by objective', () => {
     expect(
-      formatSystemMessage('sys_quest_loaded', { quest: 'Restore honor', days: 4, objective: 'Defeat the Mist Boar.' }, 'en'),
-    ).toBe('【System】 Main quest loaded: Restore honor. Time limit: 4 days. Defeat the Mist Boar.')
+      formatSystemMessage('sys_quest_loaded', { quest: 'Restore honor', objective: 'Time limit: 4 days. Defeat the Mist Boar.' }, 'en'),
+    ).toBe('【System】 Quest loaded: Restore honor. Time limit: 4 days. Defeat the Mist Boar.')
   })
 
   it('formats reward with Đinh! and reward token', () => {
@@ -79,7 +82,7 @@ describe('formatSystemMessage', () => {
     expect(formatSystemMessage('sys_warning', {}, 'vi')).toBe('【Hệ Thống】 Cảnh báo: {danger}.')
     expect(
       formatSystemMessage('sys_quest_loaded', { quest: 'Q' }, 'vi'),
-    ).toBe('【Hệ Thống】 Nhiệm vụ chính tải xong: Q. Hạn: {days} ngày. {objective}')
+    ).toBe('【Hệ Thống】 Nhiệm vụ tải xong: Q. {objective}')
   })
 
   it('never throws for unknown message id', () => {

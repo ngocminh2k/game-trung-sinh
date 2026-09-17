@@ -13,9 +13,9 @@ function bootedGame(seed: string, update?: (game: GameState) => GameState): Game
 
 async function openGame(page: Page, game: GameState): Promise<void> {
   const session: GameSession = { game, locale: 'en', chronicle: ['Branch journey save.'] }
-  const slot = { slotId: 1, savedAt: 1, session }
+  // savedAt = now keeps offline gains out of the seeded state (issue37 pattern).
+  const slot = { slotId: 1, savedAt: Date.now(), session }
   await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
-    if (window.localStorage.getItem(slotsKey) !== null) return
     window.localStorage.setItem(slotsKey, value)
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
@@ -27,24 +27,37 @@ async function openGame(page: Page, game: GameState): Promise<void> {
 }
 
 async function clickStoryChoice(page: Page, choiceLabel: string | RegExp): Promise<void> {
-  // Mirrors fresh-endings clickChoice: the story panel is transient; a route
-  // encounter owns the screen (and may leave a backdrop over the journal), so
-  // story choices there are clicked after closing any open panel.
+  // Mirrors quick-endings clickStoryChoice: the story panel is transient; a
+  // route encounter owns the screen, so story choices there are clicked after
+  // closing any open panel.
   const panelOpen = await page.getByTestId('narration-panel').isVisible().catch(() => false)
   const routeOpen = await page.getByTestId('route-encounter-screen').isVisible().catch(() => false)
   if (routeOpen) {
     if (panelOpen) await page.keyboard.press('Escape')
   } else if (!panelOpen) {
-    await page.getByRole('button', { name: 'Open Journey journal' }).click()
-    await page.getByRole('tab', { name: /People here/ }).click()
-    await page.getByRole('button', { name: 'Talk' }).first().click()
+    // Talk must be scoped INSIDE the journal dialog: unscoped, name 'Talk'
+    // substring-matches the map pin aria-label "Talk to Elder Meihua", which
+    // sits behind the modal — Playwright then stalls 30s on "subtree
+    // intercepts pointer events" (issue #40 drift).
+    const journal = page.getByTestId('journal-screen')
+    await page.getByRole('button', { name: /Open Journey journal|Mở Hành trang/i }).click()
+    await expect(journal).toBeVisible({ timeout: 5000 })
+    await journal.getByRole('tab', { name: /People here|Người ở đây/i }).click({ timeout: 5000 })
+    await journal.getByRole('button', { name: /^(Talk|Nói chuyện)$/ }).first().click({ timeout: 5000 })
+    await expect(page.getByTestId('narration-panel')).toBeVisible({ timeout: 5000 })
   }
-  await page.getByRole('button', { name: choiceLabel }).click()
+  await page.getByRole('button', { name: choiceLabel }).click({ timeout: 8000 })
   await expect(page.getByTestId('game-screen')).toBeVisible()
 }
 
 test.describe('T13 branch journeys: every road reaches an ending screen', () => {
   test.beforeEach(async ({ page }) => {
+    // Issue #40 step 2 lifted .ending-banner out of .world-content into
+    // main.game-shell, so endings render at every width — the old ≤800px
+    // workaround is obsolete. Desktop is also the only width where the
+    // journal dock is reachable: #journal-screen:not([hidden]) is missing
+    // `position: fixed` (screens.css:1066), which strands it at y≈-212px
+    // whenever .world-content is in flow (≤920px).
     await page.setViewportSize({ width: 1280, height: 800 })
   })
 

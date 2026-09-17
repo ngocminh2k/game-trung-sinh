@@ -1,0 +1,103 @@
+{"a":1,"t":"boot:new-game","name":"Kiếp mớiChọn khế ước & nhập đạo","id":"menu-new-game","changed":true,"ms":1543}
+{"a":2,"t":"boot:pick-system","name":"9Hệ Thống Tàng ThưHệ Thống đếm từng câu chữ. Một đời thiếu k","id":"system-tile-sys_scholar","changed":true,"ms":1293}
+{"a":3,"t":"boot:difficulty","name":"Cốt truyện","id":"difficulty-story","changed":true,"ms":1244}
+{"a":4,"t":"boot:confirm","name":"Ký khế ước","id":"newgame-confirm","changed":true,"ms":3460}
+{"a":5,"t":"boot:skip-loading","name":"Màn hình tải — nhấn để bắt đầu","id":"","changed":true,"ms":1643}
+{"a":6,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1262}
+{"a":7,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1290}
+{"a":8,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1267}
+{"a":9,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1246}
+{"a":10,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1218}
+{"a":11,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1241}
+{"a":12,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1246}
+{"a":13,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1243}
+{"a":14,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1205}
+{"a":15,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1234}
+{"a":16,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1255}
+{"a":17,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1247}
+{"a":18,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1229}
+{"a":19,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1226}
+{"a":20,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1228}
+{"a":21,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1242}
+{"a":22,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1248}
+{"a":23,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1244}
+{"a":24,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1201}
+{"a":25,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1231}
+{"a":26,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1221}
+{"a":27,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1214}
+{"a":28,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1217}
+{"a":29,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1223}
+{"a":30,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1225}
+{"a":31,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1229}
+{"a":32,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1213}
+{"a":33,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1218}
+{"a":34,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1209}
+{"a":35,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1235}
+{"a":36,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1215}
+{"a":37,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1231}
+{"a":38,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1229}
+{"a":39,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1222}
+{"a":40,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1248}
+{"a":41,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1211}
+{"a":42,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1235}
+{"a":43,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1221}
+{"a":44,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1222}
+{"a":45,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1227}
+{"a":46,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1238}
+{"a":47,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1217}
+{"a":48,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1233}
+{"a":49,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1233}
+{"a":50,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1245}
+{"a":51,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1215}
+{"a":52,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1227}
+{"a":53,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1232}
+{"a":54,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1215}
+{"a":55,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1212}
+{"a":56,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1237}
+{"a":57,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1209}
+{"a":58,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1226}
+{"a":59,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1222}
+{"a":60,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1221}
+{"a":61,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1239}
+{"a":62,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1226}
+{"a":63,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1242}
+{"a":64,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1216}
+{"a":65,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1231}
+{"a":66,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1218}
+{"a":67,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1214}
+{"a":68,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1230}
+{"a":69,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1243}
+{"a":70,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1212}
+{"a":71,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1252}
+{"a":72,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1233}
+{"a":73,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1253}
+{"a":74,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1244}
+{"a":75,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1239}
+{"a":76,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1224}
+{"a":77,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1233}
+{"a":78,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1240}
+{"a":79,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1217}
+{"a":80,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1230}
+{"a":81,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1220}
+{"a":82,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1218}
+{"a":83,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1233}
+{"a":84,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1221}
+{"a":85,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1214}
+{"a":86,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1228}
+{"a":87,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1232}
+{"a":88,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1226}
+{"a":89,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1215}
+{"a":90,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1224}
+{"a":91,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1218}
+{"a":92,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1216}
+{"a":93,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1231}
+{"a":94,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1212}
+{"a":95,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1216}
+{"a":96,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1213}
+{"a":97,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1229}
+{"a":98,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1212}
+{"a":99,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1214}
+{"a":100,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1226}
+{"a":101,"t":"play:nghỉ","name":"Nghỉ","id":"","changed":true,"ms":1212}
+{"_summary":{"steps":101,"dead_clicks":0,"unique_gaps":["npc:talk: không tìm được điều khiển (/nói chuyện với|trò chuyện/) trên màn game"],"unique_issues":["tên dính chuỗi vô hồn: \"CCụ Mai Hoatrưởng làng♥ 0\" #button","tên dính chuỗi vô hồn: \"NNgo kể chuyệnngười kể chuyện♥ 0\" #button","tên dính chuỗi vô hồn: \"CChủ quán Hạnhchủ quán trọ♥ 0\" #button","tên dính chuỗi vô hồn: \"DDân binh Trườngdân binh♥ 0\" #button"],"last_chronicle":[],"screens_seen":["boot","play"],"days_seen":null,"errors":[]}}
+{"_telemetry_head":{"actions":101,"errors":[],"run":[{"version":1,"id":"pt-mu3ojbsc-aeta","seed":"ink-and-jade","locale":"vi","difficulty":"story","startedAt":1789537691243,"endedAt":null,"endingId":null,"finalDay":2,"corrections":0,"nightForgotten":false,"steps":[{"t":4207,"day":1,"kind":"train","loc":"village","hp":95,"qi":50,"gold":60},{"t":5493,"day":2,"kind":"rest","loc":"village","hp":100,"qi":60,"gold":60},{"t":9272,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":10556,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":14291,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":15568,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":19306,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":20543,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":24322,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":25542,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":29272,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":30506,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":34221,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":35454,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":39172,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":40404,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":44170,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":45420,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":49140,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":50371,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":54121,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":55372,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":59123,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":60372,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":64104,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":65337,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":69055,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":70304,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":74069,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":75304,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":79028,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":80269,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":84022,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":85268,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":89070,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":90303,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":94067,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":95301,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":99036,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":100266,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":104000,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":105252,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":108968,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":110202,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":113917,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":115152,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60},{"t":118867,"day":2,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":120102,"day":2,"kind":"rest","loc":"village","hp":94,"qi":50,"gold":60}]}]}}

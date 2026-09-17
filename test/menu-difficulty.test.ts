@@ -74,18 +74,18 @@ describe('player settings (device-local)', () => {
     const storage = memoryStorage()
     expect(loadSettings(storage)).toEqual(DEFAULT_SETTINGS)
 
-    saveSettings(storage, { difficulty: 'hard', narrationEnabled: true, locale: 'en' })
-    expect(loadSettings(storage)).toEqual({ difficulty: 'hard', narrationEnabled: true, locale: 'en' })
+    saveSettings(storage, { difficulty: 'hard', narrationEnabled: true, locale: 'en', conciseMode: false })
+    expect(loadSettings(storage)).toEqual({ difficulty: 'hard', narrationEnabled: true, locale: 'en', conciseMode: false })
 
     const corrupt = memoryStorage({ [SETTINGS_KEY]: '{not json' })
     expect(loadSettings(corrupt)).toEqual(DEFAULT_SETTINGS)
     const partial = memoryStorage({ [SETTINGS_KEY]: JSON.stringify({ difficulty: 'story' }) })
-    expect(loadSettings(partial)).toEqual({ difficulty: 'story', narrationEnabled: false, locale: 'vi' })
+    expect(loadSettings(partial)).toEqual({ difficulty: 'story', narrationEnabled: false, locale: 'vi', conciseMode: false })
   })
 
   it('never persists secrets — only the on/off proxy intent', () => {
     const storage = memoryStorage()
-    saveSettings(storage, { difficulty: 'balanced', narrationEnabled: true, locale: 'vi' })
+    saveSettings(storage, { difficulty: 'balanced', narrationEnabled: true, locale: 'vi', conciseMode: false })
     const raw = storage.get(SETTINGS_KEY) ?? ''
     expect(raw).not.toMatch(/AI_API_KEY|AI_BASE_URL|AI_MODEL|apiKey|sk-/)
   })

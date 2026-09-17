@@ -14,6 +14,7 @@ import {
   systemById,
 } from '../content'
 import { describeDeath } from '../content/death-legacy'
+import { getWeatherNarration } from '../content/narrator-weather'
 import {
   ITEM_HERB,
   LOTTERY_COST,
@@ -42,6 +43,13 @@ function nameOf(kind: 'item' | 'npc' | 'quest' | 'talent' | 'technique' | 'enemy
   if (kind === 'enemy') return localizedName(getEnemy(id), id, locale)
   if (kind === 'location') return localizedName(getLocation(id), id, locale)
   return localizedName(ENDINGS.find((ending) => ending.id === id), id, locale)
+}
+
+const ATTRIBUTE_NAMES: Record<string, { vi: string; en: string }> = {
+  body: { vi: 'Thân', en: 'Body' },
+  mind: { vi: 'Tâm', en: 'Mind' },
+  charm: { vi: 'Mị', en: 'Charm' },
+  luck: { vi: 'Vận', en: 'Luck' },
 }
 
 // Issue 36: a currency exchange used to render as FALLBACK_TEXT — the player
@@ -119,17 +127,8 @@ function causeName(cause: string, locale: Locale): string {
   return cause
 }
 
-const WEATHER_DESC: Record<string, { vi: string; en: string }> = {
-  quang: { vi: 'Trời quang đãng, gió mát.', en: 'Clear skies, a cool breeze.' },
-  mua: { vi: 'Mưa lất phất làm ẩm đường đất.', en: 'Gentle rain wets the earthen paths.' },
-  suong: { vi: 'Sương mù giăng kín lối đi.', en: 'Dense mist veils the mountain trails.' },
-  bao: { vi: 'Mây đen cuồn cuộn, sấm chớp rền vang.', en: 'Storm clouds churn; thunder rumbles across the peaks.' },
-}
-
-function weatherFlavor(weather: { season: string; kind: string; id: string }, locale: Locale): string {
-  const desc = WEATHER_DESC[weather.kind]
-  if (desc === undefined) return ''
-  return locale === 'vi' ? desc.vi : desc.en
+function weatherFlavor(weather: { season: string; kind: string; id: string }, locale: Locale, day: number = 1): string {
+  return getWeatherNarration(weather, locale, day)
 }
 
 // NOT_AT_LOCATION gates a dozen different flows, so a single generic line read
@@ -216,7 +215,8 @@ const TEMPLATES: Record<string, Handler> = {
     const dayLine = l === 'vi' ? `Trời sang ngày ${String(ev.day)}.` : `Day ${String(ev.day)} dawns.`
     if (ev.weather === undefined) return dayLine
     // Issue 6: the stamped weather voices the season/sky; pure from the event.
-    const flavor = weatherFlavor(ev.weather, l)
+    // C3-09: expanded 4 seasons x conditions rich literary narration.
+    const flavor = weatherFlavor(ev.weather, l, ev.day)
     return flavor === '' ? dayLine : `${dayLine} ${flavor}`
   },
   TIME_ADVANCED: (ev, l) => {
@@ -259,9 +259,10 @@ const TEMPLATES: Record<string, Handler> = {
   },
   ATTRIBUTE_ALLOCATED: (ev, l) => {
     if (ev.type !== 'ATTRIBUTE_ALLOCATED') return ''
+    const attrName = ATTRIBUTE_NAMES[ev.attribute]?.[l] ?? ev.attribute
     return l === 'vi'
-      ? `Phân một điểm vào ${ev.attribute}; còn ${String(ev.pointsRemaining)} điểm.`
-      : `Assigned one point to ${ev.attribute}; ${String(ev.pointsRemaining)} remain.`
+      ? `Phân một điểm vào ${attrName}; còn ${String(ev.pointsRemaining)} điểm.`
+      : `Assigned one point to ${attrName}; ${String(ev.pointsRemaining)} remain.`
   },
   GATHERED: (ev, l) => {
     if (ev.type !== 'GATHERED') return ''
@@ -368,9 +369,11 @@ const TEMPLATES: Record<string, Handler> = {
   },
   TALKED: (ev, l) => {
     if (ev.type !== 'TALKED') return ''
-    return l === 'vi'
-      ? `${nameOf('npc', ev.npcId, l)}: “${ev.lineVi ?? getNpc(ev.npcId)?.greetVi ?? '...'}”`
-      : `${nameOf('npc', ev.npcId, l)}: “${ev.lineEn ?? getNpc(ev.npcId)?.greetEn ?? '...'}”`
+    const line = (l === 'vi' ? ev.lineVi ?? getNpc(ev.npcId)?.greetVi : ev.lineEn ?? getNpc(ev.npcId)?.greetEn) ?? '...'
+    // Author-written dialogue already carries its own “…” (story.ts, npcs.ts);
+    // only a bare line still needs the chronicle to add the pair.
+    const spoken = line.startsWith('“') ? line : `“${line}”`
+    return `${nameOf('npc', ev.npcId, l)}: ${spoken}`
   },
   // Issue #39: the chronicle states the gift's cost to the giver in numbers —
   // swing and running total — then lets the NPC answer in their own voice.

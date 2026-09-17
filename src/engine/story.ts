@@ -1,4 +1,5 @@
 import { getNpc, getStoryScene } from '../content'
+import { questStatus } from './quests'
 import { MAX_HP, MAX_QI } from './constants'
 import type { NpcLine, StoryChoiceDef, StorySceneDef } from './content-types'
 import type { GameState } from './types'
@@ -299,8 +300,8 @@ function matchesLine(state: GameState, when: NpcLine['when'], ctx: { aff: number
   if (when.affMin !== undefined && ctx.aff < when.affMin) return false
   if (when.affMax !== undefined && ctx.aff > when.affMax) return false
   if (when.dayMin !== undefined && state.day < when.dayMin) return false
-  if (when.questDone !== undefined && state.quests[when.questDone]?.status !== 'completed') return false
-  if (when.questActive !== undefined && state.quests[when.questActive]?.status !== 'active') return false
+  if (when.questDone !== undefined && questStatus(state, when.questDone) !== 'completed') return false
+  if (when.questActive !== undefined && questStatus(state, when.questActive) !== 'active') return false
   if (when.flag !== undefined && state.flags[when.flag] !== true) return false
   if (when.scene !== undefined && when.scene !== ctx.scene) return false
   return true

@@ -81,4 +81,42 @@ describe('deriveObjective', () => {
     expect(vi).toContain('Linh căn phế')
     expect(en).toContain('broken root')
   })
+
+  // C3-01 (Ticket C2-01): the dual-source-of-truth desync. When the done flag
+  // (`quest_<id>_done`) is written but the quest runtime still reads `active`
+  // — the state legacy saves produce — the objective line must NOT loop back
+  // to the quest the player already completed. The done flag is canonical; a
+  // stale runtime status must never resurrect a finished quest.
+  it('does not resurrect a done quest whose runtime still says active', () => {
+    const state = seededState()
+    state.flags['quest_q_herb_delivery_done'] = true
+    state.quests['q_herb_delivery'] = { status: 'active', step: 0 }
+    // Without the fix the loop hits step 0 ("Gather 3 spirit herbs") and the
+    // objective hijacks back to a quest that is done. After the fix it must
+    // NOT mention the herb quest at all.
+    const line = deriveObjective(state, 'en')
+    expect(line).not.toContain('Gather 3 spirit herbs')
+  })
+
+  it('stays on the authored beat when a done quest still claims active', () => {
+    const state = seededState()
+    state.flags['quest_q_herb_delivery_done'] = true
+    state.quests['q_herb_delivery'] = { status: 'active', step: 0 }
+    const line = deriveObjective(state, 'vi')
+    expect(line).toContain('Linh căn phế')
+  })
+
+  // The `?? quest.steps[0]` fallback would revert the HUD to step 0 for a
+  // quest whose currentStepIndex is out of bounds; with a done quest that is
+  // not skipped first, step 0 text hijacks the objective. The fix removes the
+  // fallback entirely, so an out-of-bounds index must skip the quest.
+  it('does not fall back to step 0 for a done quest at a stale index', () => {
+    const state = seededState()
+    state.flags['quest_q_herb_delivery_done'] = true
+    // Desynced save from before the migration reconciled it: step still on the
+    // turn-in index (which is out of bounds for step resolution misuse).
+    state.quests['q_herb_delivery'] = { status: 'active', step: 5 }
+    const line = deriveObjective(state, 'en')
+    expect(line).not.toContain('Gather 3 spirit herbs')
+  })
 })

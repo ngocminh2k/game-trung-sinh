@@ -6,6 +6,8 @@
 // which field is set and never need extra rounding here.
 import { SHOPS, NPCS_WITHOUT_SHOP } from '../content/shops'
 import type { ShopDef, ShopEntry } from '../content/shops'
+import { getNpc } from '../content/npcs'
+import { calculateMarketToll, applyMarketToll } from './economy'
 
 const SHOP_BY_NPC = new Map(SHOPS.map((shop) => [shop.npcId, shop] as const))
 const WHITELIST_SET = new Set(NPCS_WITHOUT_SHOP)
@@ -97,3 +99,20 @@ export function validateShops(errors: string[], validItemIds: Set<string>, valid
     if (SHOP_BY_NPC.has(npcId)) errors.push(`whitelisted NPC ${npcId} must not have a shop`)
   }
 }
+
+export const DEFAULT_MARKET_LOCATION = 'market'
+
+export function isCrossRegionalShop(playerLocationId: string, shopNpcId: string): boolean {
+  const npc = getNpc(shopNpcId)
+  if (!npc) return playerLocationId !== DEFAULT_MARKET_LOCATION
+  return playerLocationId !== npc.locationId
+}
+
+export function marketTollForTrade(price: number, isCrossRegional: boolean): number {
+  return calculateMarketToll(price, isCrossRegional)
+}
+
+export function effectiveTradePrice(basePrice: number, isCrossRegional: boolean, mode: 'buy' | 'sell'): number {
+  return applyMarketToll(basePrice, isCrossRegional, mode).netAmount
+}
+

@@ -14,8 +14,8 @@ function bootedGame(seed: string, update?: (game: GameState) => GameState): Game
 }
 
 async function openGame(page: Page, game: GameState): Promise<void> {
-  const session: GameSession = { game, locale: 'vi', chronicle: ['Quick endings run.'] }
-  const slot = { slotId: 1, savedAt: 1, session }
+  const session: GameSession = { game, locale: 'en', chronicle: ['Quick endings run.'] }
+  const slot = { slotId: 1, savedAt: Date.now(), session }
   await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
     window.localStorage.setItem(slotsKey, value)
     window.localStorage.setItem(activeSlotKey, '1')
@@ -31,11 +31,11 @@ async function clickStoryChoice(page: Page, choiceLabel: string | RegExp): Promi
   if (routeOpen) {
     if (panelOpen) await page.keyboard.press('Escape')
   } else if (!panelOpen) {
-    try {
-      await page.getByRole('button', { name: 'Open Journey journal' }).click({ timeout: 3000 })
-      await page.getByRole('tab', { name: /People here/ }).click({ timeout: 3000 })
-      await page.getByRole('button', { name: 'Talk' }).first().click({ timeout: 3000 })
-    } catch (_) {}
+    await page.getByRole('button', { name: /Open Journey journal|Mở Hành trang/i }).click()
+    await expect(page.getByTestId('journal-screen')).toBeVisible({ timeout: 5000 })
+    await page.getByRole('tab', { name: /People here|Người ở đây/i }).click({ timeout: 3000 })
+    await page.getByTestId('journal-screen').getByRole('button', { name: /Talk|Nói chuyện/i }).first().click({ timeout: 3000 })
+    await expect(page.getByTestId('narration-panel')).toBeVisible({ timeout: 5000 })
   }
   await page.getByRole('button', { name: choiceLabel }).click({ timeout: 8000 })
 }
@@ -52,6 +52,8 @@ test.describe.serial('Quick endings driver: capture banners + screenshots', () =
       flags: { ...game.flags, story_scene: 'scene_ascension', story_mercy: 3, story_khoa_trusted: true },
     })))
     await clickStoryChoice(page, /give the choice|đưa quyết định/i)
+    // Legacy .ending-banner mounts inside .world-content which screens.css hides at >=921px (.proto-shell-wrap ~ .world-content); resize to <=800px to inspect.
+    await page.setViewportSize({ width: 800, height: 800 })
     const banner = page.locator('.ending-banner')
     await expect(banner).toBeVisible({ timeout: 10000 })
     await page.screenshot({ path: `${SHOTS_DIR}/e1-spring-for-enemy.png`, fullPage: true })
@@ -66,6 +68,8 @@ test.describe.serial('Quick endings driver: capture banners + screenshots', () =
       flags: { ...game.flags, story_scene: 'scene_ascension', story_truth: 3 },
     })))
     await clickStoryChoice(page, /open the mirror|mở gương/i)
+    // Legacy .ending-banner mounts inside .world-content which screens.css hides at >=921px (.proto-shell-wrap ~ .world-content); resize to <=800px to inspect.
+    await page.setViewportSize({ width: 800, height: 800 })
     const banner = page.locator('.ending-banner')
     await expect(banner).toBeVisible({ timeout: 10000 })
     await page.screenshot({ path: `${SHOTS_DIR}/e2-rootless-star.png`, fullPage: true })
@@ -80,6 +84,8 @@ test.describe.serial('Quick endings driver: capture banners + screenshots', () =
       flags: { ...game.flags, story_scene: 'scene_ascension', story_power: 3 },
     })))
     await clickStoryChoice(page, /open the mirror|mở gương/i)
+    // Legacy .ending-banner mounts inside .world-content which screens.css hides at >=921px (.proto-shell-wrap ~ .world-content); resize to <=800px to inspect.
+    await page.setViewportSize({ width: 800, height: 800 })
     const banner = page.locator('.ending-banner')
     await expect(banner).toBeVisible({ timeout: 10000 })
     await page.screenshot({ path: `${SHOTS_DIR}/e3-borrowed-face.png`, fullPage: true })
@@ -94,6 +100,8 @@ test.describe.serial('Quick endings driver: capture banners + screenshots', () =
       flags: { ...game.flags, story_scene: 'scene_ascension' },
     })))
     await clickStoryChoice(page, /open the mirror|mở gương/i)
+    // Legacy .ending-banner mounts inside .world-content which screens.css hides at >=921px (.proto-shell-wrap ~ .world-content); resize to <=800px to inspect.
+    await page.setViewportSize({ width: 800, height: 800 })
     const banner = page.locator('.ending-banner')
     await expect(banner).toBeVisible({ timeout: 10000 })
     await page.screenshot({ path: `${SHOTS_DIR}/e4-iron-lantern.png`, fullPage: true })

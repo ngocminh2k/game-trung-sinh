@@ -7,6 +7,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'First Step',
     descVi: 'Đi ba chặng đường, rời khỏi làng.',
     descEn: 'Take three journeys away from the village.',
+    hintVi: 'Làng không giữ chân người có chí; bàn chân dứt khoát, đường hiện ra trước mắt.',
+    hintEn: 'The village holds no one with ambition; a firm step, the path appears before you.',
   },
   {
     id: 'green_thumb',
@@ -14,6 +16,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'Green Thumb',
     descVi: 'Hái được mười linh thảo.',
     descEn: 'Gather ten spirit herbs.',
+    hintVi: 'Mười cỏ một tâm; giữa non nước, ngón tay biết đâu là sinh cơ.',
+    hintEn: 'Ten herbs, one heart; amidst mountains and rivers, fingers know where life springs.',
   },
   {
     id: 'socialite',
@@ -21,6 +25,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'Well-Met Everywhere',
     descVi: 'Nói chuyện với năm người khác nhau.',
     descEn: 'Talk to five different people.',
+    hintVi: 'Năm gương mặt, năm câu chuyện; duyên pháp vô hình, nối liền thiên địa.',
+    hintEn: 'Five faces, five tales; invisible karmic threads connect heaven and earth.',
   },
   {
     id: 'first_purchase',
@@ -28,6 +34,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'First Purchase',
     descVi: 'Mua năm món đồ ở chợ.',
     descEn: 'Buy five items at the market.',
+    hintVi: 'Vàng bạc đổi lấy ý chí; chợ bua tiếng, lần đầu mở túi mua vui.',
+    hintEn: 'Gold exchanged for will; market bustling, first time opening purse with joy.',
   },
   {
     id: 'first_sale',
@@ -35,6 +43,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'First Sale',
     descVi: 'Bán được năm món hàng.',
     descEn: 'Sell five items.',
+    hintVi: 'Vật ra tiền về, tay trắng về giàu; nhẫn nhục làm vốn, lần đầu thấy lời.',
+    hintEn: 'Goods out, coin in; empty hands grow rich. Patience as capital, first taste of profit.',
   },
   {
     id: 'lucky_star',
@@ -42,6 +52,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'Lucky Star',
     descVi: 'Trúng giải đặc biệt vé số.',
     descEn: 'Win the lottery grand prize.',
+    hintVi: 'Vạn người mua, một người trúng; vận mệnh xoay, sao mai sáng giữa trưa.',
+    hintEn: 'Ten thousand buy, one wins; fate turns, morning star shines at noon.',
   },
   {
     id: 'cave_brave',
@@ -49,6 +61,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'Cave-Brave',
     descVi: 'Vào hang phong ấn dưới sự che chở của bùa.',
     descEn: 'Enter the sealed cave under a ward.',
+    hintVi: 'Bùa gãy cửa mở; gan lớn tim nhỏ, dám bước vào chốn cấm kỵ.',
+    hintEn: 'Ward breaks, door opens; bold heart, timid soul, dares step into forbidden ground.',
   },
   {
     id: 'quest_done',
@@ -56,6 +70,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'Word-Keeper',
     descVi: 'Hoàn thành một nhiệm vụ.',
     descEn: 'Complete a quest.',
+    hintVi: 'Nói một lời, làm trọn một việc; nước chảy thành sông, người trung thành bằng đá.',
+    hintEn: 'One word spoken, one deed done; water flows to river, the trustworthy hard as stone.',
   },
   {
     id: 'halfway_there',
@@ -63,6 +79,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'Halfway to Heaven',
     descVi: 'Đạt cảnh giới Kim Đan.',
     descEn: 'Reach the Golden Core stage.',
+    hintVi: 'Đơn đan mới kết, còn nửa đường lên trời; đừng vội, vân đường còn dài.',
+    hintEn: 'Golden core newly formed, still halfway to heaven; do not rush, the cloud path stretches far.',
   },
   {
     id: 'wealthy',
@@ -70,6 +88,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'Purse Full of Bells',
     descVi: 'Giữ ít nhất 400 lượng.',
     descEn: 'Hold at least 400 gold at once.',
+    hintVi: 'Tiền như nước chảy, giữ được mới là có; nửa túi vàng, lòng đã an.',
+    hintEn: 'Money flows like water, keeping it is having it; half a purse of gold, heart at peace.',
   },
   {
     id: 'immortal_road_end',
@@ -77,6 +97,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'The Final Horizon',
     descVi: 'Đạt đại viên mãn cảnh giới phi thăng.',
     descEn: 'Reach the final ascension-ready stage.',
+    hintVi: 'Vạn pháp quy nhất, cuối đường nhìn thấy đầu đường; phi thăng trong ngay một niệm.',
+    hintEn: "Myriad laws return to one; at road's end, see the beginning; ascension within a single thought.",
   },
   {
     id: 'arena_champion',
@@ -84,6 +106,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'Arena Champion',
     descVi: 'Lần đầu chinh phục toàn bộ tháp Lôi Đài.',
     descEn: 'Top the entire Lôi Đài tower for the first time.',
+    hintVi: 'Lôi Đài chín tầng, tầng tầng vượt qua; đỉnh cao nhất, chỉ có gió cùng mình.',
+    hintEn: 'Nine-tier Lôi Đài, tier after tier surpassed; at the highest peak, only wind keeps you company.',
   },
   {
     id: 'notorious',
@@ -91,6 +115,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     nameEn: 'Notorious',
     descVi: 'Cưỡng đoạt hai mục tiêu, tiếng tăm xấu xa lan xa.',
     descEn: 'Plunder both coercion targets; your ill name spreads.',
+    hintVi: 'Hai tay cướp bóc, danh vọng đen sì; người sợ, quỷ kính, đường mà đi không ai dám chặn.',
+    hintEn: 'Two hands plunder, reputation black as ink; men fear, ghosts revere, the path you walk none dare block.',
   },
 ]
 

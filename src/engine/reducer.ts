@@ -15,11 +15,21 @@ import {
   getTechnique,
   locationDanger,
   newEncounter,
+  QUESTS,
 } from '../content'
 import { eligibleEnemiesAt, enemiesAtLocation } from '../content/rpg'
 import type { EnemyDef } from './content-types'
-import { weatherFor, WEATHER_EFFECTS } from './weather'
-import { companionBuff } from './companion'
+import {
+  weatherFor,
+  WEATHER_EFFECTS,
+  elementWeatherModifier,
+  bloodMoonDamageModifier,
+  getPlayerElement,
+  getEffectiveWeatherEffects,
+  getEffectiveElementModifier,
+  getEffectiveWeatherDodgeBonus,
+} from './weather'
+import { companionBuff, calculateCompanionHeal } from './companion'
 import { marketPriceFor } from './shopStock'
 import { newlyQualifiedAchievements } from './achievements'
 import {
@@ -71,18 +81,20 @@ import {
   attributeCombatBonus,
   charmPriceDiscount,
   luckGatherBonus,
+  playerMaxHp,
   trainProgressGain,
 } from './stats'
 import { TIME_MODS, advanceTime, currentTimeOfDay, restToDawn } from './time'
-import { canAcceptQuest, canCompleteQuest, tickQuestSteps } from './quests'
+import { canAcceptQuest, canCompleteQuest, isQuestUnlocked, questStatus, tickQuestSteps } from './quests'
 import { queuePush } from './system'
 import { applyStoryEffects, applyStoryRouteArrival, dialogueForNpc, findStoryChoice, currentStoryScene, resolveStoryEnding, storyRouteEncounter } from './story'
 import { applyRomanceChoice, findRomanceChoice, hasOtherCommitment } from './romance'
 import { storageUnitsUsed } from './storage'
 import { nextInt } from './rng'
 import { bump, clamp, countOf, flagNum, totalUnits } from './utils'
-import { FLAG_AFF, FLAG_AFF_GATE, FLAG_ARENA_CLEARED, FLAG_ARENA_FLOOR, FLAG_COERCED, FLAG_COERCED_BACKOFF, FLAG_DEFEATED, FLAG_INFAMY, FLAG_KEYS, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
+import { FLAG_AFF, FLAG_AFF_GATE, FLAG_ARENA_CLEARED, FLAG_ARENA_FLOOR, FLAG_COERCED, FLAG_COERCED_BACKOFF, FLAG_DEFEATED, FLAG_MOVED_ONCE, FLAG_NIGHT_DEADLINE, FLAG_NIGHT_DEADLINE_CLEARED, FLAG_NIGHT_FORGOTTEN, FLAG_QUEST_DONE, FLAG_REGION_LOCKED, FLAG_SEEN_CAVE, FLAG_STORAGE_LOCKED, FLAG_STORY_BAO_PAID, FLAG_STORY_MEIHUA_BETRAYED, FLAG_SYSTEM_REFUSED, FLAG_VILLAGE_SILENT, FLAG_INFAMY, FLAG_REACHED, FLAG_RETREATED, FLAG_TALK, FLAG_TALK_WARN } from '../content/flag-keys'
 import { giftReactionFor } from '../content/npc-gifts'
+import { buyOutfit, equipOutfit, equipTitle } from './outfits'
 import type {
   Action,
   ConcreteAction,
@@ -98,27 +110,9 @@ type ROk = { ok: true; state: GameState; events: GameEvent[] }
 type RErr = { ok: false; code: ErrorCode; at?: string | undefined }
 type R = ROk | RErr
 
-// Named handles for flag keys referenced as literals below; FLAG_KEYS stays the
-// canonical list for refactors / exhaustiveness checks. Template helpers
-// (FLAG_AFF, FLAG_DEFEATED, FLAG_RETREATED, FLAG_REACHED) live in flag-keys.ts.
-const [
-  FLAG_MOVED_ONCE,
-  ,
-  FLAG_NIGHT_DEADLINE,
-  FLAG_NIGHT_DEADLINE_CLEARED,
-  FLAG_NIGHT_FORGOTTEN,
-  FLAG_VILLAGE_SILENT,
-  FLAG_STORAGE_LOCKED,
-  FLAG_REGION_LOCKED,
-  FLAG_SEEN_CAVE,
-  FLAG_STORY_BAO_PAID,
-  FLAG_STORY_MEIHUA_BETRAYED,
-  ,
-  ,
-  FLAG_SYSTEM_REFUSED,
-  ,
-  FLAG_QUEST_DONE,
-] = FLAG_KEYS
+// Flag keys come from '../content/flag-keys' as named exports (FLAG_QUEST_DONE
+// etc.) — never by positionally destructuring FLAG_KEYS, which silently rebinds
+// the wrong suffix whenever that list is inserted into or reordered.
 
 function err(code: ErrorCode, at?: string): RErr {
   return at === undefined ? { ok: false, code } : { ok: false, code, at }
@@ -341,7 +335,14 @@ function forgottenNameFor(state: GameState): string {
 // requires the points to be spent first, but self-preservation stays reachable:
 // drinking a pill or swapping gear is not a build decision deferred, and the
 // free-text path re-checks the parsed kind, so "use pill_hp" works too.
-const ATTRIBUTE_GATE_ALLOWED: readonly ConcreteAction['kind'][] = ['allocate_attribute', 'use_item', 'equip_item']
+const ATTRIBUTE_GATE_ALLOWED: readonly ConcreteAction['kind'][] = [
+  'allocate_attribute',
+  'use_item',
+  'equip_item',
+  'buy_outfit',
+  'equip_outfit',
+  'equip_title',
+]
 
 // Issue #34 dead-end: points earned while all four attributes sit at
 // ATTRIBUTE_MAX can never be spent — clearing them here (inside every
@@ -470,6 +471,11 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doAcceptQuest(state, action.questId)
     case 'system_turn_in_quest':
       return doCompleteQuest(state, action.questId)
+    case 'accept_all_quests':
+      return doAcceptAllQuests(state, action.questIds)
+    case 'claim_all_quests':
+    case 'complete_all_quests':
+      return doClaimAllQuests(state, action.questIds)
     case 'choose_talent':
       return doChooseTalent(state, action.talentId)
     case 'learn_technique':
@@ -498,6 +504,12 @@ function execAction(state: GameState, action: ConcreteAction): R {
       return doStoryChoice(state, action.choiceId)
     case 'advance_romance':
       return doAdvanceRomance(state, action.trackId, action.choiceId)
+    case 'buy_outfit':
+      return doBuyOutfit(state, action.outfitId)
+    case 'equip_outfit':
+      return doEquipOutfit(state, action.outfitId)
+    case 'equip_title':
+      return doEquipTitle(state, action.titleId)
     default: {
       const impossible: never = action
       void impossible
@@ -599,7 +611,15 @@ function doMove(state: GameState, direction: Direction): R {
         // Issue #37: the mist/storm travel tax (WEATHER_EFFECTS.travelCostMod)
         // was authored but never applied — the "invisible step damage" the
         // playtest died to. Telegraph (travelRisk) mirrors THIS line.
-        const weatherMod = WEATHER_EFFECTS[weatherFor(s.seed, s.day).id]?.travelCostMod ?? 1
+        // C3-19: counter gear (raincoat, fog_talisman, sun_gem) mitigates adverse travelCostMod.
+        const moveWeather = weatherFor(s.seed, s.day)
+        const moveBaseEffects = WEATHER_EFFECTS[moveWeather.id] ?? {
+          herbPriceMod: 1,
+          bossPowerMod: 1,
+          travelCostMod: 1,
+          hiddenNpcChance: 0,
+        }
+        const weatherMod = getEffectiveWeatherEffects(s, moveBaseEffects, moveWeather.kind).travelCostMod
         const [rolled, nextRng] = damageRoll(s.rng, danger)
         const damage = Math.max(1, Math.round(rolled * damageMultiplier(s.difficulty ?? 'balanced') * timeDamageMod * weatherMod))
         s = { ...s, rng: nextRng }
@@ -628,13 +648,17 @@ function doMove(state: GameState, direction: Direction): R {
 }
 
 function doRest(state: GameState): R {
-  const hpHeal = Math.min(REST_HEAL_HP, MAX_HP - state.player.hp)
+  const maxHp = playerMaxHp(state)
+  const companion = companionBuff(state.companionId, BEASTS)
+  const companionRestHeal = calculateCompanionHeal(companion, maxHp)
+  const totalHeal = REST_HEAL_HP + companionRestHeal
+  const hpHeal = Math.min(totalHeal, maxHp - state.player.hp)
   const events: GameEvent[] = []
   const s: GameState = {
     ...restToDawn(state, events),
     player: {
       ...state.player,
-      hp: clamp(state.player.hp + REST_HEAL_HP, 0, MAX_HP),
+      hp: clamp(state.player.hp + totalHeal, 0, maxHp),
       qi: MAX_QI,
     },
   }
@@ -1042,6 +1066,35 @@ function doUnlockSkill(state: GameState, nodeId: string): R {
   }
 }
 
+function doBuyOutfit(state: GameState, outfitId: string): R {
+  const res = buyOutfit(state, outfitId)
+  if ('error' in res) {
+    if (res.error === 'INSUFFICIENT_SILVER') return err('INSUFFICIENT_SILVER')
+    if (res.error === 'INSUFFICIENT_GOLD') return err('INSUFFICIENT_GOLD')
+    if (res.error === 'INSUFFICIENT_SPIRITSTONES') return err('INSUFFICIENT_SPIRIT_STONES')
+    return err('ITEM_UNAVAILABLE')
+  }
+  return { ok: true, state: res.state, events: [res.event] }
+}
+
+function doEquipOutfit(state: GameState, outfitId: string | null): R {
+  const res = equipOutfit(state, outfitId)
+  const errEv = res.events.find((e) => e.type === 'ERROR')
+  if (errEv && errEv.type === 'ERROR') {
+    return err(errEv.code)
+  }
+  return { ok: true, state: res.state, events: res.events }
+}
+
+function doEquipTitle(state: GameState, titleId: string | null): R {
+  const res = equipTitle(state, titleId)
+  const errEv = res.events.find((e) => e.type === 'ERROR')
+  if (errEv && errEv.type === 'ERROR') {
+    return err(errEv.code)
+  }
+  return { ok: true, state: res.state, events: res.events }
+}
+
 function doEquipItem(state: GameState, itemId: string): R {
   const equipment = getEquipmentByItem(itemId)
   const item = getItem(itemId)
@@ -1119,8 +1172,9 @@ function doArenaChallenge(state: GameState): R {
   // Without it the tower is one gaunt HP/qi pool (the handoff flagged floors
   // 4–5 as seed-critical): climbers reached the summit at qi 0 and had to
   // defend-bank 5 qi per strike until the Senior Brother finished them.
-  const hpHeal = Math.min(REST_HEAL_HP, MAX_HP - state.player.hp)
-  state = { ...state, player: { ...state.player, hp: state.player.hp + hpHeal, qi: MAX_QI } }
+  const maxHp = playerMaxHp(state)
+  const hpHeal = Math.max(0, Math.min(REST_HEAL_HP, maxHp - state.player.hp))
+  state = { ...state, player: { ...state.player, hp: Math.min(maxHp, state.player.hp + hpHeal), qi: MAX_QI } }
   events.push({ type: 'RESTED', hpHeal })
   return {
     ok: true,
@@ -1174,7 +1228,12 @@ function doCombatAttack(state: GameState, techniqueId?: string): R {
   const baseHit = Math.max(1, 5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state) + skillAtk + companionAtk + variance)
   const critHit = Math.max(1, (5 + attributeCombatBonus(state.player.attrs.body) + state.player.stage * 2 + powerTerm + equippedAttackBonus(state) + talentAttackBonus(state) + skillAtk + companionAtk) * 2)
   const rawAmount = critFires ? critHit : baseHit
-  const amount = rawAmount + focus
+  const weather = weatherFor(state.seed, state.day)
+  const playerElement = getPlayerElement(state)
+  const weatherElementMod = getEffectiveElementModifier(state, playerElement, weather.kind)
+  const bloodMoonMod = bloodMoonDamageModifier(state.day)
+  const combatWeatherMod = weatherElementMod * bloodMoonMod
+  const amount = Math.max(1, Math.round((rawAmount + focus) * combatWeatherMod))
   // Combat 9+: behavior hooks evaluated on the player turn BEFORE the strike
   // resolves. The reducer keeps the change next-turn (phase2) or one-shot
   // (boss heal) at the encounter level so resolveEnemyTurn picks them up.
@@ -1347,16 +1406,20 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
   const enemy = getEnemy(state.encounter.enemyId)
   if (enemy === undefined) return err('ITEM_UNAVAILABLE')
   // Issue 6: companion buffs for this day's encounter.
+  const maxHp = playerMaxHp(state)
   const companion = companionBuff(state.companionId, BEASTS)
   const companionDodge = companion?.kind === 'dodge' ? companion.value / 100 : 0
   const companionDef = companion?.kind === 'defense' ? companion.value : 0
-  const companionHeal = companion?.kind === 'heal' ? companion.value : 0
+  const companionHeal = calculateCompanionHeal(companion, maxHp)
   const companionQi = companion?.kind === 'qi' ? companion.value : 0
   const [variance, rng] = nextInt(state.rng, 0, 2)
   // Issue 5: shadow-branch dodge nodes grant evasion. A dodge draw consumes
   // no RNG when the chance is 0, keeping pre-skill save RNG streams identical.
   // Issue 6: a dodge companion stacks its evasion on top of the skill dodge.
-  const dodgeChance = Math.min(0.9, skillDodgeChance(state) + companionDodge)
+  // C3-08: mist weather (suong) grants +15% environmental dodge bonus.
+  const weather = weatherFor(state.seed, state.day)
+  const weatherDodge = getEffectiveWeatherDodgeBonus(state, weather.kind, 'player')
+  const dodgeChance = Math.min(0.9, skillDodgeChance(state) + companionDodge + weatherDodge)
   const [dodgeRoll, rngAfterDodge] = dodgeChance > 0 ? nextInt(rng, 0, 99) : [100, rng]
   if (dodgeRoll < dodgeChance * 100) {
     const turn = (state.encounter.enemyTurns ?? 0) + 1
@@ -1368,7 +1431,7 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
     const s: GameState = {
       ...state,
       rng: rngAfterDodge,
-      player: { ...state.player, qi: Math.min(MAX_QI, state.player.qi + qiRegen + companionQi), hp: Math.min(MAX_HP, state.player.hp + companionHeal) },
+      player: { ...state.player, qi: Math.min(MAX_QI, state.player.qi + qiRegen + companionQi), hp: Math.min(maxHp, state.player.hp + companionHeal) },
       encounter: { ...state.encounter, guard: 0, behaviorBonus: 0, enemyTurns: turn, playerHits: 0 },
     }
     const out: GameEvent[] = [...events, { type: 'COMBAT_HIT', actor: 'enemy', amount: 0, enemyId: enemy.id }]
@@ -1384,12 +1447,36 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
   // arena disciples are ordinary foes: applying it to every enemy made floor 3+
   // lethal in a storm and broke the tower climb. Pure from (seed, day), so it
   // never disturbs the rng stream.
-  const bossMod = enemy.behavior === 'boss' ? WEATHER_EFFECTS[weatherFor(state.seed, state.day).id]?.bossPowerMod ?? 1 : 1
+  // C3-19: Fog Talisman mitigates boss mist power amp.
+  const bossBaseEffects = WEATHER_EFFECTS[weather.id] ?? {
+    herbPriceMod: 1,
+    bossPowerMod: 1,
+    travelCostMod: 1,
+    hiddenNpcChance: 0,
+  }
+  const bossMod = enemy.behavior === 'boss' ? getEffectiveWeatherEffects(state, bossBaseEffects, weather.kind).bossPowerMod : 1
   // Issue 6: a defense companion soaks part of every incoming blow.
   // Difficulty scales only what the enemy deals, after defences — one central
   // knob (damageMultiplier) for the whole combat path.
   // Issue 5: skill-tree defense nodes subtract from incoming damage.
-  const raw = (enemy.attack + variance + behaviorAtk - equippedDefenseBonus(state) - talentDefenseBonus(state) - skillDefenseBonus(state) - companionDef - state.encounter.guard) * damageMultiplier(state.difficulty ?? 'balanced') * bossRage * bossMod
+  // C3-08: enemy element interacts with weather, and Blood Moon grants +30% combat damage.
+  const enemyElement = enemy.element ?? 'Mộc'
+  const enemyWeatherMod = elementWeatherModifier(enemyElement, weather.kind)
+  const bloodMoonMod = bloodMoonDamageModifier(state.day)
+  const raw =
+    (enemy.attack +
+      variance +
+      behaviorAtk -
+      equippedDefenseBonus(state) -
+      talentDefenseBonus(state) -
+      skillDefenseBonus(state) -
+      companionDef -
+      state.encounter.guard) *
+    damageMultiplier(state.difficulty ?? 'balanced') *
+    bossRage *
+    bossMod *
+    enemyWeatherMod *
+    bloodMoonMod
   const amount = Math.max(1, Math.round(raw))
   const hp = Math.max(0, state.player.hp - amount)
   // Combat 9+ poison stacks: each stack drains 3 HP on the player's next reply.
@@ -1408,10 +1495,11 @@ function resolveEnemyTurn(state: GameState, events: GameEvent[]): R {
     rng: rngAfterDodge,
     player: {
       ...state.player,
-      hp: Math.min(MAX_HP, hpAfterPoison + companionHeal),
+      hp: Math.min(maxHp, hpAfterPoison + companionHeal),
       alive: hpAfterPoison > 0,
       poison: nextStacks,
-      qi: Math.min(MAX_QI, state.player.qi + qiRegen + companionQi),    },
+      qi: Math.min(MAX_QI, state.player.qi + qiRegen + companionQi),
+    },
     encounter: { ...state.encounter, guard: 0, behaviorBonus: 0, enemyTurns: turn, playerHits: 0 },
   }
   const out: GameEvent[] = [...events, { type: 'COMBAT_HIT', actor: 'enemy', amount, enemyId: enemy.id }]
@@ -1813,14 +1901,19 @@ function doAcceptQuest(state: GameState, questId: string): R {
   // T14/canon §3: the System announces every loaded quest while it is active,
   // telling the host the first step's objective — the announcement must be
   // actionable, not just a title and deadline.
+  // P3: System chain quests carry no deadline (chain-ramp P2), so a fixed
+  // "{days}" template token would print "Hạn: 0 ngày". The deadline sentence
+  // is quest-dependent → prepend it to the localized objective, and only emit
+  // the optional {days} var, when the def actually declares one.
   const step0 = def.steps[0]
+  const deadline = def.deadlineDays ?? 0
   const systemQueue = systemIsActive(state)
     ? queuePush(state.systemQueue ?? [], 'sys_quest_loaded', {
         quest: def.nameVi,
         questEn: def.nameEn,
-        days: def.deadlineDays ?? 0,
-        objective: step0?.descVi ?? '',
-        objectiveEn: step0?.descEn ?? '',
+        ...(deadline > 0 ? { days: deadline } : {}),
+        objective: (deadline > 0 ? `Hạn: ${String(deadline)} ngày. ` : '') + (step0?.descVi ?? ''),
+        objectiveEn: (deadline > 0 ? `Time limit: ${String(deadline)} days. ` : '') + (step0?.descEn ?? ''),
       })
     : state.systemQueue
   return { ok: true, state: { ...s, systemQueue }, events: [{ type: 'QUEST_ACCEPTED', questId }] }
@@ -1848,7 +1941,7 @@ function doCompleteQuest(state: GameState, questId: string): R {
   for (const [itemId, qty] of Object.entries(def.rewardItems)) {
     inventory = bump(inventory, itemId, qty)
   }
-  const flags = { ...state.flags, [`quest_${questId}_${FLAG_QUEST_DONE}`]: true }
+  const flags = { ...state.flags, [`quest_${questId}${FLAG_QUEST_DONE}`]: true }
   if (def.storySceneNextId !== undefined) flags.story_scene = def.storySceneNextId
   // World completion is an inspectable regional outcome; callers can map this
   // flag to danger/content without mutating the location definition.
@@ -1890,6 +1983,56 @@ function doCompleteQuest(state: GameState, questId: string): R {
     state: { ...s, systemQueue },
     events: [{ type: 'QUEST_COMPLETED', questId, rewardGold: def.rewardGold }],
   }
+}
+
+function doAcceptAllQuests(state: GameState, questIds?: string[]): R {
+  const candidateQuests =
+    questIds !== undefined && questIds.length > 0
+      ? questIds.map((id) => getQuest(id)).filter((q): q is typeof QUESTS[number] => q !== undefined)
+      : QUESTS.filter((q) => isQuestUnlocked(state, q.id) && questStatus(state, q.id) === 'available')
+
+  const toAccept = candidateQuests.filter((q) => canAcceptQuest(state, q.id).ok)
+  if (toAccept.length === 0) {
+    return { ok: true, state, events: [] }
+  }
+
+  let currentState = state
+  const events: GameEvent[] = []
+
+  for (const q of toAccept) {
+    const res = doAcceptQuest(currentState, q.id)
+    if (res.ok) {
+      currentState = res.state
+      events.push(...res.events)
+    }
+  }
+
+  return { ok: true, state: currentState, events }
+}
+
+function doClaimAllQuests(state: GameState, questIds?: string[]): R {
+  const candidateQuests =
+    questIds !== undefined && questIds.length > 0
+      ? questIds.map((id) => getQuest(id)).filter((q): q is typeof QUESTS[number] => q !== undefined)
+      : QUESTS.filter((q) => questStatus(state, q.id) === 'active')
+
+  const toClaim = candidateQuests.filter((q) => canCompleteQuest(state, q.id).ok)
+  if (toClaim.length === 0) {
+    return { ok: true, state, events: [] }
+  }
+
+  let currentState = state
+  const events: GameEvent[] = []
+
+  for (const q of toClaim) {
+    const res = doCompleteQuest(currentState, q.id)
+    if (res.ok) {
+      currentState = res.state
+      events.push(...res.events)
+    }
+  }
+
+  return { ok: true, state: currentState, events }
 }
 
 export function totalInventoryUnits(state: GameState): number {

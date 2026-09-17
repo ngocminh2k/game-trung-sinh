@@ -204,4 +204,21 @@ describe('narrator', () => {
       state = r.state
     }
   })
+
+  it('T-ATTR: localizes attribute names as Thân/Tâm/Mị/Vận in ATTRIBUTE_ALLOCATED chronicle events', () => {
+    const attrs = [
+      { key: 'body', vi: 'Thân', en: 'Body' },
+      { key: 'mind', vi: 'Tâm', en: 'Mind' },
+      { key: 'charm', vi: 'Mị', en: 'Charm' },
+      { key: 'luck', vi: 'Vận', en: 'Luck' },
+    ] as const
+
+    for (const { key, vi, en } of attrs) {
+      const lineVi = narrateLine({ type: 'ATTRIBUTE_ALLOCATED', attribute: key, value: 1, pointsRemaining: 1 }, 'vi')
+      const lineEn = narrateLine({ type: 'ATTRIBUTE_ALLOCATED', attribute: key, value: 1, pointsRemaining: 1 }, 'en')
+      expect(lineVi).toBe(`Phân một điểm vào ${vi}; còn 1 điểm.`)
+      expect(lineEn).toBe(`Assigned one point to ${en}; 1 remain.`)
+      expect(lineVi).not.toContain(key)
+    }
+  })
 })

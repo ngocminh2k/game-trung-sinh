@@ -28,9 +28,8 @@ function atLocation(locationId: string, posX: number, posY: number, update?: (g:
 
 async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): Promise<void> {
   const session: GameSession = { game, locale, chronicle: ['Visual acceptance save.'] }
-  const slot = { slotId: 1, savedAt: 1, session }
+  const slot = { slotId: 1, savedAt: Date.now(), session }
   await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
-    if (window.localStorage.getItem(slotsKey) !== null) return
     window.localStorage.setItem(slotsKey, value)
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
@@ -41,8 +40,8 @@ async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): 
   if (await narration.count() > 0) await narration.locator('.story-close').click()
 }
 
-const DEATH = { ...newGame('death-fixture'), terminal: true, endingId: 'tragic_death' } as unknown as GameState
-const ENDING = { ...newGame('ending-fixture'), terminal: true, endingId: 'forgiven_enemy' } as unknown as GameState
+const DEATH = freshGame((g) => ({ ...g, terminal: true, endingId: 'tragic_death', player: { ...g.player, alive: false } }))
+const ENDING = freshGame((g) => ({ ...g, terminal: true, endingId: 'forgiven_enemy' }))
 
 for (const size of SIZES) {
   test.describe(`${size.tag} desktop acceptance`, () => {
@@ -54,66 +53,91 @@ for (const size of SIZES) {
     test('UX-03 world mode keeps the 3-column map | story | hud layout in bounds', async ({ page }) => {
       await openGame(page, freshGame((game) => ({ ...game, systemId: 'sys_battle' })))
       const metrics = await page.evaluate(() => {
-        const world = document.querySelector<HTMLElement>('.world-content .game-grid')
-        const map = document.querySelector<HTMLElement>('.world-content .map-panel')
-        const story = document.querySelector<HTMLElement>('.world-content .story-panel')
-        const hud = document.querySelector<HTMLElement>('.world-content .hud-panel')
-        const system = document.querySelector<HTMLElement>('.world-content .system-panel')
-        const stats = document.querySelector<HTMLElement>('.world-content .stats-card')
-        const icons = [...document.querySelectorAll<HTMLElement>('.map-exit-icon')]
-        if (world === null || map === null || hud === null || system === null || stats === null) throw new Error('World layout missing')
-        const worldBox = world.getBoundingClientRect()
+        const grid = document.querySelector<HTMLElement>('.proto-grid-main')
+        const leftrail = document.querySelector<HTMLElement>('.proto-leftrail')
+        const center = document.querySelector<HTMLElement>('.proto-center')
+        const map = document.querySelector<HTMLElement>('.proto-map')
+        const righthud = document.querySelector<HTMLElement>('.proto-righthud')
+        const ticker = document.querySelector<HTMLElement>('.proto-ticker')
+        const pins = [...document.querySelectorAll<HTMLElement>('.proto-map .pin')]
+        if (grid === null || leftrail === null || center === null || map === null || righthud === null || ticker === null) {
+          throw new Error('ProtoShell 3-column layout missing')
+        }
+        const gridBox = grid.getBoundingClientRect()
+        const leftBox = leftrail.getBoundingClientRect()
+        const centerBox = center.getBoundingClientRect()
         const mapBox = map.getBoundingClientRect()
-        const hudBox = hud.getBoundingClientRect()
-        const systemBox = system.getBoundingClientRect()
-        const statsBox = stats.getBoundingClientRect()
+        const hudBox = righthud.getBoundingClientRect()
+        const tickerBox = ticker.getBoundingClientRect()
         return {
           scrollHeight: document.documentElement.scrollHeight,
           innerHeight: window.innerHeight,
-          mapRatio: mapBox.width / worldBox.width,
-          hudRatio: hudBox.width / worldBox.width,
-          storyVisible: story !== null,
-          panelsOverlap: mapBox.right > hudBox.left,
-          systemAndStatsShareRow: Math.abs(systemBox.top - statsBox.top) < 2,
-          iconsInBounds: icons.length > 0 && icons.every((icon) => {
-            const box = icon.getBoundingClientRect()
-            return box.left >= mapBox.left && box.right <= mapBox.right && box.top >= mapBox.top && box.bottom <= mapBox.bottom
+          gridWidth: gridBox.width,
+          leftWidth: leftBox.width,
+          centerWidth: centerBox.width,
+          hudWidth: hudBox.width,
+          mapRatio: mapBox.width / gridBox.width,
+          hudRatio: hudBox.width / gridBox.width,
+          leftRatio: leftBox.width / gridBox.width,
+          panelsOverlap: leftBox.right > centerBox.left || centerBox.right > hudBox.left,
+          railsShareRow: Math.abs(leftBox.top - hudBox.top) < 2,
+          mapInBounds: mapBox.top >= gridBox.top && mapBox.bottom <= tickerBox.top + 1,
+          pinCount: pins.length,
+          pinsInBounds: pins.length > 0 && pins.every((pin) => {
+            const box = pin.getBoundingClientRect()
+            return box.left >= mapBox.left - 2 && box.right <= mapBox.right + 2 && box.top >= mapBox.top - 2 && box.bottom <= mapBox.bottom + 2
           }),
         }
       })
       expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.innerHeight)
-      // 3-column ratios: map ~36% (col 1fr), story ~38% (col 1.05fr), hud ~25% (col 0.7fr)
-      // of total 2.75fr. Tolerate a small band for sub-pixel rounding + scrollbar gutter.
-      expect(metrics.mapRatio).toBeGreaterThan(.32)
-      expect(metrics.mapRatio).toBeLessThan(.42)
-      expect(metrics.hudRatio).toBeGreaterThan(.21)
-      expect(metrics.hudRatio).toBeLessThan(.31)
+      // Anti-vacuous guards: the measured boxes must have non-zero geometry
+      expect(metrics.gridWidth).toBeGreaterThan(0)
+      expect(metrics.leftWidth).toBeGreaterThan(0)
+      expect(metrics.centerWidth).toBeGreaterThan(0)
+      expect(metrics.hudWidth).toBeGreaterThan(0)
+      expect(metrics.pinCount).toBeGreaterThan(0)
+      // Desktop 3-column layout: left rail (56px), center map (1fr), right HUD (280px)
+      // At 1280px: left ~4.4%, hud ~21.9%, map ~73.8%
+      // At 1600px: left ~3.5%, hud ~17.5%, map ~79.0%
+      expect(metrics.leftRatio).toBeGreaterThan(0.02)
+      expect(metrics.leftRatio).toBeLessThan(0.08)
+      expect(metrics.mapRatio).toBeGreaterThan(0.65)
+      expect(metrics.mapRatio).toBeLessThan(0.85)
+      expect(metrics.hudRatio).toBeGreaterThan(0.15)
+      expect(metrics.hudRatio).toBeLessThan(0.25)
       expect(metrics.panelsOverlap).toBe(false)
-      expect(metrics.systemAndStatsShareRow).toBe(true)
-      expect(metrics.iconsInBounds).toBe(true)
+      expect(metrics.railsShareRow).toBe(true)
+      expect(metrics.mapInBounds).toBe(true)
+      expect(metrics.pinsInBounds).toBe(true)
       await page.screenshot({ path: `artifacts/${size.tag}/world.png` })
     })
 
     test('A-08 journal mode screenshot restores focus to its launcher', async ({ page }) => {
       await openGame(page)
-      const launcher = page.getByRole('button', { name: 'Open Journey journal' })
+      const launcher = page.getByRole('button', { name: /Open Journey journal|Mở Hành trang/i })
       await launcher.click()
-      await expect(page.getByTestId('world-content')).toBeHidden()
-      await page.getByRole('button', { name: '← Back to world Esc' }).click()
-      await expect(page.getByTestId('world-content')).toBeVisible()
+      await expect(page.getByTestId('journal-screen')).toBeVisible()
+      await page.screenshot({ path: `artifacts/${size.tag}/journal.png` })
+      // The <kbd>Esc</kbd> inside the return button is aria-hidden, so it does
+      // NOT contribute to the accessible name: '← Back to world Esc' matches
+      // nothing (that exact-name locator is what stalled 30s before this rewrite).
+      await page.getByRole('button', { name: /← Back to world|← Về thế giới/ }).click()
+      await expect(page.getByTestId('journal-screen')).toBeHidden()
       await expect(launcher).toBeFocused()
       const metrics = await page.evaluate(() => ({
         scrollHeight: document.documentElement.scrollHeight,
         innerHeight: window.innerHeight,
       }))
       expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.innerHeight)
-      await page.screenshot({ path: `artifacts/${size.tag}/journal.png` })
     })
 
     test('A-08 combat mode screenshot', async ({ page }) => {
       await openGame(page, atLocation('misty_forest', 4, 1, (game) => ({ ...game, player: { ...game.player, stage: 1, qi: 30 } })))
-      await page.getByRole('button', { name: 'Start encounter' }).click()
-      await expect(page.getByLabel('Active encounter')).toBeVisible()
+      const fightBtn = page.locator('button[data-chip="fight"]')
+      await expect(fightBtn).toBeVisible()
+      await fightBtn.click()
+      await expect(page.getByTestId('proto-combat')).toBeVisible()
+      await expect(page.getByTestId('combat-attack')).toBeVisible()
       await page.screenshot({ path: `artifacts/${size.tag}/combat.png` })
     })
 
@@ -124,14 +148,26 @@ for (const size of SIZES) {
     })
 
     test('A-08 ending screenshot', async ({ page }) => {
+      // FIXED (issue #40 Step 2): .ending-banner used to mount inside
+      // .world-content (hidden via `display:none` at >=921px), so the terminal
+      // ending state could not be seen on desktop at all. Lifted out into
+      // .game-shell (GameScreen.tsx) so it renders above the proto layer at
+      // every width. See test/issue40-terminal-surface.test.tsx for the
+      // structural unit test that locks this placement.
       await openGame(page, ENDING)
       await expect(page.locator('.ending-banner')).toBeVisible()
       await page.screenshot({ path: `artifacts/${size.tag}/ending.png` })
     })
 
     test('A-08 death screenshot', async ({ page }) => {
+      // FIXED (issue #40 Step 2): same class of defect as the ending banner —
+      // DeathScreen used to sit inside .world-content, invisible at >=921px.
+      // Now lifted out into .game-shell.
       await openGame(page, DEATH)
-      await expect(page.locator('.death-screen, .ending-banner')).toBeVisible()
+      // Strict: the DEATH fixture must render the death surface specifically —
+      // an OR with .ending-banner would stay green if the mutual exclusion in
+      // GameScreen.tsx ever inverted (reviewer-step2 LOW).
+      await expect(page.locator('.death-screen')).toBeVisible()
       await page.screenshot({ path: `artifacts/${size.tag}/death.png` })
     })
   })

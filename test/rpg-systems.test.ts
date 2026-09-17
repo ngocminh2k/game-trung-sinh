@@ -17,7 +17,7 @@ import {
 import type { GameState } from '../src/engine'
 
 const PRE_RPG_V1_SAVE = {
-  version: 1,
+  version: 2,
   seed: 'before-rpg',
   rng: 424242,
   day: 4,

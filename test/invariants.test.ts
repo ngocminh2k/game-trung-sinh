@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { STORAGE_CAPACITY, applyAction, newGame, storageUnitsUsed } from '../src/engine'
+import { STORAGE_CAPACITY, applyAction, newGame, playerMaxHp, storageUnitsUsed } from '../src/engine'
 import type { Action, ErrorCode, GameEvent, GameState } from '../src/engine'
 import { navTo } from './test-utils'
 
@@ -22,7 +22,7 @@ function hasErrorCode(events: readonly GameEvent[], code: ErrorCode): boolean {
 function assertInvariants(state: GameState): void {
   expect(state.player.gold).toBeGreaterThanOrEqual(0)
   expect(state.player.hp).toBeGreaterThanOrEqual(0)
-  expect(state.player.hp).toBeLessThanOrEqual(100)
+  expect(state.player.hp).toBeLessThanOrEqual(playerMaxHp(state))
   expect(state.player.qi).toBeGreaterThanOrEqual(0)
   expect(state.player.qi).toBeLessThanOrEqual(60)
   for (const count of Object.values(state.inventory)) {

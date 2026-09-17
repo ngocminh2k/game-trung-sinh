@@ -2,18 +2,14 @@
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { z } from 'zod'
 import react from '@vitejs/plugin-react'
+import {
+  NarratePayloadSchema,
+  SuggestPayloadSchema,
+  parseSuggestContent,
+} from './src/ai/proxy-helpers'
 
-// Proxy payload shapes: exported so tests can validate the same gates the
-// middleware enforces. The suggest shape is strict (caps choices at 20);
-// the narrate shape is a permissive record — the proxy only relays canon.
-export const SuggestPayloadSchema = z.object({
-  mode: z.literal('suggest'),
-  locale: z.enum(['en', 'vi']),
-  choices: z.array(z.object({ id: z.string().min(1) })).max(20),
-})
-export const NarratePayloadSchema = z.record(z.unknown())
+export { NarratePayloadSchema, SuggestPayloadSchema, parseSuggestContent }
 
 function isSuggestPayload(body: unknown): body is { mode: 'suggest', locale: string, choices: Array<{ id: string }> } {
   if (typeof body !== 'object' || body === null) return false
@@ -22,20 +18,6 @@ function isSuggestPayload(body: unknown): body is { mode: 'suggest', locale: str
     && (candidate.locale === 'en' || candidate.locale === 'vi')
     && Array.isArray(candidate.choices)
     && candidate.choices.every((choice) => typeof choice === 'object' && choice !== null && typeof (choice as { id?: unknown }).id === 'string')
-}
-
-export function parseSuggestContent(raw: string, choices: Array<{ id: string }>): { choiceId: string, reply: string } | null {
-  try {
-    const jsonStart = raw.indexOf('{')
-    const jsonEnd = raw.lastIndexOf('}')
-    if (jsonStart < 0 || jsonEnd <= jsonStart) return null
-    const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd + 1)) as { choiceId?: unknown, reply?: unknown }
-    if (typeof parsed.choiceId !== 'string' || !choices.some((choice) => choice.id === parsed.choiceId)) return null
-    const reply = typeof parsed.reply === 'string' ? parsed.reply.replace(/\s+/g, ' ').trim().slice(0, 300) : ''
-    return { choiceId: parsed.choiceId, reply }
-  } catch {
-    return null
-  }
 }
 
 // SAFE-02: the proxy only relays which authored choice id the model picked;

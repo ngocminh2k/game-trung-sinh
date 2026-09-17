@@ -57,8 +57,8 @@ describe('P0-5: crit wiring from skill-tree', () => {
   })
 
   it('critBonus=0 never crits', () => {
-    const flagged = { ...encounter('crit-zero'), flags: { ...encounter('crit-zero').flags, critBonus: 0 } }
-    const base = encounter('crit-zero-base')
+    const base = encounter('crit-zero')
+    const flagged = { ...base, flags: { ...base.flags, critBonus: 0 } }
     expect(hitAmount(applyAction(flagged, { kind: 'combat_attack' }).events))
       .toBe(hitAmount(applyAction(base, { kind: 'combat_attack' }).events))
   })

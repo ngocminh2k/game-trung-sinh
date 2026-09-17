@@ -1,0 +1,59 @@
+{"a":1,"t":"boot:new-game","name":"Kiếp mớiChọn khế ước & nhập đạo","id":"menu-new-game","changed":true,"ms":1433}
+{"a":2,"t":"boot:pick-system","name":"5Hệ Thống Vạn DặmHệ Thống đã vẽ lại bản đồ. Những vùng trắng","id":"system-tile-sys_explorer","changed":true,"ms":905}
+{"a":3,"t":"boot:difficulty","name":"Cân bằng","id":"difficulty-balanced","changed":true,"ms":1138}
+{"a":4,"t":"boot:confirm","name":"Ký khế ước","id":"newgame-confirm","changed":true,"ms":1746}
+{"a":5,"t":"boot:skip-loading","name":"Màn hình tải — nhấn để bắt đầu","id":"","changed":true,"ms":3817}
+{"a":6,"t":"map:travel","name":"Đi 4 bước tới Lũy tre","id":"map-pin-1-1","changed":true,"ms":781}
+{"a":7,"t":"map:travel","name":"Đi tới Đường vào rừng sương (2 bước) — ⚠ bước vào −8..−12 HP","id":"map-pin-3-1","changed":true,"ms":815}
+{"a":8,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":935}
+{"a":9,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":806}
+{"a":10,"t":"map:travel","name":"Đi 6 bước tới Dấu chân lang yêu — ⚠ bước vào −10..−16 HP","id":"map-pin-4-1","changed":true,"ms":883}
+{"a":11,"t":"map:travel","name":"Đi tới Dấu ấn cổ bên hang (2 bước) — ⚠ bước vào −20..−26 HP","id":"map-pin-3-2","changed":true,"ms":916}
+{"a":12,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":772}
+{"a":13,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":903}
+{"a":14,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":751}
+{"a":15,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":753}
+{"a":16,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":750}
+{"a":17,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":719}
+{"a":18,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":753}
+{"a":19,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":779}
+{"a":20,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":741}
+{"a":21,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":761}
+{"a":22,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":729}
+{"a":23,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":733}
+{"a":24,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":716}
+{"a":25,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":726}
+{"a":26,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":755}
+{"a":27,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":741}
+{"a":28,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":792}
+{"a":29,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":713}
+{"a":30,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":732}
+{"a":31,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":751}
+{"a":32,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":719}
+{"a":33,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":767}
+{"a":34,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":740}
+{"a":35,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":763}
+{"a":36,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":753}
+{"a":37,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":731}
+{"a":38,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":717}
+{"a":39,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":740}
+{"a":40,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":711}
+{"a":41,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":726}
+{"a":42,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":711}
+{"a":43,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":752}
+{"a":44,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":753}
+{"a":45,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":763}
+{"a":46,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":729}
+{"a":47,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":711}
+{"a":48,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":714}
+{"a":49,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":790}
+{"a":50,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":742}
+{"a":51,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":747}
+{"a":52,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":802}
+{"a":53,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":867}
+{"a":54,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":722}
+{"a":55,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":750}
+{"a":56,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":735}
+{"a":57,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":787}
+{"_summary":{"steps":57,"dead_clicks":0,"unique_gaps":["npc:talk: không tìm được điều khiển (/nói chuyện với|trò chuyện/) trên màn game","map:travel: không tìm được điều khiển (/^Đi (tới|\\d)/) trên màn game"],"unique_issues":["tên dính chuỗi vô hồn: \"CCụ Mai Hoatrưởng làng♥ 0\" #button","tên dính chuỗi vô hồn: \"NNgo kể chuyệnngười kể chuyện♥ 0\" #button","tên dính chuỗi vô hồn: \"CChủ quán Hạnhchủ quán trọ♥ 0\" #button","tên dính chuỗi vô hồn: \"DDân binh Trườngdân binh♥ 0\" #button","tên dính chuỗi vô hồn: \"TThợ săn Sơnthợ săn♥ 0\" #button","tên dính chuỗi vô hồn: \"TTiều phu Bồngtiều phu♥ 0\" #button","tên dính chuỗi vô hồn: \"TTán tu Nhấttán tu rừng sương♥ 0\" #button","tên dính chuỗi vô hồn: \"CCốc chủ Cốcẩn sĩ hang đá♥ 0\" #button","tên dính chuỗi vô hồn: \"VVong hồn Hàvong hồn lang thang♥ 0\" #button","tên dính chuỗi vô hồn: \"TThợ khắc Khuêthợ khắc bùa♥ 0\" #button"],"last_chronicle":[],"screens_seen":["boot","map","play"],"days_seen":null,"errors":[]}}
+{"_telemetry_head":{"actions":57,"errors":[],"run":[{"version":1,"id":"pt-mu3j1me4-ldx8","seed":"ink-and-jade","locale":"vi","difficulty":"balanced","startedAt":1789528467099,"endedAt":null,"endingId":null,"finalDay":1,"corrections":0,"nightForgotten":false,"steps":[{"t":2976,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":2977,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":2980,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":2981,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":3826,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":3827,"day":1,"kind":"move","loc":"misty_forest","hp":92,"qi":60,"gold":60},{"t":4791,"day":1,"kind":"gather","loc":"misty_forest","hp":92,"qi":60,"gold":60},{"t":5610,"day":1,"kind":"train","loc":"misty_forest","hp":86,"qi":50,"gold":60},{"t":6439,"day":1,"kind":"move","loc":"misty_forest","hp":86,"qi":50,"gold":60},{"t":6439,"day":1,"kind":"move","loc":"misty_forest","hp":86,"qi":50,"gold":60},{"t":6439,"day":1,"kind":"move","loc":"misty_forest","hp":86,"qi":50,"gold":60},{"t":6440,"day":1,"kind":"move","loc":"misty_forest","hp":86,"qi":50,"gold":60},{"t":6440,"day":1,"kind":"move","loc":"misty_forest","hp":86,"qi":50,"gold":60},{"t":6440,"day":1,"kind":"move","loc":"misty_forest","hp":76,"qi":50,"gold":60},{"t":7425,"day":1,"kind":"move","loc":"misty_forest","hp":76,"qi":50,"gold":60},{"t":7426,"day":1,"kind":"move","loc":"sealed_cave","hp":51,"qi":50,"gold":60},{"t":8316,"day":1,"kind":"gather","loc":"sealed_cave","hp":51,"qi":50,"gold":60},{"t":9148,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":10057,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":10821,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":11698,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":12436,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":13308,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":14107,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":14905,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":15661,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":16607,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":17335,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":18123,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":18854,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":19703,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":20470,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":21383,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":22120,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":22903,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":23655,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":24469,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":25242,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":26061,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":26825,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":27704,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":28472,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":29269,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":30020,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":30822,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":31570,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":32352,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":33093,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":33943,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":34720,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":35536,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":36286,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":37069,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":37805,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":38665,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":39422,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":40295,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":41210,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":42004,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":42774,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":43620,"day":1,"kind":"gather","loc":"sealed_cave","hp":45,"qi":40,"gold":60},{"t":44434,"day":1,"kind":"train","loc":"sealed_cave","hp":45,"qi":40,"gold":60}]}]}}

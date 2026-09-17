@@ -1,5 +1,6 @@
 import { entryPositionFor, getRegionMap, isPassable, regionCellAt } from '../content'
 import type { RegionCellDef } from './content-types'
+import type { GlobalProfile } from './globalProfile'
 import type { Direction } from './types'
 
 const DELTAS: Record<Direction, { dx: number; dy: number }> = {
@@ -97,3 +98,50 @@ export function findPath(
   }
   return path
 }
+
+/** C3-13: Does the specified map cell contain a buried relic from a past life? */
+export function hasBuriedRelicAt(
+  profile: GlobalProfile | null | undefined,
+  locationId: string,
+  x: number,
+  y: number,
+): boolean {
+  if (!profile?.buriedRelic) return false
+  return (
+    profile.buriedRelic.locationId === locationId &&
+    profile.buriedRelic.x === x &&
+    profile.buriedRelic.y === y
+  )
+}
+
+export interface BuriedRelicHint {
+  locationId: string
+  x: number
+  y: number
+  distance: number
+  isSameLocation: boolean
+}
+
+/** C3-13: Provides spatial hint/distance toward buried relic from current position. */
+export function getBuriedRelicHint(
+  profile: GlobalProfile | null | undefined,
+  currentLocationId: string,
+  currentX: number,
+  currentY: number,
+): BuriedRelicHint | null {
+  if (!profile?.buriedRelic) return null
+  const { locationId, x, y } = profile.buriedRelic
+  const isSameLocation = locationId === currentLocationId
+  const distance = isSameLocation
+    ? Math.abs(x - currentX) + Math.abs(y - currentY)
+    : -1
+
+  return {
+    locationId,
+    x,
+    y,
+    distance,
+    isSameLocation,
+  }
+}
+

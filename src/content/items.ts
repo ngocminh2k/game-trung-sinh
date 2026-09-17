@@ -995,17 +995,57 @@ export const ITEMS: ItemDef[] = [
   {
     id: 'shadow_molt_hidden_manual', nameVi: 'Ảnh Thuế Pháp', nameEn: 'Shadow-Molt Manual',
     descVi: 'Bóng chữ trượt khỏi trang khi chớp mắt.', descEn: 'The script slips off the page when you blink.',
-    aliases: ['shadow molt manual'], usable: false, teachesTechniqueId: 'shadow_molt_hidden', requiredStage: 4, buyPrice: null, sellPrice: 290,
+    aliases: ['shadow molt manual'], usable: false, teachesTechniqueId: 'shadow_molt_hidden', requiredStage: 4, buyPrice: 420, sellPrice: 290,
   },
   {
     id: 'shadow_eclipse_step_hidden_manual', nameVi: 'Thực Nguyệt Bộ', nameEn: 'Eclipse Step Manual',
     descVi: 'Dấu chân đen in theo chu kỳ trăng.', descEn: 'Black footprints follow the moon’s cycle.',
-    aliases: ['eclipse step manual'], usable: false, teachesTechniqueId: 'shadow_eclipse_step_hidden', requiredStage: 5, buyPrice: null, sellPrice: 410,
+    aliases: ['eclipse step manual'], usable: false, teachesTechniqueId: 'shadow_eclipse_step_hidden', requiredStage: 5, buyPrice: 500, sellPrice: 410,
   },
   {
     id: 'thunder_gasp_hidden_manual', nameVi: 'Lôi Hấp Pháp', nameEn: 'Thunder-Gasp Manual',
     descVi: 'Mỗi trang rung nhẹ khi có giông.', descEn: 'Every page trembles before a storm.',
     aliases: ['thunder gasp manual'], usable: false, teachesTechniqueId: 'thunder_gasp_hidden', requiredStage: 5, buyPrice: null, sellPrice: 430,
+  },
+  /* --- C3-19: Bộ vật phẩm thời tiết (Áo mưa, Ngọc tránh nắng, Bùa xua sương) --- */
+  {
+    id: 'raincoat',
+    nameVi: 'Áo tơi đồng',
+    nameEn: 'Coir Raincoat',
+    descVi: 'Đan từ xơ cọ và vỏ dừa cổ thụ, nước mưa trút xuống như đổ lên lá sen.',
+    descEn: 'Woven from ancient palm and coir fibers; raindrops slide off like water on a lotus leaf.',
+    aliases: ['raincoat', 'ao toi', 'ao mua', 'coir raincoat'],
+    usable: false,
+    illustrated: false,
+    equipmentSlot: 'robe',
+    buyPrice: 45,
+    sellPrice: 22,
+  },
+  {
+    id: 'sun_gem',
+    nameVi: 'Ngọc tránh nắng',
+    nameEn: 'Sun-Warding Jade',
+    descVi: 'Huyền ngọc hàn băng tỏa hơi mát dịu, xua tan cái nóng thiêu đốt của ngày nắng gắt.',
+    descEn: 'Cool glacial jade emitting a soothing chill, dispersing searing heat.',
+    aliases: ['sun gem', 'ngoc tranh nang', 'sun jade', 'ti nhat ngoc'],
+    usable: false,
+    illustrated: false,
+    equipmentSlot: 'accessory',
+    buyPrice: 50,
+    sellPrice: 25,
+  },
+  {
+    id: 'fog_talisman',
+    nameVi: 'Bùa xua sương',
+    nameEn: 'Mist-Dispelling Talisman',
+    descVi: 'Phù chỉ vẽ bằng chu sa nguyên chất, tỏa ánh quang minh xuyên thấu sương mù.',
+    descEn: 'Inscribed with pure cinnabar; emits a gentle radiance that pierces dense mountain mist.',
+    aliases: ['fog talisman', 'bua xua suong', 'mist talisman', 'khu vu phu'],
+    usable: false,
+    illustrated: false,
+    equipmentSlot: 'accessory',
+    buyPrice: 40,
+    sellPrice: 20,
   },
 ]
 
@@ -1013,4 +1053,13 @@ export function getItem(itemId: string): ItemDef | undefined {
   return ITEMS.find((i) => i.id === itemId)
 }
 
-export const SHOP_STOCK: string[] = ITEMS.filter((i) => i.buyPrice !== null).map((i) => i.id)
+// Hidden manuals are quest-turn-in targets, not market goods — listing them on
+// the shop panel spoils the assassin-chain discovery (reviewer-chain M2).
+// The two shadow manuals keep numeric buyPrice on purpose: doBuy's static-price
+// path (reducer.ts) is their guaranteed acquisition fallback if the quest-item
+// pool ever rolls past them, so the buy stays possible without the shelf entry.
+// ponytail: id-suffix exclusion; upgrade path is an explicit `shopStocked` flag
+// on ItemDef if a future hidden manual legitimately belongs on a stall.
+export const SHOP_STOCK: string[] = ITEMS.filter(
+  (i) => i.buyPrice !== null && !i.id.endsWith('_hidden_manual'),
+).map((i) => i.id)

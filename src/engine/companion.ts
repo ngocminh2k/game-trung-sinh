@@ -9,6 +9,9 @@ import type { GameState } from './types'
 /** Extra action slot granted per tamed companion. Applied in combat. */
 export const COMPANION_EXTRA_ACTION = 1
 
+/** Special companion ID for Tiểu Thảo (story companion, 30% heal buff) */
+export const TIEU_THAO_COMPANION_ID = 'companion_tieu_thao'
+
 /**
  * Whether the player can tame a given beast:
  * 1. Luck attribute meets minLuck threshold.
@@ -30,6 +33,38 @@ export function companionBuff(
   beasts: ReadonlyArray<BeastDef>,
 ): { kind: string; value: number } | null {
   if (!companionId) return null
+  if (
+    companionId === TIEU_THAO_COMPANION_ID ||
+    companionId === 'tieu_thao' ||
+    companionId === 'beast_tieu_thao'
+  ) {
+    return { kind: 'heal', value: 30 }
+  }
   const beast = beasts.find((b) => b.id === companionId)
   return beast ? { kind: beast.buff.kind, value: beast.buff.value } : null
+}
+
+/**
+ * Calculate companion heal amount scaled by player max HP (% Max HP).
+ * Guaranteed floor at buff.value (so low HP/debuff never heals less than base value).
+ */
+export function calculateCompanionHeal(
+  buff: { kind: string; value: number } | null | undefined,
+  maxHp: number,
+): number {
+  if (!buff || buff.kind !== 'heal' || buff.value <= 0) return 0
+  const scaled = Math.round((maxHp * buff.value) / 100)
+  return Math.max(buff.value, scaled)
+}
+
+/**
+ * Helper to compute companion heal amount directly from companionId, beast definitions, and max HP.
+ */
+export function companionHealAmount(
+  companionId: string | null | undefined,
+  beasts: ReadonlyArray<BeastDef>,
+  maxHp: number,
+): number {
+  const buff = companionBuff(companionId, beasts)
+  return calculateCompanionHeal(buff, maxHp)
 }

@@ -35,9 +35,14 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
 .game-shell { width: min(1510px, calc(100vw - 48px)); margin: 0 auto; padding: 26px 0 44px; }
 /* Skip links: visually hidden until focused, so keyboard users can jump
    straight to the world map or inventory dock. The first focusable element
-   of <main> is always one of these. */
-.skip-link { position: absolute; left: 0; top: -40px; padding: 8px 12px; background: var(--jade); color: var(--paper); font-family: 'DM Mono', monospace; font-size: 12px; text-decoration: none; z-index: 100; border: 2px solid var(--paper); border-radius: 4px; }
-.skip-link:focus { top: 0; }
+   of <main> is always one of these.
+   T8: hidden with WCAG clipping, NOT with `top: -40px`. An off-viewport box
+   fails Playwright's actionability check and burns the whole STEP_TIMEOUT
+   (~20s, 75 bot slow-fails in round 3); it also parked the invisible link on
+   the page's top-left corner. top stays 0, so the box is always inside the
+   viewport, and pointer-events:none keeps it out of hit-testing while hidden. */
+.skip-link { position: absolute; left: 0; top: 0; padding: 8px 12px; background: var(--jade); color: var(--paper); font-family: 'DM Mono', monospace; font-size: 12px; text-decoration: none; z-index: 100; border: 2px solid var(--paper); border-radius: 4px; clip-path: inset(50%); pointer-events: none; }
+.skip-link:focus { clip-path: none; pointer-events: auto; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 0 4px 23px; border-bottom: 1px solid rgba(39,64,49,.25); }
 .brand,.topbar-actions,.panel-heading,.stat-strip,.npc-list li,.quest-list li,.item-list li,.shop-list>div { display:flex; align-items:center; }.brand{gap:14px}.brand-seal{display:grid;width:46px;height:46px;place-items:center;border:2px solid var(--vermilion);border-radius:50%;color:var(--vermilion);font-size:27px;line-height:1;transform:rotate(-8deg)}.eyebrow,.section-kicker{margin:0;color:#697166;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase}.brand h1{margin:2px 0 0;color:#173e31;font-size:26px;line-height:1.05}.brand h1 span{color:#68706a;font-size:15px;font-weight:500}.topbar-actions{gap:12px}.day-chip,.location-label,.root-badge,.panel-heading>span{border:1px solid rgba(43,85,60,.31);border-radius:999px;padding:5px 9px;color:#315c43;font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap}
 
@@ -232,8 +237,14 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
 
 
 /* Narrative is a temporary conversation, never a permanent third column. */
-.story-panel{position:fixed!important;z-index:20;inset:clamp(12px,5vh,56px) clamp(12px,12vw,220px);max-height:calc(100dvh - clamp(24px,10vh,112px));overflow:auto!important;overscroll-behavior:contain;box-shadow:0 20px 60px rgba(28,35,25,.4)}
-.story-backdrop{position:fixed;z-index:19;inset:0;background:rgba(19,32,25,.48)}
+/* Story is a modal dialog (aria-modal) so it must out-rank the proto layer:
+   .proto-topbar (z30) + .proto-zen-pill (z35) + pin-tip (z40) share the shell's
+   stacking context (.proto-shell-wrap is display:contents), so the old z19/z20
+   let the topbar stat badges paint over .story-close and swallow its clicks at
+   ≥921px. Bumped to the modal tier (proto-modal 60/70, rail-drawer 80/90) while
+   staying below the drawers that legitimately open over narration. */
+.story-panel{position:fixed!important;z-index:60;inset:clamp(12px,5vh,56px) clamp(12px,12vw,220px);max-height:calc(100dvh - clamp(24px,10vh,112px));overflow:auto!important;overscroll-behavior:contain;box-shadow:0 20px 60px rgba(28,35,25,.4)}
+.story-backdrop{position:fixed;z-index:59;inset:0;background:rgba(19,32,25,.48)}
 .story-close{position:relative;z-index:2;justify-self:end;border:1px solid #28553e;padding:6px 9px;color:#f8f1dc;background:#28553e;font-size:11px}.story-close kbd{margin-left:5px;border:1px solid currentColor;padding:1px 3px;font-family:'DM Mono',monospace;font-size:8px}
 .ending-epilogue{display:grid;gap:9px;max-width:860px;margin-top:16px;border-top:1px solid rgba(117,67,44,.24);padding-top:14px;text-align:left}.ending-epilogue p{margin:0;color:#5d493c;font-size:14px;line-height:1.55}
 .choice-button:disabled{cursor:not-allowed}
@@ -400,3 +411,48 @@ button, input { font: inherit; } button { cursor: pointer; } button:disabled { c
 .death-lesson-label{display: block; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: rgba(233, 226, 210, .55);}
 @media (prefers-reduced-motion: no-preference){.death-lesson{opacity: 0; animation: fade-up 1s ease-out 1.75s forwards;}}
 .achievements .is-past-life{display:flex;align-items:center;gap:5px;color:#a08d5a;font-weight:700;opacity:.6}
+
+/* DeathScreen gallery (Bia Đá Kết Cục) — added C3-12 */
+.death-screen{position:relative;z-index:1;display:grid;gap:12px;max-width:860px;margin:auto;padding:24px;background:linear-gradient(135deg,rgba(255,253,241,.92),rgba(239,230,207,.85));border:1px solid rgba(55,71,53,.27);box-shadow:0 20px 60px rgba(28,35,25,.4),inset 0 1px 0 rgba(255,255,255,.6)}
+.death-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 40%,rgba(28,35,25,.35) 100%);pointer-events:none}
+.death-enso{width:160px;height:160px;margin:0 auto 8px;opacity:.85}
+.death-enso-ring{fill:none;stroke:#3a443a;stroke-width:2}
+.death-enso-crack{fill:none;stroke:#8f3d2b;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.death-petals{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.death-petals .petal{position:absolute;top:-10%;width:6px;height:6px;border-radius:50% 50% 50% 0;background:linear-gradient(135deg,#e8dcc8,#d4c4a8);transform-origin:center bottom;animation:petal-fall var(--dur,10s) linear infinite;opacity:.7}
+.death-petals .petal::before{content:'';position:absolute;inset:0;background:inherit;border-radius:inherit;transform:rotate(60deg)}
+@keyframes petal-fall{0%{transform:translateY(0) rotate(0deg);opacity:.7}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+.death-core{position:relative;z-index:1;display:grid;gap:14px;text-align:center}
+.death-token{width:100px;height:100px;margin:0 auto}
+.token-ring{fill:none;stroke:#3a443a;stroke-width:2.5}
+.token-glyph{fill:#3a443a;font-size:48px}
+.token-crack{fill:none;stroke:#8f3d2b;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.death-title{margin:0;color:#1a2d24;font-size:22px;font-weight:600;letter-spacing:.02em}
+.death-epitaph{margin:0;color:#5d493c;font-size:16px;line-height:1.55;font-style:italic}
+.death-lesson{display:grid;gap:10px;padding:16px 20px;border:1px solid rgba(95,66,24,.3);border-left:3px solid var(--vermilion);border-radius:6px;background:rgba(20,30,24,.55);text-align:left}
+.death-cause,.death-hint,.death-legacy{margin:0;font-size:14px;line-height:1.55;color:#d8d0bf}
+.death-hint{color:#e0c9a0}
+.death-legacy{color:#a8c9b0}
+.death-lesson-label{display:block;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:rgba(233,226,210,.55)}
+.death-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:4px}
+.death-restart,.death-dismiss,.death-gallery-toggle{border:1px solid #6f4c2f;padding:10px 18px;font-size:13px;font-weight:600;letter-spacing:.02em;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.death-restart{border-color:var(--vermilion);color:#fff4d9;background:#8e402e}
+.death-restart:hover:not(:disabled){background:#733322}
+.death-dismiss{border-color:rgba(63,82,64,.45);color:#3a443a;background:rgba(255,253,241,.7)}
+.death-dismiss:hover:not(:disabled){background:rgba(229,218,187,.9)}
+.death-gallery-toggle{border-color:rgba(155,108,32,.5);color:#7a4f12;background:linear-gradient(160deg,rgba(217,164,65,.12),rgba(255,253,241,.8))}
+.death-gallery-toggle:hover{background:linear-gradient(160deg,rgba(217,164,65,.22),rgba(255,253,241,.9))}
+.death-gallery{margin-top:10px;padding-top:16px;border-top:1px solid rgba(63,82,64,.18);animation:fade-up .4s ease-out both}
+.death-gallery-title{margin:0 0 12px;color:#2c523c;font-size:16px;font-weight:600;text-align:center}
+.death-gallery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.death-gallery-cell{position:relative;display:grid;gap:6px;padding:14px 10px;border:1px solid rgba(63,82,64,.32);border-radius:8px;background:rgba(255,253,242,.6);text-align:center;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.death-gallery-cell.unlocked{border-color:rgba(155,108,32,.42);box-shadow:0 1px 0 rgba(155,108,32,.06)}
+.death-gallery-cell.locked{opacity:.55;filter:grayscale(.6)}
+.death-gallery-cell:hover{transform:translateY(-2px);box-shadow:0 7px 12px rgba(60,55,37,.13)}
+.death-gallery-cell-name{font-size:12px;font-weight:600;color:#3a443a;line-height:1.2}
+.death-gallery-cell-epitaph{font-size:11px;line-height:1.35;color:#5d493c;font-style:italic}
+.death-gallery-cell-hint{font-size:10px;line-height:1.3;color:#8b6624;font-family:'DM Mono',monospace;font-style:italic}
+.death-gallery-cell-unlocked{font-size:10px;font-weight:600;color:#7a4f12;font-family:'DM Mono',monospace}
+@media (max-width:700px){.death-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){.death-gallery{animation:none}.death-petals .petal{animation:none;opacity:.3}}
+@keyframes fade-up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}

@@ -1,0 +1,98 @@
+{"a":1,"t":"boot:new-game","name":"Kiếp mớiChọn khế ước & nhập đạo","id":"menu-new-game","changed":true,"ms":2776}
+{"a":2,"t":"boot:pick-system","name":"8Hệ Thống Luyện KhíHệ Thống đo lửa và tiếng búa. Búa không c","id":"system-tile-sys_artisan","changed":true,"ms":1377}
+{"a":3,"t":"boot:difficulty","name":"Cân bằng","id":"difficulty-balanced","changed":true,"ms":1287}
+{"a":4,"t":"boot:confirm","name":"Ký khế ước","id":"newgame-confirm","changed":true,"ms":1331}
+{"a":5,"t":"boot:skip-loading","name":"Màn hình tải — nhấn để bắt đầu","id":"","changed":true,"ms":1451}
+{"a":6,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1245}
+{"a":7,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1248}
+{"a":8,"t":"map:travel","name":"Đi 4 bước tới Lũy tre","id":"map-pin-1-1","changed":true,"ms":1230}
+{"a":9,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1237}
+{"a":10,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1224}
+{"a":11,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1247}
+{"a":12,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1213}
+{"a":13,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1206}
+{"a":14,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1241}
+{"a":15,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1220}
+{"a":16,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1228}
+{"a":17,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1230}
+{"a":18,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1244}
+{"a":19,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1209}
+{"a":20,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1228}
+{"a":21,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1215}
+{"a":22,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1232}
+{"a":23,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1229}
+{"a":24,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1223}
+{"a":25,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1241}
+{"a":26,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1217}
+{"a":27,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1215}
+{"a":28,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1221}
+{"a":29,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1230}
+{"a":30,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1224}
+{"a":31,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1238}
+{"a":32,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1241}
+{"a":33,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1212}
+{"a":34,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1221}
+{"a":35,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1213}
+{"a":36,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1211}
+{"a":37,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1231}
+{"a":38,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1239}
+{"a":39,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1230}
+{"a":40,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1232}
+{"a":41,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1224}
+{"a":42,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1227}
+{"a":43,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1236}
+{"a":44,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1212}
+{"a":45,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1228}
+{"a":46,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1198}
+{"a":47,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1246}
+{"a":48,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1224}
+{"a":49,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1228}
+{"a":50,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1224}
+{"a":51,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1225}
+{"a":52,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1240}
+{"a":53,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1241}
+{"a":54,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1231}
+{"a":55,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1227}
+{"a":56,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1224}
+{"a":57,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1210}
+{"a":58,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1231}
+{"a":59,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1219}
+{"a":60,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1253}
+{"a":61,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1236}
+{"a":62,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1223}
+{"a":63,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1225}
+{"a":64,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1243}
+{"a":65,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1248}
+{"a":66,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1220}
+{"a":67,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1248}
+{"a":68,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1238}
+{"a":69,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1229}
+{"a":70,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1217}
+{"a":71,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1206}
+{"a":72,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1211}
+{"a":73,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1224}
+{"a":74,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1221}
+{"a":75,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1229}
+{"a":76,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1235}
+{"a":77,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1242}
+{"a":78,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1239}
+{"a":79,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1214}
+{"a":80,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1236}
+{"a":81,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1212}
+{"a":82,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1217}
+{"a":83,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1218}
+{"a":84,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1213}
+{"a":85,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1219}
+{"a":86,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1226}
+{"a":87,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1210}
+{"a":88,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1235}
+{"a":89,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1228}
+{"a":90,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1215}
+{"a":91,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1225}
+{"a":92,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1215}
+{"a":93,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1220}
+{"a":94,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1216}
+{"a":95,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1214}
+{"a":96,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1213}
+{"_summary":{"steps":96,"dead_clicks":0,"unique_gaps":["map:travel: không tìm được điều khiển (/^Đi (tới|\\d)/) trên màn game"],"unique_issues":["tên dính chuỗi vô hồn: \"CCụ Mai Hoatrưởng làng♥ 0\" #button","tên dính chuỗi vô hồn: \"NNgo kể chuyệnngười kể chuyện♥ 0\" #button","tên dính chuỗi vô hồn: \"CChủ quán Hạnhchủ quán trọ♥ 0\" #button","tên dính chuỗi vô hồn: \"DDân binh Trườngdân binh♥ 0\" #button","tên dính chuỗi vô hồn: \"TTiểu Bảođứa trẻ tinh nghịch♥ 0\" #button","tên dính chuỗi vô hồn: \"NNông phu Tưnông phu♥ 0\" #button","tên dính chuỗi vô hồn: \"CCụ ông Thìncụ ông — chồng quá cố của Ma\" #button"],"last_chronicle":[],"screens_seen":["boot","play","map"],"days_seen":null,"errors":[]}}
+{"_telemetry_head":{"actions":96,"errors":[],"run":[{"version":1,"id":"pt-mu34s3qd-5so6","seed":"ink-and-jade","locale":"vi","difficulty":"balanced","startedAt":1789504508388,"endedAt":null,"endingId":null,"finalDay":1,"corrections":0,"nightForgotten":false,"steps":[{"t":1426,"day":1,"kind":"gather","loc":"village","hp":100,"qi":60,"gold":60},{"t":2674,"day":1,"kind":"train","loc":"village","hp":95,"qi":50,"gold":60},{"t":3956,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":3957,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":3957,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":3957,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":6454,"day":1,"kind":"gather","loc":"village","hp":95,"qi":50,"gold":60},{"t":7688,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":10188,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":11437,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":13936,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":15205,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":17721,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":18953,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":21437,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":22687,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":25204,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":26453,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":28920,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":30169,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":32670,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":33920,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":36419,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":37653,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":40136,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":41386,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":43903,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":45136,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":47653,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":48886,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":51370,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":52586,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":55086,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":56336,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":58835,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":60104,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":62604,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":63836,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":66337,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":67586,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":70102,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":71352,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":73856,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":75142,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":77653,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":78920,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":81435,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":82669,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":85133,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":86367,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":88869,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":90137,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":92667,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":93900,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":96384,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":97618,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":100100,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":101333,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":103818,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":105084,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":107567,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":108800,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":111299,"day":1,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":112533,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60}]}]}}

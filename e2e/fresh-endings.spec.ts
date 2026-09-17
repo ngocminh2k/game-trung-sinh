@@ -15,9 +15,8 @@ function freshGame(update?: (g: GameState) => GameState): GameState {
 
 async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): Promise<void> {
   const session: GameSession = { game, locale, chronicle: ['Fresh E2E run.'] }
-  const slot = { slotId: 1, savedAt: 1, session }
+  const slot = { slotId: 1, savedAt: Date.now(), session }
   await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
-    if (window.localStorage.getItem(slotsKey) !== null) return
     window.localStorage.setItem(slotsKey, value)
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
@@ -35,9 +34,18 @@ async function clickChoice(page: Page, choiceLabel: string | RegExp): Promise<vo
   if (routeOpen) {
     if (panelOpen) await page.keyboard.press('Escape')
   } else if (!panelOpen) {
-    await page.getByRole('button', { name: 'Open Journey journal' }).click()
-    await page.getByRole('tab', { name: /People here/ }).click()
-    await page.getByRole('button', { name: 'Talk' }).first().click()
+    // Open the journal with the I hotkey, not a click on 'Open Journey journal':
+    // at <=800px ProtoShell's map .painting intercepts that pointer hit
+    // (issue #40), and GameScreen.tsx:362 opens the same dialog on 'i' without
+    // a hit-test. Talk stays scoped INSIDE the journal dialog — unscoped,
+    // name 'Talk' substring-matches the map pin "Talk to Elder Meihua" behind
+    // the modal and stalls 30s on intercepted pointer events.
+    await page.keyboard.press('i')
+    const journal = page.getByTestId('journal-screen')
+    await expect(journal).toBeVisible({ timeout: 5000 })
+    await journal.getByRole('tab', { name: /People here|Người ở đây/i }).click()
+    await journal.getByRole('button', { name: /^(Talk|Nói chuyện)$/ }).first().click()
+    await expect(page.getByTestId('narration-panel')).toBeVisible({ timeout: 5000 })
   }
   await page.getByRole('button', { name: choiceLabel }).click()
   // Wait for state to propagate and UI to re-render
@@ -46,38 +54,47 @@ async function clickChoice(page: Page, choiceLabel: string | RegExp): Promise<vo
   await expect(page.getByTestId('game-screen')).toBeVisible()
 }
 
+// DRIFT (issue #40): the route-target highlight on the porch pin
+// (data-testid="route-event-node", GameScreen.tsx:778) exists only in the legacy map,
+// and screens.css:1992 sets the whole legacy .world-content to display:none at
+// >=921px. ProtoShell's .proto-map has no route-target decoration at all (zero 'route'
+// references in ProtoShell.tsx), so there is no visible equivalent: the marker is
+// asserted as DOM state (toBeAttached = storyRouteTarget still marks the porch) and the
+// *visible* consequence is proven by the next step — travelling west opens the
+// route-encounter screen.
+
 async function moveDirection(page: Page, direction: 'north' | 'south' | 'east' | 'west'): Promise<void> {
   const keyMap = { north: 'ArrowUp', south: 'ArrowDown', east: 'ArrowRight', west: 'ArrowLeft' }
   await page.keyboard.press(keyMap[direction])
   await page.waitForTimeout(50)
 }
 
-async function getPlayerPos(page: Page): Promise<{ locationId: string; x: number; y: number }> {
-  return await page.evaluate(() => {
-    const raw = window.localStorage.getItem('phe-can-ky:slots')
-    if (!raw) return { locationId: 'unknown', x: -1, y: -1 }
-    const session = JSON.parse(raw)['1'] ?? {}
-    return {
-      locationId: session.game?.player?.locationId || 'unknown',
-      x: session.game?.player?.posX ?? -1,
-      y: session.game?.player?.posY ?? -1,
-    }
-  })
-}
-
 async function startEncounter(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /bước vào giao chiến|start encounter/i }).click()
+  // DRIFT (issue #40): the legacy 'Start encounter' button lives in .world-content
+  // (GameScreen.tsx:734) which is display:none at >=921px, so it is absent from the
+  // a11y tree (Playwright: "element(s) not found") at the desktop drive width.
+  // ProtoShell's fight chip renders the same { kind:'start_encounter' } action
+  // (ProtoShell.tsx:586) and is the desktop-visible control.
+  await page.locator('[data-chip="fight"]').click()
   await page.waitForTimeout(50)
 }
 
 async function combatDefend(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /thủ thế|defend/i }).click()
+  // At >=921px only ProtoShell's combat overlay is visible (the legacy encounter-banner
+  // with its own 'Defend' is inside the display:none .world-content), so this name is
+  // unique. Scope anyway so a future desktop render of the legacy banner can't make it
+  // a strict-mode violation.
+  await page.getByTestId('proto-combat').getByRole('button', { name: /thủ thế|defend/i }).click()
   await page.waitForTimeout(50)
 }
 
 async function waitForEnding(page: Page): Promise<string> {
-  await expect(page.locator('.ending-banner')).toBeVisible({ timeout: 10000 })
-  return await page.locator('.ending-banner').textContent() || ''
+  // Terminal banners are read at the drive width as-is: issue #40 lifted DeathScreen
+  // and .ending-banner out of .world-content into .game-shell (GameScreen.tsx:651-671,
+  // styled visible at screens.css:2062), so they render at every breakpoint now.
+  const banner = page.locator('.ending-banner')
+  await expect(banner).toBeVisible({ timeout: 10000 })
+  return await banner.textContent() || ''
 }
 
 async function waitForMapReady(page: Page): Promise<void> {
@@ -88,6 +105,13 @@ async function waitForMapReady(page: Page): Promise<void> {
 
 test.describe('Phase 0 P0-B: Fresh browser journeys to all endings + death', () => {
   test.beforeEach(async ({ page }) => {
+    // Desktop drive width: #journal-screen is position:fixed (screens.css .drawer-panel
+    // + its own centering block) so its tabs stay in the viewport here, and the story
+    // panel / route encounter / travel keys all work. Issue #40 lifted the terminal
+    // outputs (.ending-banner, DeathScreen) to .game-shell so they show at every
+    // width; the rest of the legacy .world-content (its map pins, .location-label,
+    // encounter banner) is still display:none at >=921px per screens.css:1990, so
+    // those assertions use the ProtoShell equivalents or DOM state (toBeAttached).
     await page.setViewportSize({ width: 1280, height: 800 })
   })
 
@@ -102,21 +126,16 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await clickChoice(page, /ngồi với ngô|sit with ngo/i)
     await waitForMapReady(page)
 
-// Navigate to market (truth route target): west, west, east from village
+    // Navigate to market (truth route target): west, west, east from village
     await page.keyboard.press('Escape')
     await moveDirection(page, 'west')
-    let pos = await getPlayerPos(page)
-    console.log(`[Rootless Star] After west 1: location=${pos.locationId}, pos=(${pos.x},${pos.y})`)
-    
     await moveDirection(page, 'west')
-    pos = await getPlayerPos(page)
-    console.log(`[Rootless Star] After west 2: location=${pos.locationId}, pos=(${pos.x},${pos.y})`)
-    
     await moveDirection(page, 'east')
-    pos = await getPlayerPos(page)
-    console.log(`[Rootless Star] After east: location=${pos.locationId}, pos=(${pos.x},${pos.y})`)
-    
-    await expect(page.getByTestId('location-label')).toHaveText('Cloudgather Market')
+
+    // DRIFT (issue #40): the legacy map keeps its own data-testid="map-current-cell"
+    // attached but display:none at >=921px, so the bare testid is a 2-element strict
+    // mode violation — scope to the desktop-visible .proto-map copy.
+    await expect(page.locator('.proto-map [data-testid="map-current-cell"]')).toContainText('Cloudgather Market')
     await expect(page.getByTestId('route-encounter-screen')).toBeVisible()
 
     // The route encounter supplies proof; then its authored scene advances the story.
@@ -156,7 +175,7 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     // The route lead replaces the normal node test id; assert it before entering the porch.
     await page.keyboard.press('Escape')
     await moveDirection(page, 'north')
-    await expect(page.getByTestId('route-event-node')).toBeVisible()
+    await expect(page.getByTestId('route-event-node')).toBeAttached()
     await moveDirection(page, 'west')
     await expect(page.getByTestId('route-encounter-screen')).toBeVisible()
 
@@ -194,7 +213,9 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     await moveDirection(page, 'west')
     await moveDirection(page, 'west')
     await moveDirection(page, 'east')
-    await expect(page.getByTestId('location-label')).toHaveText('Cloudgather Market')
+    // DRIFT (issue #40): as in the Rootless Star journey — scope to the visible
+    // .proto-map copy (GameScreen.tsx:801 keeps the same testid, hidden).
+    await expect(page.locator('.proto-map [data-testid="map-current-cell"]')).toContainText('Cloudgather Market')
     await expect(page.getByTestId('route-encounter-screen')).toBeVisible()
 
     // Route encounter (truth): withhold the copy, then keep truth < 3 by
@@ -262,7 +283,7 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
 
     await page.keyboard.press('Escape')
     await moveDirection(page, 'north')
-    await expect(page.getByTestId('route-event-node')).toBeVisible()
+    await expect(page.getByTestId('route-event-node')).toBeAttached()
     await moveDirection(page, 'west')
     await expect(page.getByTestId('route-encounter-screen')).toBeVisible()
 
@@ -325,7 +346,7 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     // mercy >= 3 + khoa_trusted resolves forgiven_enemy at share_last_page.
     await page.keyboard.press('Escape')
     await moveDirection(page, 'north')
-    await expect(page.getByTestId('route-event-node')).toBeVisible()
+    await expect(page.getByTestId('route-event-node')).toBeAttached()
     await moveDirection(page, 'west')
     await expect(page.getByTestId('route-encounter-screen')).toBeVisible()
     await clickChoice(page, /đọc cái tên|read the name aloud/i) // present proof
@@ -344,24 +365,40 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
   })
 
   test('Death ending: tragic_death via combat', async ({ page }) => {
+    const readGame = () => page.evaluate(() => {
+      const raw = window.localStorage.getItem('phe-can-ky:slots')
+      return raw === null ? undefined : (JSON.parse(raw)['1'] as { session?: { game?: GameState } })?.session?.game
+    })
+
     await openGame(page, freshGame((g) => ({
       ...g,
-      // hp 16: the misty_forest hazard deals 15 on arrival, leaving exactly 1,
-      // so the boar's next reply (min 1 after defend's guard) is a guaranteed
-      // combat death — not an environment death.
+      // DRIFT (issue #40): the misty_forest border-crossing roll for this seed
+      // deals 11 (reducer.ts:585-590 damageRoll), not the 15 this journey assumed,
+      // so hp 16 used to land on exactly 1 and one Defend killed. Now hp lands at 5
+      // and the boar's guarded reply takes >=1 per turn (Math.max(1, ...) at
+      // reducer.ts:1374), so the journey defends until the death screen appears —
+      // a bounded-but-guaranteed combat death instead of a tuned one-hit kill.
       player: { ...g.player, hp: 16, stage: 0, qi: 10 },
     })))
 
-    // North twice: (3,3) → (3,2) → (3,1) village-forest-exit → misty_forest,
-    // where the mist boar is the location enemy and the fight button shows.
+    // North twice: (3,3) → (3,2) → misty_forest, where the mist boar is the
+    // location enemy and the fight chip shows.
     await moveDirection(page, 'north')
     await moveDirection(page, 'north')
-    await expect(page.getByRole('button', { name: /bước vào giao chiến|start encounter/i })).toBeVisible()
+    expect((await readGame())?.player.hp).toBeLessThan(16)
+    // DRIFT (issue #40): the legacy 'Start encounter' button is display:none at
+    // >=921px ("element(s) not found" for a role query); the desktop-visible control
+    // that dispatches the same start_encounter action is ProtoShell's fight chip.
+    await expect(page.locator('[data-chip="fight"]')).toBeVisible()
 
     await startEncounter(page)
 
-    // Defend with hp=1: the guaranteed enemy reply kills without a coin flip.
-    await combatDefend(page)
+    // Survived the woods and the boar is on the field ⇒ every hit from here is a
+    // combat hit. Defend (guard 4, enemy damage floor 1) until hp runs out.
+    for (let turn = 0; turn < 20; turn += 1) {
+      if ((await readGame())?.player.alive === false) break
+      await combatDefend(page)
+    }
 
     // The death dialog is dismissable but modal; its banner carries the epitaph.
     await expect(page.locator('.death-screen')).toBeVisible({ timeout: 5000 })
@@ -369,8 +406,9 @@ test('Ending: Rootless Star (truth route, present proof)', async ({ page }) => {
     expect(deathText).toContain('overturned herb basket')
     // The ending identity lands in the autosave (the chronicle lives inside the
     // transient story panel, which is closed after a terminal combat).
-    const saved = await page.evaluate(() => window.localStorage.getItem('phe-can-ky:slots'))
-    const endingId = saved === null ? null : (JSON.parse(saved)['1']?.session?.game?.endingId ?? null)
-    expect(endingId).toBe('tragic_death')
+    const saved = await readGame()
+    expect(saved?.endingId).toBe('tragic_death')
+    // The cause distinguishes this from a hazard death on the way in.
+    expect(saved?.flags?.death_cause).toBe('combat:mist_boar')
   })
 })

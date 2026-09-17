@@ -11,10 +11,10 @@ function freshGame(update?: (game: GameState) => GameState): GameState {
 }
 
 async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): Promise<void> {
+  await page.setViewportSize({ width: 800, height: 900 })
   const session: GameSession = { game, locale, chronicle: ['System E2E run.'] }
-  const slot = { slotId: 1, savedAt: 1, session }
+  const slot = { slotId: 1, savedAt: Date.now(), session }
   await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
-    if (window.localStorage.getItem(slotsKey) !== null) return
     window.localStorage.setItem(slotsKey, value)
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
@@ -24,9 +24,18 @@ async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): 
 }
 
 async function openStory(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Open Journey journal' }).click()
-  await page.getByRole('tab', { name: /People here/ }).click()
-  await page.getByRole('button', { name: 'Talk' }).first().click()
+  // #journal-launcher is only clickable at desktop width: below 921px the
+  // legacy header mounts it under ProtoShell's out-of-flow .proto-grid-main
+  // overlay (src/ui/screens.css:2022 + the #31 note at :1995), which swallows
+  // the click. At >=921px the control is handed to .proto-topbar instead.
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.getByRole('button', { name: /Mở Hành trang|Open Journey journal/i }).click()
+  await expect(page.getByTestId('journal-screen')).toBeVisible()
+  const journal = page.getByTestId('journal-screen')
+  await journal.getByRole('tab', { name: /Người ở đây|People here/ }).click()
+  // Scoped: the legacy System chat also renders a submit button labelled 'Talk'
+  // (src/ui/GameScreen.tsx:891), and it is merely display:none above 921px.
+  await journal.getByRole('button', { name: /Nói chuyện|Talk/ }).first().click()
   await expect(page.getByTestId('narration-panel')).toBeVisible()
 }
 
@@ -45,15 +54,44 @@ test('selects Battle System, turns in its first quest, and leaves the story scen
   await expect(page.getByTestId('narration-panel')).toContainText('Ten Systems Apply for the Job')
   await page.getByRole('button', { name: /Battle System — it rewards/i }).click()
   await expect(page.getByTestId('narration-panel')).toHaveCount(0)
+  await expect(page.getByTestId('system-panel')).toBeVisible()
   await expect(page.getByTestId('system-panel')).toContainText('【Battle System】')
 
   const sceneBeforeQuest = (await savedGame(page)).flags.story_scene
-  await page.getByTestId('system-panel').getByRole('button', { name: 'Accept quest' }).first().click()
-  await expect(page.getByTestId('system-panel').getByRole('button', { name: 'Turn in' }).first()).toBeEnabled()
+
+  // Accept/turn in through the Journey journal. The legacy panel's buttons are
+  // still unclickable at 800px: elementFromPoint there resolves to the
+  // `.proto-map` container itself (probe, #40 §4c-note — .painting's missing
+  // `pointer-events: none` at screens.css:1368 is real but a no-op half-fix),
+  // and `.proto-shell-wrap ~ .world-content` is `display: none` at >=921px
+  // (screens.css:1997) — so the panel is not a clickable surface at any width.
+  // The journal dispatches the same system_accept_quest/system_turn_in_quest
+  // actions (src/ui/gameScreen/panels.tsx:523,532) and the reducer still has to
+  // pass canAcceptQuest/canCompleteQuest, so this is the real gate.
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.getByRole('button', { name: /Mở Hành trang|Open Journey journal/i }).click()
+  await expect(page.getByTestId('journal-screen')).toBeVisible()
+  await page.getByRole('tab', { name: /Nhiệm vụ|Quests/ }).click()
+  const rows = page.locator('#dock-panel-quests ul.quest-list li')
+  const head = rows.filter({ hasText: /【Chiến Đấu I】|【Battle I】/ })
+  await expect(head).toHaveCount(1)
+  await head.locator('button', { hasText: /Nhận nhiệm vụ|Accept quest/ }).click()
+  const active = page.locator('#dock-panel-quests li.quest-active').filter({ hasText: /【Chiến Đấu I】|【Battle I】/ })
+  await expect(active).toHaveCount(1)
+  await expect(active.first()).toBeVisible()
   const beforeTurnIn = await savedGame(page)
 
-  await page.getByTestId('system-panel').getByRole('button', { name: 'Turn in' }).first().click()
-  await expect(page.getByTestId('system-panel')).toContainText('Locked')
+  await head.locator('button', { hasText: /Nộp nhiệm vụ|Turn in/ }).click()
+  await expect(head).toContainText(/Xong|Done/)
+
+  // 'Locked' renders ONLY in the legacy panel (GameScreen.tsx:864), whose column
+  // is display:none above 921px. Re-read it at 800px and assert visibility —
+  // toContainText alone would pass on hidden DOM (issue #40 triage).
+  await page.keyboard.press('Escape')
+  await page.setViewportSize({ width: 800, height: 900 })
+  const lockedRow = page.getByTestId('system-panel').locator('.system-quest-list li').filter({ hasText: /【Chiến Đấu I】|【Battle I】/ })
+  await expect(lockedRow).toBeVisible()
+  await expect(lockedRow).toContainText(/Đã khóa|Locked/)
 
   const afterTurnIn = await savedGame(page)
   expect(afterTurnIn.quests.q_sys_battle_01?.status).toBe('completed')

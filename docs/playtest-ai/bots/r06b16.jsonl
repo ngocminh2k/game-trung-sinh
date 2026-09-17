@@ -1,0 +1,89 @@
+{"a":1,"t":"boot:new-game","name":"Kiếp mớiChọn khế ước & nhập đạo","id":"menu-new-game","changed":true,"ms":1968}
+{"a":2,"t":"boot:pick-system","name":"6Hệ Thống Ám SátHệ Thống thích lối tắt. Đừng để lại dấu vết.","id":"system-tile-sys_assassin","changed":true,"ms":2450}
+{"a":3,"t":"boot:difficulty","name":"Khó nhằn","id":"difficulty-hard","changed":true,"ms":1395}
+{"a":4,"t":"boot:confirm","name":"Ký khế ước","id":"newgame-confirm","changed":true,"ms":1254}
+{"a":5,"t":"boot:skip-loading","name":"Màn hình tải — nhấn để bắt đầu","id":"","changed":true,"ms":4169}
+{"a":6,"t":"map:travel","name":"Đi 4 bước tới Lũy tre","id":"map-pin-1-1","changed":true,"ms":1297}
+{"a":7,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1253}
+{"a":8,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1277}
+{"a":9,"t":"dialog:choose","name":"Dùng vật phẩm","id":"","changed":true,"ms":1229}
+{"a":10,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1253}
+{"a":11,"t":"map:travel","name":"Đi tới Đường vào rừng sương (2 bước) — ⚠ bước vào −17..−26 H","id":"map-pin-3-1","changed":true,"ms":1267}
+{"a":12,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1265}
+{"a":13,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1236}
+{"a":14,"t":"dialog:choose","name":"Dùng vật phẩm","id":"","changed":true,"ms":1228}
+{"a":15,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1247}
+{"a":16,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1235}
+{"a":17,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1243}
+{"a":18,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1219}
+{"a":19,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1213}
+{"a":20,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1241}
+{"a":21,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1213}
+{"a":22,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1230}
+{"a":23,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1219}
+{"a":24,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1232}
+{"a":25,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1226}
+{"a":26,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1235}
+{"a":27,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1240}
+{"a":28,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1219}
+{"a":29,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1222}
+{"a":30,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1206}
+{"a":31,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1217}
+{"a":32,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1218}
+{"a":33,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1213}
+{"a":34,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1227}
+{"a":35,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1226}
+{"a":36,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1249}
+{"a":37,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1216}
+{"a":38,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1241}
+{"a":39,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1219}
+{"a":40,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1227}
+{"a":41,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1238}
+{"a":42,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1219}
+{"a":43,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1230}
+{"a":44,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1218}
+{"a":45,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1230}
+{"a":46,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1225}
+{"a":47,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1211}
+{"a":48,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1238}
+{"a":49,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1229}
+{"a":50,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1236}
+{"a":51,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1225}
+{"a":52,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1247}
+{"a":53,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1238}
+{"a":54,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1231}
+{"a":55,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1233}
+{"a":56,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1237}
+{"a":57,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1217}
+{"a":58,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1232}
+{"a":59,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1235}
+{"a":60,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1217}
+{"a":61,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1228}
+{"a":62,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1230}
+{"a":63,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1242}
+{"a":64,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1224}
+{"a":65,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1216}
+{"a":66,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1226}
+{"a":67,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1216}
+{"a":68,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1224}
+{"a":69,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1214}
+{"a":70,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1237}
+{"a":71,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1241}
+{"a":72,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1221}
+{"a":73,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1204}
+{"a":74,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1212}
+{"a":75,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1209}
+{"a":76,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1234}
+{"a":77,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1205}
+{"a":78,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1222}
+{"a":79,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1195}
+{"a":80,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1231}
+{"a":81,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1197}
+{"a":82,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1223}
+{"a":83,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1203}
+{"a":84,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":1224}
+{"a":85,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1201}
+{"a":86,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":1225}
+{"a":87,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":1221}
+{"_summary":{"steps":87,"dead_clicks":0,"unique_gaps":["npc:talk: không tìm được điều khiển (/nói chuyện với|trò chuyện/) trên màn game","map:travel: không tìm được điều khiển (/^Đi (tới|\\d)/) trên màn game"],"unique_issues":["tên dính chuỗi vô hồn: \"CCụ Mai Hoatrưởng làng♥ 0\" #button","tên dính chuỗi vô hồn: \"NNgo kể chuyệnngười kể chuyện♥ 0\" #button","tên dính chuỗi vô hồn: \"CChủ quán Hạnhchủ quán trọ♥ 0\" #button","tên dính chuỗi vô hồn: \"DDân binh Trườngdân binh♥ 0\" #button","tên dính chuỗi vô hồn: \"TThợ săn Sơnthợ săn♥ 0\" #button","tên dính chuỗi vô hồn: \"TTiều phu Bồngtiều phu♥ 0\" #button","tên dính chuỗi vô hồn: \"TTán tu Nhấttán tu rừng sương♥ 0\" #button"],"last_chronicle":[],"screens_seen":["boot","map","play","dialog"],"days_seen":null,"errors":[]}}
+{"_telemetry_head":{"actions":87,"errors":[],"run":[{"version":1,"id":"pt-mu3awtfm-a1jn","seed":"ink-and-jade","locale":"vi","difficulty":"hard","startedAt":1789514806017,"endedAt":null,"endingId":null,"finalDay":2,"corrections":0,"nightForgotten":false,"steps":[{"t":3390,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":3391,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":3391,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":3392,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":4683,"day":1,"kind":"train","loc":"village","hp":95,"qi":50,"gold":60},{"t":7215,"day":1,"kind":"use_item","loc":"village","hp":95,"qi":58,"gold":60},{"t":9732,"day":1,"kind":"move","loc":"village","hp":95,"qi":58,"gold":60},{"t":9732,"day":1,"kind":"move","loc":"misty_forest","hp":69,"qi":58,"gold":60},{"t":11031,"day":1,"kind":"train","loc":"misty_forest","hp":63,"qi":48,"gold":60},{"t":13565,"day":2,"kind":"use_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":14833,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":17349,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":19831,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":22347,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":24812,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":27329,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":29814,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":32331,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":34780,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":37263,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":39745,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":42263,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":44746,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":47262,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":49762,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":52265,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":54744,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":57247,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":59764,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":62314,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":64796,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":67331,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":69813,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":72329,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":74812,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":77328,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":79793,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":82311,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":84794,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":87294,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":89726,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":92213,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":94661,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":97127,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":99575,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":102045,"day":2,"kind":"train","loc":"misty_forest","hp":88,"qi":48,"gold":60},{"t":104513,"day":2,"kind":"equip_item","loc":"misty_forest","hp":88,"qi":48,"gold":60}]}]}}

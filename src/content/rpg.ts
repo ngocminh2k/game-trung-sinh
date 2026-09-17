@@ -774,6 +774,43 @@ export const EQUIPMENT: EquipmentDef[] = [
     defenseBonus: 2,
     qiBonus: 8,
   },
+  // ── C3-19: Bộ trang bị chống chịu thời tiết ──
+  {
+    id: 'raincoat',
+    itemId: 'raincoat',
+    slot: 'robe',
+    nameVi: 'Áo Tơi Tránh Mưa',
+    nameEn: 'Coir Raincoat',
+    descVi: 'Đan từ xơ cọ cổ thụ, che chắn mưa bão đường trường.',
+    descEn: 'Woven from ancient palm fibers, shielding against tempests on long journeys.',
+    attackBonus: 0,
+    defenseBonus: 2,
+    qiBonus: 5,
+  },
+  {
+    id: 'sun_gem',
+    itemId: 'sun_gem',
+    slot: 'accessory',
+    nameVi: 'Ngọc Tránh Nắng',
+    nameEn: 'Sun-Warding Jade',
+    descVi: 'Huyền ngọc hàn băng tỏa hơi mát dịu, giải trừ nắng gắt.',
+    descEn: 'Cool glacial jade emitting a soothing chill against harsh sun.',
+    attackBonus: 0,
+    defenseBonus: 1,
+    qiBonus: 8,
+  },
+  {
+    id: 'fog_talisman',
+    itemId: 'fog_talisman',
+    slot: 'accessory',
+    nameVi: 'Bùa Xua Sương',
+    nameEn: 'Mist-Dispelling Talisman',
+    descVi: 'Chu sa ngọc phù xua tan sương mù dày đặc.',
+    descEn: 'Cinnabar jade talisman dispelling dense fog.',
+    attackBonus: 1,
+    defenseBonus: 1,
+    qiBonus: 6,
+  },
 ]
 
 export const ENEMIES: EnemyDef[] = [

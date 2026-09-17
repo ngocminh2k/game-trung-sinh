@@ -4,7 +4,9 @@ import { QUESTS } from '../src/content'
 import { QuestDefSchema } from '../src/engine/schema'
 
 const OLD_SAVE = {
-  version: 1,
+  // Current version but pre-system shape (no systemId) — this fixture tests
+  // field-defaulting, not the migration gate; version tracks GAME_STATE_VERSION.
+  version: 2,
   seed: 'pre-system',
   rng: 1,
   day: 1,

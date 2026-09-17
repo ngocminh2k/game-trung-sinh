@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Action, GameState, Locale } from '../engine'
 import { getAffection } from '../engine'
 import { getItem, getNpc, getLocation } from '../content'
@@ -60,11 +60,11 @@ const YOU_NAME: Bi = { vi: 'Lâm Phàm', en: 'Lam Pham' }
  * Export để test/npc-chat-bilingual.test.ts đối chiếu shape vi/en. */
 export const SCRIPTS: Record<string, { name: Bi; youName: Bi; script: Script }> = {
   n_merchant_bao: {
-    name: { vi: 'Lão Bạch', en: 'Old Bach' },
+    name: { vi: 'Thương nhân Bảo', en: 'Merchant Bao' },
     youName: YOU_NAME,
     script: {
       start: {
-        npc: { vi: 'Lão Bạch', en: 'Old Bach' },
+        npc: { vi: 'Thương nhân Bảo', en: 'Merchant Bao' },
         text: { vi: 'Ồ, tiểu đạo hữu sáng sớm đã dậy sớm nhỉ. Có muốn xem qua mấy bình Tụ Khí Đan ta mới lấy từ trấn trên không? Hôm nay giảm giá cho người quen, chỉ 8 bạc thôi.', en: 'Oh, up before the sun, little friend. Care to see the Qi-Gathering Pills I just brought back from town? Regular customers get a discount today — only eight silver.' },
         choices: [
           { label: { vi: 'Mua một bình — đang cần để tu luyện.', en: 'Buy a bottle — I need it for cultivation.' }, next: 'buy', action: { kind: 'buy', itemId: 'pill_qi', qty: 1 } },
@@ -73,7 +73,7 @@ export const SCRIPTS: Record<string, { name: Bi; youName: Bi; script: Script }> 
         ],
       },
       buy: {
-        npc: { vi: 'Lão Bạch', en: 'Old Bach' },
+        npc: { vi: 'Thương nhân Bảo', en: 'Merchant Bao' },
         text: { vi: 'Khôn ngoan đó. Đan này tuy hạ phẩm, nhưng với người mới nhập đạo thì vừa đủ. À, tiện thể ta kể ngươi nghe — sáng nay có thương đội ngoài Bắc đi qua, nghe nói trong đoàn có một bình Hỗn Nguyên Đan trân quý lắm…', en: 'Wise. These are low-grade pills, but enough for someone newly entering the Dao. Oh, since we are talking — a caravan came through from the north this morning, and they say among their loads was a precious Chaos-Origin Pill…' },
         choices: [
           { label: { vi: 'Hỏi thêm về bình Hỗn Nguyên Đan.', en: 'Ask more about that Chaos-Origin Pill.' }, next: 'rumor' },
@@ -81,19 +81,19 @@ export const SCRIPTS: Record<string, { name: Bi; youName: Bi; script: Script }> 
         ],
       },
       rumor: {
-        npc: { vi: 'Lão Bạch', en: 'Old Bach' },
+        npc: { vi: 'Thương nhân Bảo', en: 'Merchant Bao' },
         text: { vi: 'Tin tức thì có một — phía bắc khe suối, gần nơi mà Trần Bất Danh hay lui tới, mấy đêm nay yêu khí tăng mạnh. Đạo hữu đi săn bắt cẩn thận, đừng chủ quan.', en: 'One piece of news — north of the stream, near where Tran the Nameless likes to wander, the demonic qi has been rising these past nights. Be careful out hunting, friend. Do not grow complacent.' },
         choices: [
           { label: { vi: 'Ghi nhận — sẽ đề phòng.', en: 'Noted — I will stay on guard.' }, next: 'bye' },
-          { label: { vi: 'Tạm biệt lão Bạch.', en: 'Farewell, Old Bach.' }, next: 'bye' },
+          { label: { vi: 'Tạm biệt Thương nhân Bảo.', en: 'Farewell, Merchant Bao.' }, next: 'bye' },
         ],
       },
       decline: {
-        npc: { vi: 'Lão Bạch', en: 'Old Bach' },
+        npc: { vi: 'Thương nhân Bảo', en: 'Merchant Bao' },
         text: { vi: 'Không sao, không ép. Mua bán là duyên, có duyên sẽ gặp lại. Đạo hữu đi đường cẩn thận, trên sơn đạo vừa có dấu yêu khí mới xuất hiện…', en: 'No matter, no pressure. Trade is fate, and where there is fate we meet again. Mind the road, friend — fresh traces of demonic qi have appeared on the mountain path…' },
         choices: [{ label: { vi: 'Cảm ơn lão, tạm biệt.', en: 'Thank you, old man. Farewell.' }, next: 'bye' }],
       },
-      bye: { end: true, npc: { vi: 'Lão Bạch', en: 'Old Bach' }, text: { vi: 'Hẹn gặp lại đạo hữu. Đi đường bình an.', en: 'Until we meet again, friend. Travel in peace.' }, choices: [] },
+      bye: { end: true, npc: { vi: 'Thương nhân Bảo', en: 'Merchant Bao' }, text: { vi: 'Hẹn gặp lại đạo hữu. Đi đường bình an.', en: 'Until we meet again, friend. Travel in peace.' }, choices: [] },
     },
   },
   n_hermit_coc: {
@@ -167,6 +167,67 @@ export const SCRIPTS: Record<string, { name: Bi; youName: Bi; script: Script }> 
       bye: { end: true, npc: { vi: 'Bạch Lạc Vi', en: 'Bach Lac Vi' }, text: { vi: 'Đan khí thuần hư, tâm địa bình an. Hẹn tái ngộ.', en: 'Pill-qi pure as emptiness, heart at peace. Until we meet again.' }, choices: [] },
     },
   },
+  n_kid_xiaobao: {
+    name: { vi: 'Tiểu Bảo', en: 'Xiaobao' },
+    youName: YOU_NAME,
+    script: {
+      start: {
+        npc: { vi: 'Tiểu Bảo', en: 'Xiaobao' },
+        text: { vi: 'Anh tu tiên! Anh tới rồi à? Em vừa bắt được con dế mèn to tướng sau đình làng, anh có muốn xem không? Hay anh bay lên trời cho em xem trước đi!', en: 'Mister cultivator! You came! I just caught a huge cricket behind the village shrine, wanna see? Or fly up to the sky for me first!' },
+        choices: [
+          { label: { vi: 'Hỏi trò bắt dế và thi dế sau đình.', en: 'Ask about catching crickets and cricket fights behind the shrine.' }, next: 'cricket' },
+          { label: { vi: 'Cho Tiểu Bảo xiên kẹo hồ lô ngọt lịm.', en: 'Offer Xiaobao a sweet stick of candied hawthorn.' }, next: 'candy' },
+          { label: { vi: 'Kể chuyện thần tiên cưỡi mây bay lượn.', en: 'Tell tales of immortals riding clouds across the sky.' }, next: 'story' },
+          { label: { vi: 'Xoa đầu Tiểu Bảo — anh bận chút việc đã.', en: 'Pat Xiaobao’s head — I have some errands first.' }, next: 'decline' },
+        ],
+      },
+      cricket: {
+        npc: { vi: 'Tiểu Bảo', en: 'Xiaobao' },
+        text: { vi: 'Con dế của em càng đen nhánh, gáy to cực kỳ! Thằng Tí bên xóm đông bảo dế của nó khỏe hơn, chiều nay em nhất định thắng nó!', en: 'My cricket has shiny black pincers and chirps so loud! Little Ti from the east village claims his is stronger, but I will beat him this afternoon!' },
+        choices: [
+          { label: { vi: 'Cổ vũ Tiểu Bảo chiều nay thắng lớn.', en: 'Cheer for Xiaobao to win big this afternoon.' }, next: 'cheer' },
+          { label: { vi: 'Hỏi em có thích kẹo mạch nha không.', en: 'Ask if he likes malt candy.' }, next: 'candy' },
+          { label: { vi: 'Tạm biệt Tiểu Bảo, đi làm việc.', en: 'Say goodbye to Xiaobao and go to work.' }, next: 'bye' },
+        ],
+      },
+      cheer: {
+        npc: { vi: 'Tiểu Bảo', en: 'Xiaobao' },
+        text: { vi: 'Hi hi, nhất định rồi! Thắng xong em sẽ khoe với bà Mai Hoa. Lần sau anh lại tới xem dế của em múa càng nhé!', en: 'Hehe, of course! When I win, I will show Grandma Meihua. Next time come watch my cricket wave its pincers again!' },
+        choices: [
+          { label: { vi: 'Hẹn gặp lại dũng sĩ bắt dế.', en: 'See you later, little cricket champion.' }, next: 'bye' },
+        ],
+      },
+      candy: {
+        npc: { vi: 'Tiểu Bảo', en: 'Xiaobao' },
+        text: { vi: 'Oa, kẹo ngọt quá! Em thích kẹo hồ lô với kẹo mạch nha nhất trần đời luôn! Anh tốt với em nhất, sau này lớn em cũng muốn làm thần tiên giống anh!', en: 'Whoa, so sweet! Candied haws and malt candy are my favorites in the whole wide world! You are the best, when I grow up I want to be an immortal just like you!' },
+        choices: [
+          { label: { vi: 'Dặn em ăn kẹo xong nhớ súc miệng.', en: 'Remind him to rinse his mouth after eating sweets.' }, next: 'bye' },
+          { label: { vi: 'Kể cho em nghe chuyện thần tiên bay lượn.', en: 'Tell him tales of immortals soaring the skies.' }, next: 'story' },
+        ],
+      },
+      story: {
+        npc: { vi: 'Tiểu Bảo', en: 'Xiaobao' },
+        text: { vi: 'Oa! Bay cao hơn cả ngọn núi sau làng luôn hả anh? Có chạm tới trăng với sao không? Sau này anh bay nhớ dắt em theo với nha!', en: 'Whoa! Higher than the mountain behind our village? Can you touch the moon and stars? When you fly next time, take me with you, okay?' },
+        choices: [
+          { label: { vi: 'Hứa khi nào tu thành sẽ đưa em đi dạo mây.', en: 'Promise to take him cloud-walking once your cultivation succeeds.' }, next: 'bye' },
+          { label: { vi: 'Cười xoa đầu — chăm ngoan rồi hẵng tính.', en: 'Smile and pat his head — be good first, then we will see.' }, next: 'bye' },
+        ],
+      },
+      decline: {
+        npc: { vi: 'Tiểu Bảo', en: 'Xiaobao' },
+        text: { vi: 'Dạ, anh cứ đi đi! Em ở đây chơi bắn bi với đuổi bướm đợi anh. Nhớ quay lại kể chuyện bay lượn cho em nghe đấy nhé!', en: 'Okay, go ahead! I will play marbles and chase butterflies while waiting for you. Remember to come back and tell me flying stories!' },
+        choices: [
+          { label: { vi: 'Tạm biệt Tiểu Bảo nhé.', en: 'Farewell for now, Xiaobao.' }, next: 'bye' },
+        ],
+      },
+      bye: {
+        end: true,
+        npc: { vi: 'Tiểu Bảo', en: 'Xiaobao' },
+        text: { vi: 'Bái bai anh tu tiên! Chiều anh nhớ ghé xem em chọi dế nha!', en: 'Bye-bye mister cultivator! Remember to drop by this afternoon to watch my cricket match!' },
+        choices: [],
+      },
+    },
+  },
 }
 
 interface LogLine { who: string; whoClass: 'npc' | 'you'; text: string }
@@ -214,7 +275,7 @@ export const GENERIC_CONVERSATIONS: Generic[] = [
   {
     greet: { vi: '{greet} Ngươi tới đúng lúc — ta đang buồn miệng lắm.', en: '{greet} You come at the right moment — I was aching for someone to talk to.' },
     threads: [
-      { ask: { vi: 'Ngươi hỏi thăm sức khỏe của ta.', en: 'You ask after my health.' }, npc: { vi: 'Khá. Đêm ngủ được bốn canh, sáng dậy còn thấy đói — với kẻ làm {role} ở {place} thế là sang lắm rồi.', en: 'Not bad. Four watches of sleep last night, and I woke hungry — for a {role} in {place}, that is outright luxury.' }, follow: { vi: 'Vậy là ta yên tâm. Ngươi cứ giữ cái phúc đó.', en: 'Then my mind is at ease. Hold on to that good fortune.' } },
+      { ask: { vi: 'Hỏi thăm sức khỏe của đối phương.', en: 'Ask after their health.' }, npc: { vi: 'Khá. Đêm ngủ được bốn canh, sáng dậy còn thấy đói — với kẻ làm {role} ở {place} thế là sang lắm rồi.', en: 'Not bad. Four watches of sleep last night, and I woke hungry — for a {role} in {place}, that is outright luxury.' }, follow: { vi: 'Vậy là ta yên tâm. Ngươi cứ giữ cái phúc đó.', en: 'Then my mind is at ease. Hold on to that good fortune.' } },
       { ask: { vi: 'Hỏi đường sá ra vào vùng này có còn yên không.', en: 'You ask whether the roads in and out are still safe.' }, npc: { vi: 'Yên thì không hẳn, nhưng chưa đến nỗi. Dạo này người qua {place} đông hơn, ai cũng vội, ai cũng ôm một bí mật.', en: 'Not exactly safe, but not desperate either. Lately more people pass through {place}, every one in a hurry, every one holding a secret.' }, follow: { vi: 'Ta ghi nhớ. Đi đường thì cứ nhìn sắc người mà tránh.', en: 'I will remember. On the road, read people’s faces and steer around them.' } },
       { ask: { vi: 'Hỏi xem gần đây có tin đồn gì mới.', en: 'You ask what new rumors are going around.' }, npc: { vi: 'Có một tin — nghe đâu chỗ cũ có động tĩnh lạ. Tin đồn ở {place} lan nhanh hơn gió, mà cũng bay nhanh hơn gió.', en: 'One — they say something stirs at the old place. Rumors in {place} travel faster than wind, and vanish faster than wind.' }, follow: { vi: 'Cảm ơn ngươi đã kể. Ta sẽ tự mắt thấy tai nghe rồi hãy tin.', en: 'Thank you for telling me. I will believe it once I have seen and heard it myself.' } },
     ],
@@ -325,6 +386,13 @@ export function NpcChatModal({ show, npcId, game, locale, onClose, onAction }: N
   // Issue #39: the gift tray. '' = nothing picked yet; the id is a real
   // inventory slot key, so the option list and the engine see the same item.
   const [giftItemId, setGiftItemId] = useState<string>('')
+  // WCAG 2.4.3: Land initial focus inside the dialog when opened.
+  const closeRef = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => {
+    if (show && npcId !== null) {
+      closeRef.current?.focus()
+    }
+  }, [show, npcId])
 
   const locationId = game.player.locationId
   // Tách "chọn mạch nào" khỏi "ngôn ngữ nào". scriptData = mạch + tên chưa resolve,
@@ -398,8 +466,9 @@ export function NpcChatModal({ show, npcId, game, locale, onClose, onAction }: N
   const handleChoice = (choice: ChatChoice) => {
     if (locked) return
     setLocked(true)
-    // Dispatch action nếu có
-    if (choice.action !== undefined) onAction(choice.action)
+    // Social chatter must still reach the engine — doTalk is what moves ♥;
+    // an authored per-choice action (buy / move / learn) still wins.
+    onAction(choice.action ?? { kind: 'talk', npcId })
     // Append player line
     setLog((prev) => [...prev, { who: data.youName, whoClass: 'you', text: choice.label }])
     setBubbleSide('left')
@@ -430,6 +499,7 @@ export function NpcChatModal({ show, npcId, game, locale, onClose, onAction }: N
   }
 
   const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation()
     if (e.target === e.currentTarget) onClose()
   }
 
@@ -464,11 +534,38 @@ export function NpcChatModal({ show, npcId, game, locale, onClose, onAction }: N
   }
 
   return (
-    <div className="proto-modal-backdrop show" role="dialog" aria-modal="true" aria-label={word(locale, { vi: 'Trò chuyện cùng NPC', en: 'Chat with the villager' })} onClick={handleBackdrop}>
-      <div className="proto-modal chat" data-od-id="chat-modal">
+    <div
+      className="proto-modal-backdrop show"
+      role="dialog"
+      aria-modal="true"
+      aria-label={word(locale, { vi: 'Trò chuyện cùng NPC', en: 'Chat with the villager' })}
+      onClick={handleBackdrop}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation()
+          onClose()
+        }
+      }}
+    >
+      <div
+        className="proto-modal chat npc-chat-modal"
+        data-od-id="chat-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Issue #38 — Escape already closes the chat (ProtoShell key chain), but
             nothing said so. Show the hint like the story/journal panels do. */}
-        <button className="x" type="button" onClick={onClose} aria-label={word(locale, { vi: 'Đóng (Esc)', en: 'Close (Esc)' })}>✕ <kbd aria-hidden="true">Esc</kbd></button>
+        <button
+          ref={closeRef}
+          className="x"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onClose()
+          }}
+          aria-label={word(locale, { vi: 'Đóng (Esc)', en: 'Close (Esc)' })}
+        >
+          ✕ <kbd aria-hidden="true">Esc</kbd>
+        </button>
         <div className="chat-stage" aria-hidden="true">
           <div className="mist" />
           <div className="floor" />
@@ -517,6 +614,7 @@ export function NpcChatModal({ show, npcId, game, locale, onClose, onAction }: N
                   id="gift-select"
                   data-testid="gift-select"
                   value={giftItemId}
+                  onClick={(e) => e.stopPropagation()}
                   onChange={(e) => setGiftItemId(e.target.value)}
                 >
                   <option value="">{word(locale, { vi: '— chọn món đồ —', en: '— pick an item —' })}</option>
@@ -526,7 +624,15 @@ export function NpcChatModal({ show, npcId, game, locale, onClose, onAction }: N
                     return <option key={g.itemId} value={g.itemId}>{`${name} ×${g.qty}`}</option>
                   })}
                 </select>
-                <button type="button" data-testid="gift-send" disabled={locked || giftItemId === ''} onClick={handleGift}>
+                <button
+                  type="button"
+                  data-testid="gift-send"
+                  disabled={locked || giftItemId === ''}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleGift()
+                  }}
+                >
                   {word(locale, { vi: 'Dâng quà', en: 'Present gift' })}
                 </button>
               </div>
@@ -540,7 +646,16 @@ export function NpcChatModal({ show, npcId, game, locale, onClose, onAction }: N
               <>
                 <div className="label">{word(locale, { vi: 'Đạo hữu đáp lời', en: 'You reply' })}</div>
                 {node?.choices.map((c, i) => (
-                  <button key={i} type="button" data-chat-choice={i + 1} disabled={locked} onClick={() => handleChoice(c)}>
+                  <button
+                    key={i}
+                    type="button"
+                    data-chat-choice={i + 1}
+                    disabled={locked}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleChoice(c)
+                    }}
+                  >
                     <span className="k">{i + 1}</span><span className="msg">{c.label}</span>
                   </button>
                 ))}

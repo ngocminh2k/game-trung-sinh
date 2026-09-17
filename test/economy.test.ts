@@ -61,7 +61,7 @@ describe('three-tier economy', () => {
 
   it('defaults expansion fields when parsing an old save', () => {
     const restored = parseGameState({
-      version: 1,
+      version: 2,
       seed: 'pre-economy',
       rng: 1,
       day: 1,

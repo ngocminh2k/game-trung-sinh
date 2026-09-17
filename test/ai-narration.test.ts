@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildSuggestPayload, requestSuggestion } from '../src/ai/narration'
-import { parseSuggestContent } from '../vite.config'
+import { parseSuggestContent } from '../src/ai/proxy-helpers'
 import { newGame } from './test-utils'
 
 describe('AI narration suggestions', () => {

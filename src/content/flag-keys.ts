@@ -51,3 +51,33 @@ export const FLAG_KEYS = [
 ] as const
 
 export type FlagKey = (typeof FLAG_KEYS)[number]
+
+// Named handles for the plain (non-template) keys, typed `FlagKey` so a rename
+// or removal in FLAG_KEYS above fails the compile instead of drifting.
+// Consumers must import these instead of destructuring FLAG_KEYS by position —
+// a positional destructure silently rebinds on any insert/reorder, which is how
+// the quest-completion suffix once became `visited` and deadlocked every chain.
+/** Set on a node the player has already walked through. */
+export const FLAG_MOVED_ONCE: FlagKey = 'movedOnce'
+/** Day the current night deadline was struck. */
+export const FLAG_NIGHT_DEADLINE: FlagKey = 'night_deadline'
+/** Set once the night deadline has been survived or paid off. */
+export const FLAG_NIGHT_DEADLINE_CLEARED: FlagKey = 'night_deadline_cleared'
+/** Set when the player lets a forgotten night pass unmarked. */
+export const FLAG_NIGHT_FORGOTTEN: FlagKey = 'night_forgotten'
+/** Village stayed quiet — no warning raised. */
+export const FLAG_VILLAGE_SILENT: FlagKey = 'village_silent'
+/** Player's own storage seized. */
+export const FLAG_STORAGE_LOCKED: FlagKey = 'storage_locked'
+/** A region closed off to the player. */
+export const FLAG_REGION_LOCKED: FlagKey = 'region_locked'
+/** Cave discovered on the map. */
+export const FLAG_SEEN_CAVE: FlagKey = 'seen_cave'
+/** Bao's debt settled. */
+export const FLAG_STORY_BAO_PAID: FlagKey = 'story_bao_paid'
+/** Meihua's betrayal has happened. */
+export const FLAG_STORY_MEIHUA_BETRAYED: FlagKey = 'story_meihua_betrayed'
+/** The player turned the System down. */
+export const FLAG_SYSTEM_REFUSED: FlagKey = 'system_refused'
+/** Suffix on `quest_<questId>` — stamped by the reducer when a quest is turned in. */
+export const FLAG_QUEST_DONE: FlagKey = '_done'

@@ -159,3 +159,40 @@ export const ENDINGS: EndingDef[] = [
     epitaphEn: 'The last bright stroke goes dark. The System looks through itself — and sees nothing, not even you.',
   },
 ]
+
+export type MajorEndingArchetype =
+  | 'mortal_harmony'
+  | 'sect_heir'
+  | 'rift_darkness'
+  | 'ascension'
+  | 'rogue_wanderer'
+  | 'tragic_fallen'
+  | 'system_destiny'
+
+export function endingArchetype(endingId: string): MajorEndingArchetype {
+  if (endingId.startsWith('system_')) return 'system_destiny'
+
+  switch (endingId) {
+    case 'quiet_harmony':
+    case 'forgiven_enemy':
+    case 'iron_lantern':
+      return 'mortal_harmony'
+    case 'jade_heir':
+    case 'keeper_of_names':
+      return 'sect_heir'
+    case 'rift_kingdom':
+    case 'city_of_ghosts':
+      return 'rift_darkness'
+    case 'nameless_ascension':
+    case 'rootless_star':
+      return 'ascension'
+    case 'blank_page':
+    case 'borrowed_face':
+      return 'rogue_wanderer'
+    case 'tragic_death':
+      return 'tragic_fallen'
+    default:
+      return 'mortal_harmony'
+  }
+}
+

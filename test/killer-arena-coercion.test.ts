@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyAction, newGame, parseFreeText } from '../src/engine'
+import { applyAction, newGame, parseFreeText, playerMaxHp } from '../src/engine'
 import type { GameState } from '../src/engine'
 import { ARENA_FLOOR_COUNT, arenaFloors, eligibleEnemiesAt, validateAllContent } from '../src/content'
 import { navTo } from './test-utils'
@@ -224,6 +224,7 @@ describe('Cưỡng đoạt — resource coercion (Issue #19)', () => {
   it('unlocks arena_champion and notorious as the flags are set', () => {
     let state = atSect('killer-achieve')
     for (let floor = 1; floor <= ARENA_FLOOR_COUNT; floor += 1) {
+      state = { ...state, player: { ...state.player, hp: playerMaxHp(state) } }
       const challenge = applyAction(state, { kind: 'arena_challenge' })
       state = winFloor(challenge.state).state
     }

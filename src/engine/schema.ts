@@ -4,7 +4,7 @@ import { ATTRIBUTE_MAX, MAX_HP, MAX_QI, MAX_STAGE, MINOR_REALM_MAX, STAGE_THRESH
 import { sanitizeRpgState } from './rpg-state'
 
 export const GameStateSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   seed: z.string().min(1),
   rng: z.number().int().nonnegative(),
   day: z.number().int().min(1),
@@ -115,6 +115,18 @@ export const GameStateSchema = z.object({
   // cleanly into a first-life run, so no GAME_STATE_VERSION bump is required.
   ngPlusLevel: z.number().int().min(0).max(99).default(0),
   inheritedRelicId: z.string().min(1).nullable().default(null),
+  hibernation: z
+    .object({
+      active: z.boolean(),
+      startedAt: z.number().int().nonnegative(),
+    })
+    .nullable()
+    .default(null),
+  // C3-16: Outfits & Titles
+  activeOutfitId: z.string().nullable().default(null),
+  activeTitleId: z.string().nullable().default(null),
+  unlockedOutfits: z.array(z.string()).default([]),
+  unlockedTitles: z.array(z.string()).default([]),
 })
 
 export const ItemDefSchema = z.object({

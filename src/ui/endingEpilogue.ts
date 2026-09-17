@@ -1,6 +1,13 @@
 import type { GameState, Locale } from '../engine'
 import { storyRouteProof } from '../engine/story'
 
+export interface FateCard {
+  readonly id: string
+  readonly category: 'hero' | 'village' | 'sect' | 'companion' | 'world'
+  readonly title: string
+  readonly content: string
+}
+
 function word(locale: Locale, vi: string, en: string): string {
   return locale === 'vi' ? vi : en
 }
@@ -18,9 +25,50 @@ const OUTCOME: Record<string, { vi: string; en: string }> = {
   quiet_harmony: { vi: 'Ngươi rời đi khi trời sáng. Sự bình yên này mỏng, nhưng lần đầu tiên nó được chọn chứ không bị áp xuống.', en: 'You leave at dawn. This peace is thin, but for the first time it is chosen instead of imposed.' },
   tragic_death: { vi: 'Kiếp này khép lại ở một ngã rẽ dang dở. Những người còn sống vẫn mang theo dấu lựa chọn ngươi đã làm.', en: 'This life closes at an unfinished turning. Those still living carry the mark of the choices you made.' },
   nameless_ascension: { vi: 'Khung sáng tắt. Hai trăm cái tên được gọi lại một lần nữa, rồi cả đỉnh Mây chỉ còn là đá và gió — không còn ký chủ, không còn phần thưởng, không còn ai đứng trên ngươi.', en: 'The lit frame goes dark. Two hundred names are called back once more, and then Cloud Peak is only stone and wind — no host, no reward, no one standing above you.' },
+  // 10 System endings bespoke outcomes
+  system_battle_end: {
+    vi: 'Dao khắc trên tay ngươi đã cùn. Hệ Thống Chiến Đấu ghi một dòng chiến tích cuối rồi im — ngọn đao để lại đời sau rèn tiếp.',
+    en: 'The blade carved into your palm has gone blunt. The Battle System logs one final combat feat and falls silent — leaving the saber for the next generation to forge.',
+  },
+  system_alchemy_end: {
+    vi: 'Lò đan cuối cùng đã nguội. Hệ Thống Luyện Đan lưu lại trăm phương thuốc cứu đời cho hậu thế, mùi dược thảo thoang thoảng khắp thôn trang.',
+    en: 'The last alchemy furnace has cooled. The Alchemy System leaves a hundred healing recipes for posterity, herbal scent lingering over the hamlet.',
+  },
+  system_merchant_end: {
+    vi: 'Sổ thương hội đã khóa nét cuối cùng. Hệ Thống Hội Thương để lại mạng lưới giao thương phồn thịnh, bạc vàng lưu chuyển khắp muôn nẻo.',
+    en: 'The merchant guild ledger closes its final entry. The Merchant System leaves behind a prosperous trade network, wealth flowing through all corners.',
+  },
+  system_lottery_end: {
+    vi: 'Xúc xắc đã dừng lăn. Hệ Thống Cờ Bạc mỉm cười tan biến, để lại cho nhân gian bài học về nhân quả và vận may.',
+    en: 'The dice have ceased to roll. The Lottery System smiles and dissipates, leaving mortals a lasting lesson in karma and fortune.',
+  },
+  system_explorer_end: {
+    vi: 'Bản đồ sơn hà vạn dặm đã vẽ trọn. Hệ Thống Vạn Dặm trao lại bút tích cho những lữ khách tương lai tiếp bước.',
+    en: 'The vast realm map is fully charted. The Explorer System passes the brush to future wanderers to follow.',
+  },
+  system_assassin_end: {
+    vi: 'Bóng đêm quy về tịch mịch. Hệ Thống Ám Sát rút về hư vô, giang hồ từ nay bớt đi một lưỡi dao trong bóng tối.',
+    en: 'Night returns to stillness. The Assassin System withdraws into nothingness, leaving the realm free of one unseen blade.',
+  },
+  system_healer_end: {
+    vi: 'Mạch tượng bình hòa. Hệ Thống Dưỡng Sinh hoàn tất sứ mệnh hồi sinh, mang lại sự an lạc dài lâu cho muôn người.',
+    en: 'The pulse runs steady. The Healer System finishes its restorative mission, bringing enduring serenity to all.',
+  },
+  system_artisan_end: {
+    vi: 'Tiếng đe rèn lắng xuống. Hệ Thống Luyện Khí để lại những bảo khí trấn thế, hộ trì bình an cho con đường tu chân.',
+    en: 'The forge anvil grows quiet. The Artisan System leaves world-guarding treasures behind to shelter future cultivators.',
+  },
+  system_scholar_end: {
+    vi: 'Trang sách cuối cùng đã khép. Hệ Thống Tàng Thư ghi khắc toàn bộ đạo tạng vào bia đá cổ, soi sáng cho ngàn đời sau.',
+    en: 'The last scroll is folded. The Scholar System engraves the full grand canon onto ancient steles, illuminating thousands of generations.',
+  },
+  system_void_end: {
+    vi: 'Vệt sáng cuối cùng tắt. Thần Ma Điểm Hóa của Hệ Thống Hư Vô hòa vào hư không, trả lại cho thiên địa sự thuần khiết nguyên sơ.',
+    en: 'The last streak of light dims. The Demon God Initiation of the Void System dissolves into nothingness, returning pristine purity to the cosmos.',
+  },
 }
 
-export function endingEpilogue(game: GameState, locale: Locale): string[] {
+export function endingFateCards(game: GameState, locale: Locale): FateCard[] {
   const outcome = OUTCOME[game.endingId ?? 'tragic_death'] ?? OUTCOME.quiet_harmony!
   const meihuaAndHa = game.flags.story_meihua_trusted === true
     ? game.flags.story_ha_free === true
@@ -45,5 +93,42 @@ export function endingEpilogue(game: GameState, locale: Locale): string[] {
     : game.flags.story_proof_present === true
       ? word(locale, `Vật chứng — ${carried.proofVi} — vẫn nằm trên bàn xét xử, mở ra cho người khác đọc.`, `The evidence — ${carried.proofEn} — still lies on the trial table, open for anyone to read.`)
       : word(locale, `Vật chứng — ${carried.proofVi} — vẫn giấu trong tay áo, một con đường không ai khác được mở.`, `The evidence — ${carried.proofEn} — stays folded in your sleeve, a path no one else can open.`)
-  return [word(locale, outcome.vi, outcome.en), meihuaAndHa, khoaAndVo, companionEcho, proofEcho]
+
+  return [
+    {
+      id: 'card_hero',
+      category: 'hero',
+      title: word(locale, 'Số Phận Nhân Vật Chính', 'Protagonist Destiny'),
+      content: word(locale, outcome.vi, outcome.en),
+    },
+    {
+      id: 'card_village',
+      category: 'village',
+      title: word(locale, 'Thôn Trang & Cụ Mai Hoa', 'The Village & Meihua'),
+      content: meihuaAndHa,
+    },
+    {
+      id: 'card_sect',
+      category: 'sect',
+      title: word(locale, 'Tông Môn & Khoa Võ', 'The Sect & Rivals'),
+      content: khoaAndVo,
+    },
+    {
+      id: 'card_companion',
+      category: 'companion',
+      title: word(locale, 'Đạo Lữ & Bạn Đồng Hành', 'Companions & Bonds'),
+      content: companionEcho,
+    },
+    {
+      id: 'card_world',
+      category: 'world',
+      title: word(locale, 'Di Sản & Vật Chứng', 'World Legacy & Proof'),
+      content: proofEcho,
+    },
+  ]
 }
+
+export function endingEpilogue(game: GameState, locale: Locale): string[] {
+  return endingFateCards(game, locale).map((card) => card.content)
+}
+

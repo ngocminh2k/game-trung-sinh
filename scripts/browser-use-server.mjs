@@ -1,3 +1,4 @@
+/* global window, document, getComputedStyle, localStorage */
 // browser-use control server for AI playtesting (issue: 20 AI players).
 //
 // Exposes a tiny HTTP API so an agent (which only has Read/Bash) can drive a
@@ -16,7 +17,7 @@
 // playtest only — never expose this port; upgrade path is a per-session token.
 
 import { createServer } from 'node:http'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from '@playwright/test'
 
@@ -24,13 +25,12 @@ const PORT = Number(process.env.BROWSER_USE_PORT ?? 4400)
 const GAME_URL = process.env.BROWSER_USE_URL ?? 'http://127.0.0.1:4174/'
 const SHOTS = process.env.BROWSER_USE_SHOTS ?? 'docs/playtest-ai/shots'
 const STEP_TIMEOUT = 20_000
-const MAX_LABEL = 90
 
 const sessions = new Map()
 let browser = null
 
 async function ensureBrowser() {
-  if (browser === null) browser = await chromium.launch({ headless: true })
+  if (browser === null || !browser.isConnected()) browser = await chromium.launch({ headless: true })
   return browser
 }
 
@@ -61,20 +61,26 @@ function readBody(req) {
   })
 }
 
-const oneLine = (value) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_LABEL)
-
 // The page's own view of itself: what can be clicked, what the HUD says, what
 // just happened. Runs in the document, so it sees the live DOM only.
-function collectDigest() {
+// exported so scripts/browser-play-bot.mjs sees EXACTLY what the LLM players see.
+export function collectDigest(opts = {}) {
   // Self-contained: this function is serialized into the page, so it may close
   // over nothing from module scope.
+  const all = opts?.all === true
   const clip = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
   const oneLine = (value) => clip(value, 90)
   const text = (node) => (node?.textContent ?? '').replace(/\s+/g, ' ').trim()
   const visible = (node) => {
     const style = getComputedStyle(node)
     if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false
+    // T8: a visually-hidden-but-focusable control (the skip links) is pointer
+    // inert — advertising it invites a click that can never land.
+    if (style.pointerEvents === 'none') return false
     const rect = node.getBoundingClientRect()
+    // T8: only advertise a control whose whole box is on screen; an off-viewport
+    // rect stalls Playwright's actionability check for the full STEP_TIMEOUT.
+    if (!(rect.top >= 0 && rect.bottom <= window.innerHeight)) return false
     return rect.width > 1 && rect.height > 1
   }
   const inert = (node) => {
@@ -96,6 +102,9 @@ function collectDigest() {
   const controls = []
   const nodes = document.querySelectorAll('button, a[href], input, select, textarea, [role="button"], [role="option"], [role="radio"], [role="tab"], [role="switch"], [role="link"], [contenteditable="true"], [tabindex]:not([tabindex="-1"])')
   nodes.forEach((node) => {
+    // T8: skip links are keyboard jump targets, not clickable pointer affordances.
+    // Unconditionally filter out a.skip-link unless ?all=1 is explicitly requested.
+    if (!all && node.classList?.contains('skip-link')) return
     if (!visible(node) || inert(node)) return
     const rect = node.getBoundingClientRect()
     const disabled = node.disabled === true || node.getAttribute('aria-disabled') === 'true'
@@ -220,10 +229,13 @@ const CONTROL_SELECTOR = 'button, a[href], input, select, textarea, [role="butto
 // shown is the element that gets acted on. `selector` is passed in because the
 // function is serialized to the page and cannot close over module scope.
 function nthActionable(arg) {
+  const all = arg?.all === true
   const visible = (node) => {
     const style = getComputedStyle(node)
     if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false
+    if (style.pointerEvents === 'none') return false
     const rect = node.getBoundingClientRect()
+    if (!(rect.top >= 0 && rect.bottom <= window.innerHeight)) return false
     return rect.width > 1 && rect.height > 1
   }
   const inert = (node) => {
@@ -232,12 +244,15 @@ function nthActionable(arg) {
     }
     return false
   }
-  const nodes = [...document.querySelectorAll(arg.selector)].filter((node) => visible(node) && !inert(node))
+  const nodes = [...document.querySelectorAll(arg.selector)].filter((node) => {
+    if (!all && node.classList?.contains('skip-link')) return false
+    return visible(node) && !inert(node)
+  })
   return nodes[arg.index] ?? null
 }
 
-async function nthHandle(page, index) {
-  const handle = await page.evaluateHandle(nthActionable, { selector: CONTROL_SELECTOR, index })
+async function nthHandle(page, index, all = false) {
+  const handle = await page.evaluateHandle(nthActionable, { selector: CONTROL_SELECTOR, index, all })
   const element = handle.asElement()
   if (element === null) {
     await handle.dispose()
@@ -248,16 +263,17 @@ async function nthHandle(page, index) {
 
 async function act(session, body) {
   const { page } = session
+  const all = body.all === true
   await page.waitForLoadState('domcontentloaded')
   if (typeof body.click === 'number') {
-    const target = await nthHandle(page, body.click)
+    const target = await nthHandle(page, body.click, all)
     await target.click({ timeout: STEP_TIMEOUT })
   } else if (typeof body.type === 'number') {
-    const target = await nthHandle(page, body.type)
+    const target = await nthHandle(page, body.type, all)
     await target.fill(String(body.text ?? ''), { timeout: STEP_TIMEOUT })
     if (body.submit === true) await target.press('Enter')
   } else if (typeof body.keys === 'string') {
-    if (typeof body.focus === 'number') await (await nthHandle(page, body.focus)).focus()
+    if (typeof body.focus === 'number') await (await nthHandle(page, body.focus, all)).focus()
     await page.keyboard.type(body.keys, { delay: 5 })
     if (body.submit === true) await page.keyboard.press('Enter')
   } else if (typeof body.press === 'string') {
@@ -317,9 +333,10 @@ async function handle(req, res, parts, url) {
     const verb = parts[2]
     if (req.method === 'GET' && verb === 'state') {
       const shot = url.searchParams.get('shot') !== '0'
+      const all = url.searchParams.get('all') === '1'
       const screenshotPath = shot ? await capture(session, `${session.id}-last`) : null
-      const digest = await session.page.evaluate(collectDigest)
-      return ok(res, renderDigest(digest, screenshotPath, { all: url.searchParams.get('all') === '1' }))
+      const digest = await session.page.evaluate(collectDigest, { all })
+      return ok(res, renderDigest(digest, screenshotPath, { all }))
     }
     if (req.method === 'GET' && verb === 'errors') return ok(res, { errors: session.errors.slice(0, 30) })
     if (req.method === 'GET' && verb === 'telemetry') {
@@ -333,9 +350,10 @@ async function handle(req, res, parts, url) {
       const body = await readBody(req)
       try { await act(session, body) } catch (error) { return fail(res, String(error?.message ?? error)) }
       if (body.settle === false) return ok(res, { ok: true, actions: session.actions })
-      const digest = await session.page.evaluate(collectDigest)
+      const all = body.all === true
+      const digest = await session.page.evaluate(collectDigest, { all })
       const screenshotPath = body.shot === true ? await capture(session, `${session.id}-${session.actions}`) : null
-      return ok(res, renderDigest(digest, screenshotPath, { all: body.all === true }))
+      return ok(res, renderDigest(digest, screenshotPath, { all }))
     }
     return fail(res, 'not found', 404)
   }
@@ -343,7 +361,6 @@ async function handle(req, res, parts, url) {
 }
 
 server.listen(PORT, '127.0.0.1', () => {
-  // eslint-disable-next-line no-console
   console.log(`browser-use on http://127.0.0.1:${PORT} -> ${GAME_URL}`)
 })
 

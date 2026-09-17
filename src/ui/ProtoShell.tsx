@@ -1,13 +1,25 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import type { Action, AttributeName, Direction, GameState, Locale } from '../engine'
-import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, MAX_HP, MAX_QI, RETREAT_HP_COST, checkMoveFrom, currentBeat, nextStageThreshold, travelRisk, travelRiskLabel } from '../engine'
+
+declare module 'react' {
+  interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
+    inert?: '' | boolean | undefined
+  }
+}
+import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, MAX_QI, RETREAT_HP_COST, checkMoveFrom, currentBeat, isBreakthroughReady, nextStageThreshold, playerMaxHp, techniqueQiCost, travelRisk, travelRiskLabel } from '../engine'
 import { CHAPTERS, ENEMIES, MAP_HEIGHT, MAP_WIDTH, NPCS, TECHNIQUES, getLocation, getRegionMap } from '../content'
 import { REALM_STAGES } from './gameScreen/constants'
 import { SkillTreePanel } from './gameScreen/panels'
 import { deriveObjective } from './objective'
 import { LeftRailTabContent, LEFT_TAB_LABELS, type LeftTab } from './LeftRailTabContent'
+import { combatConsumableLabel, combatConsumables } from './gameScreen/helpers'
 import { NpcChatModal } from './NpcChatModal'
 import { IconShowcaseModal } from './IconShowcaseModal'
+import { LunarCalendarModal } from './LunarCalendarModal'
+import { OutfitTitleModal } from './OutfitTitleModal'
+import { SessionRecapModal } from './SessionRecapModal'
+import { toConciseText } from '../engine/concise'
+import { SETTINGS_KEY } from './session'
 import { exitPinArt, nodePinArt, npcPinArt } from './pinArt'
 import { attrIconArt, tabIconArt, HUD_ICONS } from './uiIconArt'
 import { playerArtFor, type PlayerActionKey } from './playerArt'
@@ -24,6 +36,10 @@ type LeftMode = 'expanded' | 'icon' | 'hidden'
 type RightMode = 'expanded' | 'mini' | 'hidden'
 type TickerMode = '1' | 'full' | 'hidden'
 
+/** F9: chronicle kinds the compact ticker prefers over a trailing WARNING
+ *  (day-limit/telegraph warnings are emitted after the hit that caused them). */
+const TICKER_HEADLINE_KINDS: readonly string[] = ['combat_won', 'combat_crit', 'combat_hit', 'boss_heal', 'item_used']
+
 /** action-<kind> trên .game-shell → pose khớp với ảnh trong art/player. */
 const POSE_BY_ACTION: Record<string, PlayerActionKey> = {
   move: 'move',
@@ -36,26 +52,48 @@ const POSE_BY_ACTION: Record<string, PlayerActionKey> = {
   combat_defend: 'combat-defend',
 }
 
-/** Tứ Tượng: thần/tâm/mạch/vận — đúng 4 attr trong engine.player.attrs. */
+/** Tứ Tượng: thân/tâm/mị/vận — đồng bộ với ATTRIBUTE_OPTIONS. */
 const TG_STATS: ReadonlyArray<{ attr: AttributeName; seal: string; vi: string; en: string }> = [
-  { attr: 'charm', seal: '神', vi: 'THẦN', en: 'SPIRIT' },
-  { attr: 'mind', seal: '心', vi: 'TÂM', en: 'MIND' },
-  { attr: 'body', seal: '脈', vi: 'MẠCH', en: 'BODY' },
-  { attr: 'luck', seal: '運', vi: 'VẬN', en: 'FORTUNE' },
+  { attr: 'charm', seal: '魅', vi: 'Mị', en: 'Charm' },
+  { attr: 'mind', seal: '心', vi: 'Tâm', en: 'Mind' },
+  { attr: 'body', seal: '身', vi: 'Thân', en: 'Body' },
+  { attr: 'luck', seal: '運', vi: 'Vận', en: 'Luck' },
 ]
 
 export interface ProtoShellProps {
   game: GameState
   locale: Locale
   chronicle: readonly string[]
+  /** Paired 1:1 with `chronicle` (App.act); lets the ticker pick the headline. */
+  chronicleKinds?: readonly string[]
   onAction: (action: Action) => void
   onLocaleChange: (locale: Locale) => void
   /** Existing engagement hooks — caller passes the existing handlers */
   onJournalToggle?: () => void
   journalOpen?: boolean
+  /** RESIDUAL #31: desktop merged actions (journal/exit/language/day-chip) */
+  topbarActions?: ReactNode
+  /** T-MODAL-ISOLATION: callback when ProtoShell's own modals open/close */
+  onModalChange?: (active: boolean) => void
+  /** C3-18: Concise Mode condenses narrative event descriptions down to 1–2 punchy sentences. */
+  conciseMode?: boolean
+  onConciseModeToggle?: () => void
 }
 
-export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, onJournalToggle, journalOpen = false }: ProtoShellProps): JSX.Element {
+export function ProtoShell({
+  game,
+  locale,
+  chronicle,
+  chronicleKinds,
+  onAction,
+  onLocaleChange,
+  onJournalToggle,
+  journalOpen = false,
+  topbarActions,
+  onModalChange,
+  conciseMode,
+  onConciseModeToggle,
+}: ProtoShellProps): JSX.Element {
   const [leftMode, setLeftMode] = useState<LeftMode>('icon')
   const [rightMode, setRightMode] = useState<RightMode>('expanded')
   const [tickerMode, setTickerMode] = useState<TickerMode>('1')
@@ -64,9 +102,58 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
   const [zenPrev, setZenPrev] = useState<{ left: LeftMode; right: RightMode; tick: TickerMode; pin: boolean } | null>(null)
   const [leftTab, setLeftTab] = useState<LeftTab>('people')
   const [chatNpcId, setChatNpcId] = useState<string | null>(null)
-  const [command, setCommand] = useState('')
   const [showcaseOpen, setShowcaseOpen] = useState(false)
   const [skillTreeOpen, setSkillTreeOpen] = useState(false)
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [outfitsOpen, setOutfitsOpen] = useState(false)
+  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [localConciseMode, setLocalConciseMode] = useState<boolean>(() => {
+    if (conciseMode !== undefined) return conciseMode
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null
+      if (raw) {
+        const p = JSON.parse(raw)
+        return p.conciseMode === true
+      }
+    } catch {}
+    return false
+  })
+  const conciseActive = conciseMode ?? localConciseMode
+  const handleConciseToggle = () => {
+    if (onConciseModeToggle) {
+      onConciseModeToggle()
+    } else {
+      setLocalConciseMode((prev) => {
+        const next = !prev
+        try {
+          if (typeof localStorage !== 'undefined') {
+            const raw = localStorage.getItem(SETTINGS_KEY)
+            const curr = raw ? JSON.parse(raw) : {}
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...curr, conciseMode: next }))
+          }
+        } catch {}
+        return next
+      })
+    }
+  }
+  // Actual dialog modals that block the main world (have backdrops, trap focus)
+  const isDialogModalActive = chatNpcId !== null || showcaseOpen || skillTreeOpen || calendarOpen || outfitsOpen || assistantOpen
+  // Journal/dock is a sidebar panel, not a blocking modal — include in inert for a11y but not pointer-events
+  const isModalActive = isDialogModalActive || journalOpen
+
+  
+  // ponytail: inert on main.proto-shell isolates primary world controls; upgrade path: wrap shell + topbar into a unified dialog-inert boundary if topbar actions ever need modal isolation.
+  const mainRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    mainRef.current?.toggleAttribute('inert', isModalActive)
+  }, [isModalActive])
+
+  // T-MODAL-ISOLATION: notify parent (GameScreen) when modal state changes so it can apply inert to background
+  useEffect(() => {
+    onModalChange?.(isDialogModalActive)
+  }, [isDialogModalActive, onModalChange])
+
+  const [command, setCommand] = useState('')
   // Combat FX: HP của bên nào tụt = bên đó ăn đòn (recoil), bên kia lao vào
   // (lunge). Derive trong effect so both player- and enemy-turn hits animate.
   const [fx, setFx] = useState<{ attacker: 'player' | 'enemy' | null; pulse: number }>({ attacker: null, pulse: 0 })
@@ -79,6 +166,18 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
     }
     prevHpRef.current = { hp: game.player.hp, ehp }
   }, [game.player.hp, game.encounter?.hp, game.encounter])
+
+  // Post-combat transition cooldown (400ms): prevents queued attack clicks
+  // from bleeding through onto underlying map pins when combat overlay unmounts.
+  // ponytail: 400ms covers rapid tap queueing; upgrade path: modal gesture barrier if multi-layer panels ever stack.
+  const combatEndedAtRef = useRef<number>(0)
+  const prevEncounterRef = useRef(game.encounter)
+  useEffect(() => {
+    if (prevEncounterRef.current !== null && game.encounter === null) {
+      combatEndedAtRef.current = Date.now()
+    }
+    prevEncounterRef.current = game.encounter
+  }, [game.encounter])
 
   // Register global handler for LeftRailTabContent (avoid React callback closure issues)
   if (typeof window !== 'undefined') {
@@ -165,6 +264,9 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
       }
       const k = e.key.toLowerCase()
       if (e.key === 'Escape') {
+        if (assistantOpen) { setAssistantOpen(false); return }
+        if (outfitsOpen) { setOutfitsOpen(false); return }
+        if (calendarOpen) { setCalendarOpen(false); return }
         if (skillTreeOpen) { setSkillTreeOpen(false); return }
         if (showcaseOpen) { setShowcaseOpen(false); return }
         if (chatNpcId !== null) { setChatNpcId(null); return }
@@ -173,6 +275,7 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
         if (zen) toggleZen()
         return
       }
+      if (isModalActive) return
       if (k === 'z') { e.preventDefault(); toggleZen(); return }
       if (k === 't') { setTopbarPinned((p) => !p); return }
       if (e.key === 'Tab') {
@@ -189,7 +292,7 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [chatNpcId, journalOpen, leftMode, zen, showcaseOpen, skillTreeOpen, onJournalToggle])
+  }, [isModalActive, chatNpcId, journalOpen, leftMode, zen, showcaseOpen, skillTreeOpen, calendarOpen, outfitsOpen, assistantOpen, onJournalToggle])
 
   // === Derived data ===
   const vi = locale === 'vi'
@@ -198,29 +301,49 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
   const scene = CHAPTERS.find((c) => c.index === currentBeat(game).chapter) ?? CHAPTERS[0]
   const chapterLabel = scene !== undefined ? (vi ? `Chương ${toRoman(scene.index)}` : `Chapter ${toRoman(scene.index)}`) : ''
   const hp = game.player.hp
+  const maxHp = playerMaxHp(game)
   const qi = game.player.qi
   // TU VI thật: tiến độ tu vi / ngưỡng đề thăng (engine stats.ts), không phải % khí.
   const cultivationTarget = nextStageThreshold(game.player.stage, game.player.realmLevel) ?? 120
   const cultivationPct = Math.min(100, Math.round((game.player.progress / cultivationTarget) * 100))
+  const canBreakthrough = isBreakthroughReady(game.player.stage, game.player.realmLevel, game.player.progress)
   const realmName = REALM_STAGES[game.player.stage] ?? REALM_STAGES[0]
   const objective = deriveObjective(game, locale)
-  const lastChronicle = chronicle.length > 0 ? chronicle[chronicle.length - 1] : (vi ? 'Khởi đầu hành trình…' : 'Beginning of journey…')
+  // F9: the newest line is often a trailing day-limit WARNING that buries the
+  // hit/kill that actually happened (the reducer emits COMBAT_WON *before* the
+  // clock warnings). Prefer the newest combat-relevant line within the last few
+  // so a hit reads as damage and a kill reads as loot — same chronicle channel,
+  // no second log. Only kinds the player would rather read than a warning.
+  const safeChronicle = chronicle ?? []
+  const recentKinds = chronicleKinds?.slice(-6) ?? []
+  const recentLines = safeChronicle.slice(-6)
+  let headlineIndex = -1
+  for (let i = recentLines.length - 1; i >= 0; i--) {
+    if (recentKinds[i] !== undefined && TICKER_HEADLINE_KINDS.includes(recentKinds[i]!)) { headlineIndex = i; break }
+  }
+  const rawLastChronicle = headlineIndex >= 0
+    ? recentLines[headlineIndex]!
+    : safeChronicle.length > 0 ? safeChronicle[safeChronicle.length - 1]! : (vi ? 'Khởi đầu hành trình…' : 'Beginning of journey…')
+  const lastChronicle = conciseActive ? toConciseText(rawLastChronicle, locale) : rawLastChronicle
 
   // === Combat: same enemy pool as reducer doStartEncounter (undefeated ∩
-  // stage-eligible, fallback all-at-location) so the chip mirrors what the
-  // engine will actually spawn. ===
+  // stage-eligible, fallback all-at-location, excluding arena) so the chip mirrors
+  // what the engine will actually spawn. ===
   const encounterEnemy = game.encounter === null ? undefined : ENEMIES.find((e) => e.id === game.encounter?.enemyId)
   const fightable = game.encounter === null
     ? (ENEMIES.filter((e) => e.locationId === game.player.locationId
+        && e.arena === undefined
         && game.player.stage >= (e.requiredStage ?? 0)
         && game.flags[`defeated_${e.id}`] !== true)[0]
-      ?? ENEMIES.find((e) => e.locationId === game.player.locationId && game.flags[`defeated_${e.id}`] !== true))
+      ?? ENEMIES.find((e) => e.locationId === game.player.locationId && e.arena === undefined && game.flags[`defeated_${e.id}`] !== true))
     : undefined
   const knownTechniques = TECHNIQUES.filter((t) => (game.techniques[t.id] ?? 0) > 0)
+  const fightPills = combatConsumables(game).map((item) => ({ item, qty: game.inventory[item.id] ?? 0 }))
 
   // === Submit free_text command ===
   const submitCommand = (e: FormEvent) => {
     e.preventDefault()
+    if (peacetimeLocked || isDialogModalActive) return
     const v = command.trim()
     if (v.length === 0) return
     onAction({ kind: 'free_text', raw: v })
@@ -229,6 +352,7 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
 
   // === Chip dispatch ===
   const dispatchChip = (chip: 'rest' | 'cultivate' | 'gather' | 'move' | 'gacha' | 'fight') => {
+    if (peacetimeLocked || isDialogModalActive) return
     if (chip === 'rest') onAction({ kind: 'rest' })
     else if (chip === 'cultivate') onAction({ kind: 'train' })
     else if (chip === 'gather') onAction({ kind: 'gather' })
@@ -242,10 +366,17 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
   const playerLeftPct = ((game.player.posX + 0.5) / MAP_WIDTH) * 100
   const playerTopPct = ((game.player.posY + 0.5) / MAP_HEIGHT) * 100
 
+  // T4: `terminal` là cổng chặn của engine (reducer.ts:149 — mọi action khác
+  // `new_game` trả ERROR/TERMINAL). UI phải khớp: đừng render một affordance
+  // còn sống mà engine sẽ từ chối. GameScreen đã khoá 11 control theo cách
+  // này (`disabled={game.terminal || ...}`); đây là bản sao ở mặt ProtoShell.
+  const worldLocked = game.terminal
+  const encounterLocked = game.encounter !== null
+  const peacetimeLocked = worldLocked || encounterLocked
   // Engine chỉ cho đi từng ô theo hướng. Để pin xa cũng bấm được, BFS tìm
   // chuỗi hướng thật từ vị trí người chơi tới ô đích (đi qua ô kề được phép).
   // execAction/doMove vẫn từ chối khi đang đánh, đã chết, hoặc còn điểm chưa chia.
-  const canWalk = game.encounter === null && game.player.alive && game.player.pendingAttributePoints === 0
+  const canWalk = !worldLocked && game.encounter === null && game.player.alive && game.player.pendingAttributePoints === 0
   const paths = new Map<string, Direction[]>()
   const OPPOSITE: Record<Direction, Direction> = { north: 'south', south: 'north', east: 'west', west: 'east' }
   if (canWalk) {
@@ -288,7 +419,12 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
     <>
       {/* Topbar */}
       <div className="proto-topbar-sentinel" />
-      <header className={`proto-topbar${barHidden ? ' hidden-bar' : ''}`} data-od-id="topbar">
+      <header
+        className={`proto-topbar${barHidden ? ' hidden-bar' : ''}`}
+        data-od-id="topbar"
+        inert={isDialogModalActive ? '' : undefined}
+        style={isDialogModalActive ? { pointerEvents: 'none' } : undefined}
+      >
         <span className="proto-topbar__brand">Phế Căn Ký</span>
         <span className="proto-topbar__sep">·</span>
         <span className="proto-topbar__stat">{vi ? 'Ngày' : 'Day'} <span className="v">{game.day}</span></span>
@@ -308,22 +444,64 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
         <span className="proto-topbar__stat" data-testid="currency-skill-points"><span aria-hidden="true">技</span> <span className="v">{game.player.skillPoints ?? 0}</span></span>
         <button className="iconbtn" type="button" onClick={() => setSkillTreeOpen(true)} title={vi ? 'Cây công pháp (K)' : 'Skill tree (K)'} data-testid="skill-tree-btn">🌳</button>
         <button className="iconbtn" type="button" onClick={() => setShowcaseOpen(true)} title={vi ? 'Phòng trưng bày icon' : 'Icon showcase'} data-testid="icon-showcase-btn">🖼</button>
-        <button className="iconbtn" type="button" onClick={() => onLocaleChange(locale === 'vi' ? 'en' : 'vi')} title={vi ? 'Đổi ngôn ngữ' : 'Switch language'}>{locale.toUpperCase()}</button>
+        <button className="iconbtn" type="button" onClick={() => setCalendarOpen(true)} title={vi ? 'Lịch Âm & Dự Báo Thiên Tượng' : 'Lunar Calendar & Forecast'} data-testid="lunar-calendar-btn">🌙</button>
+        <button className="iconbtn" type="button" onClick={() => setOutfitsOpen(true)} title={vi ? 'Ngoại Trang & Danh Hiệu' : 'Outfits & Titles'} data-testid="outfits-titles-btn">👘</button>
+        <button className="iconbtn" type="button" onClick={() => setAssistantOpen(true)} title={vi ? 'Trợ Lý Hệ Thống & Tóm Tắt Tu Tiên' : 'System Assistant & Recap'} data-testid="system-assistant-btn">💡</button>
+        <button
+          className={`iconbtn${conciseActive ? ' active' : ''}`}
+          type="button"
+          onClick={handleConciseToggle}
+          aria-pressed={conciseActive}
+          title={vi
+            ? (conciseActive ? 'Chế độ tóm tắt: Đang bật (bấm để xem văn xuôi đầy đủ)' : 'Chế độ tóm tắt: Đang tắt (bấm để bật tóm tắt 1–2 câu)')
+            : (conciseActive ? 'Concise mode: ON (click for full prose)' : 'Concise mode: OFF (click to condense into 1–2 sentences)')}
+          data-testid="concise-mode-btn"
+        >
+          ⚡
+        </button>
+        {topbarActions === undefined && (
+          <button className="iconbtn" type="button" onClick={() => onLocaleChange(locale === 'vi' ? 'en' : 'vi')} title={vi ? 'Đổi ngôn ngữ' : 'Switch language'}>{locale.toUpperCase()}</button>
+        )}
         <button className="iconbtn" type="button" title={vi ? 'Thiết lập' : 'Settings'} onClick={() => onJournalToggle?.()}>⚙</button>
         <button className="iconbtn pin" type="button" onClick={() => setTopbarPinned((p) => !p)} title={vi ? `Ghim/Thả (T)` : `Pin (T)`}>📌</button>
+        {topbarActions}
         <button data-testid="debug-open-chat" type="button" onClick={() => setChatNpcId('n_merchant_bao')} style={{ display: 'none' }}>DBG</button>
       </header>
 
       {/* 3-col grid */}
-      <main className={`proto-grid-main${barHidden ? ' topbar-hidden' : ''}${zen ? ' zen' : ''}`} style={gridStyle}>
+      <main
+        ref={mainRef}
+        className={`proto-shell proto-grid-main${barHidden ? ' topbar-hidden' : ''}${zen ? ' zen' : ''}`}
+        style={{
+          ...gridStyle,
+          ...(isModalActive ? { pointerEvents: 'none' } : undefined),
+        }}
+        inert={isModalActive ? '' : undefined}
+      >
 
         {/* LeftRail */}
         <aside className={`proto-leftrail${leftMode === 'hidden' ? ' mode-hidden' : ''}`} data-od-id="leftrail">
-          <nav className="tabs" aria-label={vi ? 'Lục Đạo Hành Nang' : 'Inventory Tabs'}>
+          <nav
+            className="tabs"
+            aria-label={vi ? 'Lục Đạo Hành Nang' : 'Inventory Tabs'}
+            style={isDialogModalActive ? { pointerEvents: 'none' } : undefined}
+          >
             {(Object.keys(LEFT_TAB_LABELS) as LeftTab[]).map((t) => {
               const meta = LEFT_TAB_LABELS[t]
               return (
-                <button key={t} type="button" data-tab={t} className={leftTab === t ? 'active' : ''} onClick={() => { setLeftTab(t); if (leftMode === 'icon') setLeftMode('expanded') }} data-od-id={`tab-${t}`}>
+                <button
+                  key={t}
+                  type="button"
+                  data-tab={t}
+                  className={leftTab === t ? 'active' : ''}
+                  disabled={isDialogModalActive}
+                  onClick={() => {
+                    if (isDialogModalActive) return
+                    setLeftTab(t)
+                    if (leftMode === 'icon') setLeftMode('expanded')
+                  }}
+                  data-od-id={`tab-${t}`}
+                >
                   {(() => {
                     const src = tabIconArt(t)
                     return src !== undefined
@@ -348,7 +526,9 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
               tab={leftTab}
               game={game}
               locale={locale}
-              onAction={onAction}
+              onAction={(action) => {
+                if (!isModalActive) onAction(action)
+              }}
             />
           </div>
           <button type="button" className="reopen" onClick={() => setLeftMode('icon')} title={vi ? 'Mở lại' : 'Reopen'}>▶</button>
@@ -402,21 +582,23 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
                 ? exitPinArt(cell.exitTo)
                 : nodePinArt(cell.node)
               const handleClick = () => {
-                if (path === undefined) return
+                if (path === undefined || worldLocked || isDialogModalActive || Date.now() - combatEndedAtRef.current < 400) return
                 travelTo(path)
               }
               return (
                 <button
                   type="button"
                   key={`${String(cell.x)}-${String(cell.y)}`}
-                  className={`${cls}${path === undefined ? ' pin-unreachable' : ''}${topPct < 30 ? ' pin-flip' : ''}`}
-                  aria-disabled={path === undefined ? true : undefined}
+                  className={`${cls}${path === undefined || worldLocked ? ' pin-unreachable' : ''}${topPct < 30 ? ' pin-flip' : ''}`}
+                  aria-disabled={path === undefined || worldLocked ? true : undefined}
                   style={{ left: `${leftPct}%`, top: `${topPct}%`, marginTop: isPlayer && isExitCell ? 26 : undefined }}
                   data-pin-id={`${String(cell.x)},${String(cell.y)}`}
-                  data-pin-walkable={path !== undefined ? path[0] : undefined}
+                  data-pin-walkable={!worldLocked && path !== undefined ? path[0] : undefined}
                   data-testid={`map-pin-${String(cell.x)}-${String(cell.y)}`}
                   onClick={handleClick}
-                  aria-label={(path === undefined
+                  aria-label={(worldLocked
+                    ? (vi ? `${label} — hành trình đã khép lại` : `${label} — the journey is over`)
+                    : path === undefined
                     ? (vi ? `${label} — chưa có đường nối từ vị trí hiện tại` : `${label} — no path from your current position`)
                     : (isExitCell
                       ? (vi ? `Đi tới ${label} (${String(path.length)} bước)` : `Travel to ${label} (${String(path.length)} steps)`)
@@ -450,18 +632,27 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
               )
             })}
 
-            {/* NPC pins từ NPCS ở current location — click mở chat */}
-            {NPCS.filter((n) => n.locationId === game.player.locationId).slice(0, 4).map((n, i) => {
-              const leftPct = 18 + (i * 18) // distribute trên map
-              const topPct = 30 + (i % 2) * 30
+            {/* NPC pins từ NPCS ở current location — click mở chat.
+                Không cắt bớt: làng có 7 NPC, market 11 (T7 — #8/#11); bỏ .slice(0,4)
+                từng khiến Tiểu Bảo / Nông phu Tư / Cụ ông Thìn không có nút trò chuyện
+                nào dù aria-label vẫn hứa "Nói chuyện với X".
+                ponytail: grid 4 cột cứng, đủ cho 11 pin lớn nhất hiện có; đổi sang vị
+                trí thật theo toạ độ ô khi làng vượt ~12 NPC. */}
+            {NPCS.filter((n) => n.locationId === game.player.locationId).map((n, i) => {
+              const leftPct = 18 + (i % 4) * 18 // distribute trên map, xuống dòng khi tràn
+              const topPct = 26 + Math.floor(i / 4) * 18
               return (
                 <button
                   type="button"
                   key={n.id}
-                  className={`pin npc${topPct < 30 ? ' pin-flip' : ''}`}
+                  className={`pin npc${topPct < 30 ? ' pin-flip' : ''}${peacetimeLocked ? ' pin-unreachable' : ''}`}
+                  aria-disabled={peacetimeLocked ? true : undefined}
                   data-npc={n.id}
                   style={{ left: `${leftPct}%`, top: `${topPct}%` }}
-                  onClick={() => setChatNpcId(n.id)}
+                  onClick={() => {
+                    if (peacetimeLocked || isDialogModalActive || Date.now() - combatEndedAtRef.current < 400) return
+                    setChatNpcId(n.id)
+                  }}
                   aria-label={vi ? `Nói chuyện với ${n.nameVi}` : `Talk to ${n.nameEn}`}
                 >
                   {(() => {
@@ -513,12 +704,12 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
                     <div
                       className="cbar player"
                       role="progressbar"
-                      aria-label={vi ? `Sinh lực của ngươi ${String(game.player.hp)}/${String(MAX_HP)}` : `Your health ${String(game.player.hp)}/${String(MAX_HP)}`}
+                      aria-label={vi ? `Sinh lực của ngươi ${String(game.player.hp)}/${String(maxHp)}` : `Your health ${String(game.player.hp)}/${String(maxHp)}`}
                       aria-valuemin={0}
-                      aria-valuemax={MAX_HP}
+                      aria-valuemax={maxHp}
                       aria-valuenow={game.player.hp}
                     >
-                      <i style={{ width: `${(game.player.hp / MAX_HP) * 100}%` }} />
+                      <i style={{ width: `${Math.min(100, (game.player.hp / maxHp) * 100)}%` }} />
                     </div>
                   </div>
 
@@ -546,16 +737,30 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
                 </div>
 
                 <div className="acts">
-                  <button type="button" className="primary" onClick={() => onAction({ kind: 'combat_attack' })} data-testid="combat-attack">
+                  <button type="button" className="primary" disabled={worldLocked || undefined} onClick={() => onAction({ kind: 'combat_attack' })} data-testid="combat-attack">
                     {vi ? `Đánh thường (${String(BASIC_STRIKE_QI_COST)} khí)` : `Strike (${String(BASIC_STRIKE_QI_COST)} qi)`}
                   </button>
                   {knownTechniques.map((t) => (
-                    <button key={t.id} type="button" onClick={() => onAction({ kind: 'combat_attack', techniqueId: t.id })}>
-                      {vi ? `Xuất ${t.nameVi}` : `Use ${t.nameEn}`}
+                    <button key={t.id} type="button" disabled={worldLocked || undefined} onClick={() => onAction({ kind: 'combat_attack', techniqueId: t.id })}>
+                      {vi
+                        ? `Xuất ${t.nameVi} (${String(techniqueQiCost(t.power, game.techniques[t.id] ?? 0))} khí)`
+                        : `Use ${t.nameEn} (${String(techniqueQiCost(t.power, game.techniques[t.id] ?? 0))} qi)`}
                     </button>
                   ))}
-                  <button type="button" onClick={() => onAction({ kind: 'combat_defend' })}>{vi ? 'Thủ thế' : 'Defend'}</button>
-                  <button type="button" className="danger" onClick={() => onAction({ kind: 'combat_retreat' })}>
+                  <button type="button" disabled={worldLocked || undefined} onClick={() => onAction({ kind: 'combat_defend' })}>{vi ? 'Thủ thế' : 'Defend'}</button>
+                  {fightPills.map((p) => (
+                    <button
+                      key={p.item.id}
+                      type="button"
+                      className="consumable"
+                      disabled={worldLocked || undefined}
+                      data-testid={`combat-use-item-${p.item.id}`}
+                      onClick={() => onAction({ kind: 'use_item', itemId: p.item.id, qty: 1 })}
+                    >
+                      {combatConsumableLabel(p.item, locale, p.qty)}
+                    </button>
+                  ))}
+                  <button type="button" className="danger" disabled={worldLocked || undefined} onClick={() => onAction({ kind: 'combat_retreat' })}>
                     {vi ? `Rút lui (−${String(RETREAT_HP_COST)} huyết)` : `Retreat (−${String(RETREAT_HP_COST)} HP)`}
                   </button>
                 </div>
@@ -569,18 +774,28 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
               type="text"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
+              disabled={peacetimeLocked || undefined}
               placeholder={vi ? 'Thử nói: "Ta muốn đến làng Thanh Mộc tìm lão Bạch"…' : 'Try: "I want to go to Greenwood village"…'}
               aria-label={vi ? 'Nhập mệnh lệnh' : 'Command input'}
             />
             <div className="chips">
-              <button type="button" data-chip="rest" onClick={() => dispatchChip('rest')}>{vi ? 'Nghỉ' : 'Rest'}</button>
-              <button type="button" data-chip="cultivate" onClick={() => dispatchChip('cultivate')}>{vi ? 'Tu luyện' : 'Train'}</button>
-              <button type="button" data-chip="gather" onClick={() => dispatchChip('gather')}>{vi ? 'Hái thảo' : 'Gather'}</button>
-              <button type="button" data-chip="move" onClick={() => dispatchChip('move')}>{vi ? 'Di chuyển' : 'Move'}</button>
-              <button type="button" data-chip="gacha" onClick={() => dispatchChip('gacha')}>{vi ? 'Quay số' : 'Gacha'}</button>
-              {fightable !== undefined && <button type="button" data-chip="fight" onClick={() => dispatchChip('fight')}>{vi ? `⚔ Giao chiến: ${fightable.nameVi}` : `⚔ Fight: ${fightable.nameEn}`}</button>}
+              <button type="button" data-chip="rest" disabled={peacetimeLocked || undefined} onClick={() => dispatchChip('rest')}>{vi ? 'Nghỉ' : 'Rest'}</button>
+              <button
+                type="button"
+                data-chip="cultivate"
+                className={canBreakthrough ? 'can-breakthrough' : undefined}
+                disabled={peacetimeLocked || undefined}
+                onClick={() => dispatchChip('cultivate')}
+                title={canBreakthrough ? (vi ? 'Đã đủ tu vi để đột phá!' : 'Cultivation full! Ready to breakthrough!') : undefined}
+              >
+                {canBreakthrough ? (vi ? '⚡ Đột phá' : '⚡ Breakthrough') : (vi ? 'Tu luyện' : 'Train')}
+              </button>
+              <button type="button" data-chip="gather" disabled={peacetimeLocked || undefined} onClick={() => dispatchChip('gather')}>{vi ? 'Hái thảo' : 'Gather'}</button>
+              <button type="button" data-chip="move" disabled={peacetimeLocked || undefined} onClick={() => dispatchChip('move')}>{vi ? 'Di chuyển' : 'Move'}</button>
+              <button type="button" data-chip="gacha" disabled={peacetimeLocked || undefined} onClick={() => dispatchChip('gacha')}>{vi ? 'Quay số' : 'Gacha'}</button>
+              {fightable !== undefined && <button type="button" data-chip="fight" disabled={peacetimeLocked || undefined} onClick={() => dispatchChip('fight')}>{vi ? `⚔ Giao chiến: ${fightable.nameVi}` : `⚔ Fight: ${fightable.nameEn}`}</button>}
             </div>
-            <button type="submit" className="try">{vi ? 'Thử Vận' : 'Try'}</button>
+            <button type="submit" className="try" disabled={peacetimeLocked || undefined}>{vi ? 'Thử Vận' : 'Try'}</button>
           </form>
 
           <div className={`proto-zen-pill${zen ? ' show' : ''}`}>{vi ? 'CHẾ ĐỘ THIỀN ĐỊNH — ấn Z để thoát' : 'ZEN MODE — press Z to exit'}</div>
@@ -603,15 +818,15 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
           </div>
           <div className={`proto-bar hp${hp < 30 ? ' alert' : ''}`}>
             <span className="lbl"><img className="bar-ico" src={HUD_ICONS.hp} alt="" aria-hidden="true" />{vi ? 'KHÍ HUYẾT' : 'HP'}</span>
-            <span className="track"><span className="fill" style={{ width: `${(hp / MAX_HP) * 100}%` }} /></span>
-            <span className="num">{hp}/{MAX_HP}</span>
+            <span className="track"><span className="fill" style={{ width: `${Math.min(100, (hp / maxHp) * 100)}%` }} /></span>
+            <span className="num">{hp}/{maxHp}</span>
           </div>
           <div className="proto-bar qi">
             <span className="lbl"><img className="bar-ico" src={HUD_ICONS.qi} alt="" aria-hidden="true" />{vi ? 'LINH KHÍ' : 'QI'}</span>
             <span className="track"><span className="fill" style={{ width: `${(qi / MAX_QI) * 100}%` }} /></span>
             <span className="num">{qi}/{MAX_QI}</span>
           </div>
-          <div className="proto-bar cultivation">
+          <div className={`proto-bar cultivation ${canBreakthrough ? 'can-breakthrough' : ''}`}>
             <span className="lbl"><img className="bar-ico" src={HUD_ICONS.cultivation} alt="" aria-hidden="true" />{vi ? 'TU VI' : 'CULT'}</span>
             <span className="track"><span className="fill" style={{ width: `${cultivationPct}%` }} /></span>
             <span className="num">{game.player.progress}/{cultivationTarget}</span>
@@ -619,7 +834,7 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
           <div className="proto-tetragrammaton">
             {TG_STATS.map((t) => {
               const value = game.player.attrs[t.attr]
-              const canAdd = game.player.pendingAttributePoints > 0 && value < ATTRIBUTE_MAX
+              const canAdd = game.player.pendingAttributePoints > 0 && value < ATTRIBUTE_MAX && !isModalActive
               return (
                 <div className="proto-tg" key={t.attr}>
                   {(() => {
@@ -648,14 +863,26 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
             )}
           </div>
           <div className="proto-quest">
-            <div className="q">{vi ? 'Mục tiêu' : 'Objective'}</div>
-            <div className="d">{objective ?? (vi ? `Ngày ${game.day}` : `Day ${game.day}`)}</div>
+            <div className="q" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>{vi ? 'Mục tiêu' : 'Objective'}</span>
+              <button
+                type="button"
+                className="iconbtn"
+                data-testid="objective-assistant-btn"
+                onClick={() => setAssistantOpen(true)}
+                title={vi ? 'Trợ Lý Hệ Thống & Ký Sự' : 'System Assistant & Recap'}
+                style={{ fontSize: 13, padding: '0 4px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+              >
+                💡
+              </button>
+            </div>
+            <div className="d" data-testid="objective-line">{objective ?? (vi ? `Ngày ${game.day}` : `Day ${game.day}`)}</div>
           </div>
           <div className="proto-mini-badge" role="button" tabIndex={0} onClick={() => setRightMode('expanded')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRightMode('expanded') } }} title={vi ? 'Mở lại HUD' : 'Open HUD'}>
             <div className="face" aria-hidden="true" />
             <div className="m">
               <span className="realm">{realmName?.seal}-{game.player.realmLevel}</span>
-              <span className="mini-bar hp"><i style={{ width: `${(hp / MAX_HP) * 100}%` }} /></span>
+              <span className="mini-bar hp"><i style={{ width: `${Math.min(100, (hp / maxHp) * 100)}%` }} /></span>
               <span className="mini-bar qi"><i style={{ width: `${(qi / MAX_QI) * 100}%` }} /></span>
             </div>
           </div>
@@ -665,14 +892,14 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
         <footer className={`proto-ticker${tickerMode === 'hidden' ? ' mode-hidden' : ''}${tickerMode === '1' ? ' mode-1' : ''}${tickerMode === 'full' ? ' mode-full' : ''}`}>
           <div className="proto-ticker-1">
             <span className="badge-mini">BIÊN NIÊN</span>
-            <span className="msg">{lastChronicle}</span>
+            <span className="msg" role="status" data-testid="proto-ticker-msg">{lastChronicle}</span>
             <div className="ctrls">
               <button type="button" onClick={() => setTickerMode((m) => m === 'full' ? '1' : 'full')} title={vi ? 'Mở rộng (L)' : 'Expand (L)'}>{tickerMode === 'full' ? '▼' : '▲'}</button>
             </div>
           </div>
           <div className="proto-ticker-body">
             <div className="proto-ticker-events">
-              {chronicle.slice(-5).reverse().map((line, i) => (
+              {safeChronicle.slice(-5).reverse().map((line, i) => (
                 <div key={i} className="ev"><span className="t">--:--</span><span className="m">{line}</span></div>
               ))}
             </div>
@@ -692,6 +919,15 @@ export function ProtoShell({ game, locale, chronicle, onAction, onLocaleChange, 
 
       {/* Icon Showcase Modal (nút 🖼 trên topbar) */}
       <IconShowcaseModal show={showcaseOpen} onClose={() => setShowcaseOpen(false)} />
+
+      {/* Lunar Calendar & Forecast Modal (nút 🌙 trên topbar) */}
+      <LunarCalendarModal show={calendarOpen} game={game} locale={locale} onClose={() => setCalendarOpen(false)} />
+
+      {/* Outfit & Title Modal (nút 👘 trên topbar) */}
+      <OutfitTitleModal show={outfitsOpen} game={game} locale={locale} onAction={onAction} onClose={() => setOutfitsOpen(false)} />
+
+      {/* System Assistant & Session Recap Modal (nút 💡 trên topbar) */}
+      <SessionRecapModal show={assistantOpen} game={game} locale={locale} onClose={() => setAssistantOpen(false)} onAction={onAction} />
 
       {/* Skill Tree (issue #33) — rendered only while open: the panel owns no
           closed state, and deriveSkillTree walks 101 nodes per render. */}
