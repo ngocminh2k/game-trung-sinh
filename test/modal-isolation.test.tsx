@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { NpcChatModal } from '../src/ui/NpcChatModal'
 import { ProtoShell } from '../src/ui/ProtoShell'
+import { GameScreen } from '../src/ui/GameScreen'
 import type { GameState, Locale } from '../src/engine'
 
 // Minimal GameState for testing
@@ -285,6 +286,54 @@ describe('Modal Isolation (T-MODAL-ISOLATION)', () => {
       // We can't easily test storyOpen since it's internal to GameScreen
       // This test documents the expected behavior
       expect(true).toBe(true)
+    })
+  })
+
+  describe('GameScreen modal isolation (C3-NEW-01)', () => {
+    it('proto modal (NPC chat) keeps proto-shell-wrap active while inverting outer regions', async () => {
+      const game = createMockGame()
+      const locale: Locale = 'vi'
+      const chronicle: string[] = ['Test entry']
+
+      const { container } = render(
+        <GameScreen
+          game={game}
+          locale={locale}
+          chronicle={chronicle}
+          onAction={mockOnAction}
+          onLocaleChange={mockOnLocaleChange}
+        />
+      )
+
+      // Initially no modal is open; proto-shell-wrap is not inert
+      const protoWrap = container.querySelector('.proto-shell-wrap') as HTMLElement
+      expect(protoWrap).not.toBeNull()
+      expect(protoWrap.hasAttribute('inert')).toBe(false)
+
+      // Open NPC chat modal via debug button inside ProtoShell
+      const debugBtn = screen.getByTestId('debug-open-chat')
+      act(() => {
+        fireEvent.click(debugBtn)
+      })
+
+      // Wait for chat modal to open
+      await screen.findByRole('dialog', { name: /Trò chuyện cùng NPC|Chat with the villager/ })
+
+      // C3-NEW-01: .proto-shell-wrap must NOT be inert and must NOT have pointerEvents: 'none'
+      expect(protoWrap.hasAttribute('inert')).toBe(false)
+      expect(protoWrap.style.pointerEvents).not.toBe('none')
+
+      // Outer background regions (hud-panel) should be inert
+      const hudPanel = container.querySelector('.hud-panel') as HTMLElement | null
+      expect(hudPanel?.hasAttribute('inert')).toBe(true)
+
+      // Dialogue choices must be clickable and fire onAction
+      const choiceButtons = screen.getAllByRole('button', { name: /^1/ })
+      expect(choiceButtons.length).toBeGreaterThan(0)
+      act(() => {
+        fireEvent.click(choiceButtons[0]!)
+      })
+      expect(mockOnAction).toHaveBeenCalled()
     })
   })
 })

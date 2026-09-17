@@ -250,6 +250,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const chronicleSeenCount = useRef(chronicle.length)
   const backgroundRefs = useRef<HTMLElement[]>([])
   const journalSurfaceRef = useRef<HTMLElement | null>(null)
+  const protoShellWrapRef = useRef<HTMLDivElement | null>(null)
   const endingBannerRef = useRef<HTMLElement | null>(null)
   const feedbackTimers = useRef<number[]>([])
   const storyLauncherRef = useRef<HTMLElement | null>(null)
@@ -470,10 +471,19 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   // panel / death screen), so the journalOpen pass skips it — otherwise opening
   // the journal would disable the journal.
   // T-MODAL-ISOLATION: also include protoModalActive (NPC chat, icon showcase, skill tree)
+  // C3-NEW-01: .proto-shell-wrap houses the proto modals; when protoModalActive is true,
+  // outer background regions become inert, but .proto-shell-wrap must stay active so modal
+  // controls remain interactive (ProtoShell isolates its own internal world/topbar controls).
   useEffect(() => {
     backgroundRefs.current.forEach((element) => {
       const isDrawer = element === journalSurfaceRef.current
-      element.toggleAttribute('inert', storyOpen || deathDialog || (!isDrawer && (journalOpen || protoModalActive)))
+      const isProtoWrap = element === protoShellWrapRef.current
+      const shouldBeInert =
+        storyOpen ||
+        deathDialog ||
+        (!isDrawer && journalOpen) ||
+        (!isDrawer && !isProtoWrap && protoModalActive)
+      element.toggleAttribute('inert', shouldBeInert)
     })
   }, [storyOpen, deathDialog, protoModalActive, journalOpen])
   // Round-6 review MEDIUM-2: a role="status" region inserted with its text
@@ -732,9 +742,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
       )}
       <div
         className="proto-shell-wrap"
-        ref={backgroundRegion}
-        inert={journalOpen || storyOpen || deathDialog || protoModalActive ? '' : undefined}
-        style={journalOpen || storyOpen || deathDialog || protoModalActive ? { pointerEvents: 'none' } : undefined}
+        ref={(element) => {
+          protoShellWrapRef.current = element
+          backgroundRegion(element)
+        }}
+        inert={journalOpen || storyOpen || deathDialog ? '' : undefined}
+        style={journalOpen || storyOpen || deathDialog ? { pointerEvents: 'none' } : undefined}
       >
         <ProtoShell
           chronicle={chronicle}
