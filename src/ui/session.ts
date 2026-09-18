@@ -45,9 +45,11 @@ export interface PlayerSettings {
    *  proxy when the operator enabled it server-side. Falls back silently. */
   narrationEnabled: boolean
   locale: Locale
+  /** C3-18: Concise Mode condenses narrative event descriptions down to 1–2 punchy sentences. */
+  conciseMode: boolean
 }
 
-export const DEFAULT_SETTINGS: PlayerSettings = { difficulty: 'balanced', narrationEnabled: false, locale: 'vi' }
+export const DEFAULT_SETTINGS: PlayerSettings = { difficulty: 'balanced', narrationEnabled: false, locale: 'vi', conciseMode: false }
 
 function parseSettings(raw: string | null | undefined): PlayerSettings {
   if (typeof raw !== 'string') return { ...DEFAULT_SETTINGS }
@@ -57,6 +59,7 @@ function parseSettings(raw: string | null | undefined): PlayerSettings {
       difficulty: candidate.difficulty === 'story' || candidate.difficulty === 'hard' ? candidate.difficulty : 'balanced',
       narrationEnabled: candidate.narrationEnabled === true,
       locale: candidate.locale === 'en' ? 'en' : 'vi',
+      conciseMode: candidate.conciseMode === true,
     }
   } catch {
     return { ...DEFAULT_SETTINGS }

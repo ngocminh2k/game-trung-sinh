@@ -18,5 +18,9 @@ run-pw.cmd
 
 # agent scratch + local run artifacts (not for the repo)
 .tmp-i33/
-pw-*.log
+.tmp-*
+*.out
+*.log
+state0.json
+scripts/.playtest-hosts.pids
 ending-shots/

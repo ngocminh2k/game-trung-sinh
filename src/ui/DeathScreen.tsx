@@ -1,8 +1,9 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useRef, type CSSProperties, useState } from 'react'
 import { describeDeath } from '../content/death-legacy'
 import type { Locale } from '../engine'
 import type { EndingDef } from '../engine/content-types'
 import { t } from '../i18n'
+import { ENDINGS, endingArchetype, type MajorEndingArchetype } from '../content/endings-data'
 
 // Falling ashes / petals — fixed, deterministic spread (no RNG).
 const PETALS = [
@@ -34,14 +35,51 @@ interface DeathScreenProps {
   cause: string
   onRestart: () => void
   onDismiss: () => void
+  unlockedEndingIds?: readonly string[]
 }
 
 // Game-over: the ensō shatters, the soul-token cracks and fades, ashes fall.
 // Shows the authored death epitaph, what killed this life and one tactical
 // lesson, plus the legacy trait the next run inherits — Positive Failure.
-export function DeathScreen({ locale, ending, cause, onRestart, onDismiss }: DeathScreenProps) {
+export function DeathScreen({ locale, ending, cause, onRestart, onDismiss, unlockedEndingIds = [] }: DeathScreenProps) {
   const report = cause === '' ? null : describeDeath(cause, locale)
   const epitaph = locale === 'vi' ? ending.epitaphVi : ending.epitaphEn
+  // Issue #40 round-6 review MEDIUM-2: this is role="dialog" aria-modal but
+  // nothing moved focus here on mount, so keyboard/SR users stayed in the
+  // (now also inert) world behind it. Land on the primary action.
+  const restartRef = useRef<HTMLButtonElement | null>(null)
+  const [showGallery, setShowGallery] = useState(false)
+  useEffect(() => {
+    restartRef.current?.focus()
+  }, [])
+
+  // Major ending archetypes for gallery cells
+  const MAJOR_ARCHETYPES: MajorEndingArchetype[] = [
+    'mortal_harmony',
+    'sect_heir',
+    'rift_darkness',
+    'ascension',
+    'rogue_wanderer',
+    'tragic_fallen'
+  ]
+
+  const getGalleryCells = () => {
+    return MAJOR_ARCHETYPES.map(archetype => {
+      const endings = ENDINGS.filter(e => endingArchetype(e.id) === archetype)
+      const unlockedEnding = endings.find(e => unlockedEndingIds.includes(e.id))
+      const isUnlocked = !!unlockedEnding
+      const representative = unlockedEnding ?? endings[0] ?? ENDINGS[0]!
+      return {
+        archetype,
+        name: locale === 'vi' ? representative.nameVi : representative.nameEn,
+        epitaph: locale === 'vi' ? representative.epitaphVi : representative.epitaphEn,
+        isUnlocked,
+        hint: isUnlocked ? undefined : locale === 'vi'
+          ? 'Chưa mở khóa — tiếp tục tu hành'
+          : 'Not yet unlocked — continue cultivation'
+      }
+    })
+  }
 
   return (
     <div className="death-screen" role="dialog" aria-modal="true" aria-label={t(locale, 'ui.death.aria')}>
@@ -99,14 +137,42 @@ export function DeathScreen({ locale, ending, cause, onRestart, onDismiss }: Dea
         )}
 
         <div className="death-actions">
-          <button type="button" className="death-restart" onClick={onRestart}>
+          <button ref={restartRef} type="button" className="death-restart" onClick={onRestart}>
             {t(locale, 'ui.death.restart')}
           </button>
           <button type="button" className="death-dismiss" onClick={onDismiss}>
             {t(locale, 'ui.death.dismiss')}
           </button>
+          <button type="button" className="death-gallery-toggle" onClick={() => setShowGallery(!showGallery)}>
+            {showGallery ? t(locale, 'ui.death.gallery.hide') : t(locale, 'ui.death.gallery.show')}
+          </button>
         </div>
       </div>
+
+      {showGallery && (
+        <div className="death-gallery" role="region" aria-label={t(locale, 'ui.death.gallery.aria')}>
+          <h3 className="death-gallery-title">{t(locale, 'ui.death.gallery.title')}</h3>
+          <div className="death-gallery-grid">
+            {getGalleryCells().map((cell) => (
+              <div
+                key={cell.archetype}
+                className={`death-gallery-cell ${cell.isUnlocked ? 'unlocked' : 'locked'}`}
+              >
+                <div className="death-gallery-cell-name">{cell.name}</div>
+                <div className="death-gallery-cell-epitaph">{cell.epitaph}</div>
+                {!cell.isUnlocked && cell.hint && (
+                  <div className="death-gallery-cell-hint">{cell.hint}</div>
+                )}
+                {cell.isUnlocked && (
+                  <div className="death-gallery-cell-unlocked">
+                    {t(locale, 'ui.death.gallery.unlocked')}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

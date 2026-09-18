@@ -1,7 +1,7 @@
 import { legacyPointsFor } from '../content/death-legacy'
 import type { GameDifficulty, GameState } from './types'
 
-export const GAME_STATE_VERSION = 1 as const
+export const GAME_STATE_VERSION = 2 as const
 
 export const DEFAULT_SEED = 'ink-and-jade'
 
@@ -143,6 +143,7 @@ export function newGame(seed: string, options: NewGameOptions = {}): GameState {
     endingId: null,
     ngPlusLevel: options.ngPlusLevel ?? 0,
     inheritedRelicId: options.inheritedRelicId ?? null,
+    hibernation: null,
     systemId: options.systemId ?? null,
     difficulty: options.difficulty ?? 'balanced',
     flags: options.storyScene === undefined ? {} : { story_scene: options.storyScene },

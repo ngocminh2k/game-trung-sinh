@@ -1,5 +1,6 @@
 import {
   MANUAL_ROOT_EFFICIENCY,
+  MAX_HP,
   MINOR_REALM_MAX,
   MINOR_REALM_THRESHOLDS,
   TRAIN_BASE_PROGRESS,
@@ -53,6 +54,26 @@ export function minorRealmThreshold(stage: number, realmLevel: number): number |
 
 export function nextStageThreshold(stage: number, realmLevel = 1): number | null {
   return minorRealmThreshold(stage, realmLevel)
+}
+
+export function isBreakthroughReady(stage: number, realmLevel: number, progress: number): boolean {
+  const threshold = nextStageThreshold(stage, realmLevel)
+  return threshold !== null && threshold > 0 && progress >= threshold
+}
+
+/**
+ * Calculates dynamic player max HP based on cultivation stage and body attribute.
+ * Baseline at Stage 0 and Body 3 is exactly MAX_HP (100).
+ */
+export function playerMaxHp(state: {
+  player: {
+    stage?: number
+    attrs?: { body?: number }
+  }
+}): number {
+  const stage = state.player.stage ?? 0
+  const body = state.player.attrs?.body ?? 3
+  return MAX_HP + stage * 30 + Math.max(0, (body - 3) * 2)
 }
 
 export function applyProgress(

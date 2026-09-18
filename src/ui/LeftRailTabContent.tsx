@@ -1,19 +1,21 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { Action, GameState, Locale } from '../engine'
 import {
   activeSystem,
+  canAcceptQuest,
   canCompleteQuest,
   currentStepIndex,
   getAffection,
   isQuestUnlocked,
   queueDrain,
+  questStatus,
   TECHNIQUES,
 } from '../engine'
 import { getItem, getLocation, NPCS, QUESTS } from '../content'
 import { itemArtFor } from './rpgArt'
 import { deriveObjective } from './objective'
 import { requestSystemReply } from '../ai/system'
-import { localized, systemNotificationText } from './gameScreen/helpers'
+import { localized, systemNotificationText, currencyExchangeRows, equipmentRows, itemName, marketLockReason, marketRows, pathLockReason, techniqueRows } from './gameScreen/helpers'
 import './left-rail.css'
 
 /* =========================================================================
@@ -37,6 +39,17 @@ interface SystemChatMessage {
   questId?: string
 }
 
+/** T1: the one line that says which gate is shut. Without it the Chợ / Đạo đồ
+ * tabs answered a click with a disabled button and no stated reason. */
+function RailLockNotice({ testId, text }: { testId: string; text: string }): JSX.Element {
+  return (
+    <div className="proto-rail-lock" data-testid={testId} role="status">
+      <span className="proto-rail-lock__glyph" aria-hidden="true">鎖</span>
+      <p className="proto-rail-lock__text">{text}</p>
+    </div>
+  )
+}
+
 export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: LeftRailTabContentProps): JSX.Element {
   const vi = locale === 'vi'
   const location = getLocation(game.player.locationId)
@@ -51,6 +64,7 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
     rect: { top: number; left: number; right: number; bottom: number }
   } | null>(null)
   const hoverTimeoutRef = useRef<number | null>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
 
   // System chat state
   const system = activeSystem(game)
@@ -60,9 +74,15 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
 
   // System derived quests & objective
   const objective = useMemo(() => deriveObjective(game, locale), [game, locale])
-  const activeQuests = useMemo(() => QUESTS.filter((q) => game.quests[q.id]?.status === 'active'), [game.quests])
+  const activeQuests = useMemo(() => QUESTS.filter((q) => questStatus(game, q.id) === 'active'), [game])
   const availableQuests = useMemo(
-    () => QUESTS.filter((q) => (game.quests[q.id]?.status ?? 'available') === 'available' && isQuestUnlocked(game, q.id)),
+    () =>
+      QUESTS.filter((q) => questStatus(game, q.id) === 'available' && isQuestUnlocked(game, q.id)).map(
+        (q) => ({
+          ...q,
+          acceptCheck: canAcceptQuest(game, q.id),
+        }),
+      ),
     [game],
   )
 
@@ -120,6 +140,17 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
   const handlePopoverLeave = () => {
     setHovered(null)
   }
+
+  // Click-outside handler to dismiss popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (hovered && popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setHovered(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [hovered])
 
   const handleSendSystemMessage = (e: FormEvent) => {
     e.preventDefault()
@@ -201,7 +232,15 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
           {Array.from({ length: 50 }, (_, i) => {
             const f = filled[i]
             if (f === undefined) {
-              return <div key={i} className="proto-slot" role="gridcell" aria-label={vi ? 'Ô trống' : 'Empty slot'} />
+              return (
+                <div
+                  key={i}
+                  className="proto-slot"
+                  role="gridcell"
+                  aria-label={vi ? 'Ô trống' : 'Empty slot'}
+                  onClick={() => setHovered(null)}
+                />
+              )
             }
             const [itemId, qty] = f
             const item = getItem(itemId)
@@ -225,9 +264,22 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
                     handleSlotLeave()
                   }
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && item?.usable) {
+                onClick={() => {
+                  if (item?.equipmentSlot) {
+                    onAction?.({ kind: 'equip_item', itemId })
+                  } else if (item?.usable) {
                     onAction?.({ kind: 'use_item', itemId })
+                  }
+                  setHovered(null)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (item?.equipmentSlot) {
+                      onAction?.({ kind: 'equip_item', itemId })
+                      setHovered(null)
+                    } else if (item?.usable) {
+                      onAction?.({ kind: 'use_item', itemId })
+                    }
                   }
                 }}
               >
@@ -243,63 +295,74 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
         </div>
 
         {hovered !== null && (
-          <div
-            className="proto-item-popover"
-            role="dialog"
-            aria-label={hovered.item ? (vi ? hovered.item.nameVi : hovered.item.nameEn) : hovered.id}
-            data-testid="item-info-popover"
-            style={{
-              top: Math.max(12, Math.min(hovered.rect.top - 8, window.innerHeight - 240)),
-              left: hovered.rect.right + 10 + 220 > window.innerWidth
-                ? Math.max(10, hovered.rect.left - 230)
-                : hovered.rect.right + 10,
-            }}
-            onMouseEnter={handlePopoverEnter}
-            onMouseLeave={handlePopoverLeave}
-          >
-            <div className="proto-item-popover__header">
-              {itemArtFor(hovered.id) ? (
-                <img src={itemArtFor(hovered.id)} alt="" className="proto-item-popover__thumb" aria-hidden="true" />
-              ) : (
-                <div className="proto-item-popover__thumb proto-item-popover__thumb--glyph" aria-hidden="true">
-                  {(hovered.item ? (vi ? hovered.item.nameVi : hovered.item.nameEn) : hovered.id).charAt(0)}
+          <div className="proto-item-popover-wrap">
+            <div
+              className="proto-item-popover-backdrop"
+              data-testid="item-popover-backdrop"
+              aria-hidden="true"
+              onClick={() => setHovered(null)}
+            />
+            <div
+              ref={popoverRef}
+              className="proto-item-popover"
+              role="dialog"
+              aria-label={hovered.item ? (vi ? hovered.item.nameVi : hovered.item.nameEn) : hovered.id}
+              data-testid="item-info-popover"
+              style={{
+                top: Math.max(12, Math.min(hovered.rect.top - 8, window.innerHeight - 240)),
+                left: hovered.rect.right + 10 + 220 > window.innerWidth
+                  ? Math.max(10, hovered.rect.left - 230)
+                  : hovered.rect.right + 10,
+              }}
+              onMouseEnter={handlePopoverEnter}
+              onMouseLeave={handlePopoverLeave}
+            >
+              <div className="proto-item-popover__overlay">
+                <div className="proto-item-popover__header">
+                  {itemArtFor(hovered.id) ? (
+                    <img src={itemArtFor(hovered.id)} alt="" className="proto-item-popover__thumb" aria-hidden="true" />
+                  ) : (
+                    <div className="proto-item-popover__thumb proto-item-popover__thumb--glyph" aria-hidden="true">
+                      {(hovered.item ? (vi ? hovered.item.nameVi : hovered.item.nameEn) : hovered.id).charAt(0)}
+                    </div>
+                  )}
+                  <div className="proto-item-popover__title">
+                    <span className="proto-item-popover__name">
+                      {hovered.item ? (vi ? hovered.item.nameVi : hovered.item.nameEn) : hovered.id}
+                    </span>
+                    <span className="proto-item-popover__qty">
+                      {vi ? `Số lượng: ×${hovered.qty}` : `Quantity: ×${hovered.qty}`}
+                    </span>
+                  </div>
                 </div>
-              )}
-              <div className="proto-item-popover__title">
-                <span className="proto-item-popover__name">
-                  {hovered.item ? (vi ? hovered.item.nameVi : hovered.item.nameEn) : hovered.id}
-                </span>
-                <span className="proto-item-popover__qty">
-                  {vi ? `Số lượng: ×${hovered.qty}` : `Quantity: ×${hovered.qty}`}
-                </span>
+                <div className="proto-item-popover__desc">
+                  {hovered.item ? (vi ? hovered.item.descVi : hovered.item.descEn) : (vi ? 'Vật phẩm tu chân' : 'Cultivation item')}
+                </div>
+                {hovered.item?.effects && (
+                  <div className="proto-item-popover__effects">
+                    {hovered.item.effects.hp && <span>+{hovered.item.effects.hp} HP </span>}
+                    {hovered.item.effects.qi && <span>+{hovered.item.effects.qi} Qi </span>}
+                  </div>
+                )}
+                {hovered.item?.usable && (
+                  <button
+                    type="button"
+                    className="proto-item-popover__use-btn proto-item-popover__interactive"
+                    data-testid="use-item-btn"
+                    onClick={() => {
+                      onAction?.({ kind: 'use_item', itemId: hovered.id })
+                      if (hovered.qty <= 1) {
+                        setHovered(null)
+                      } else {
+                        setHovered((prev) => prev ? { ...prev, qty: prev.qty - 1 } : null)
+                      }
+                    }}
+                  >
+                    {vi ? 'Sử dụng' : 'Use'}
+                  </button>
+                )}
               </div>
             </div>
-            <div className="proto-item-popover__desc">
-              {hovered.item ? (vi ? hovered.item.descVi : hovered.item.descEn) : (vi ? 'Vật phẩm tu chân' : 'Cultivation item')}
-            </div>
-            {hovered.item?.effects && (
-              <div className="proto-item-popover__effects">
-                {hovered.item.effects.hp && <span>+{hovered.item.effects.hp} HP </span>}
-                {hovered.item.effects.qi && <span>+{hovered.item.effects.qi} Qi </span>}
-              </div>
-            )}
-            {hovered.item?.usable && (
-              <button
-                type="button"
-                className="proto-item-popover__use-btn"
-                data-testid="use-item-btn"
-                onClick={() => {
-                  onAction?.({ kind: 'use_item', itemId: hovered.id })
-                  if (hovered.qty <= 1) {
-                    setHovered(null)
-                  } else {
-                    setHovered((prev) => prev ? { ...prev, qty: prev.qty - 1 } : null)
-                  }
-                }}
-              >
-                {vi ? 'Sử dụng' : 'Use'}
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -307,11 +370,56 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
   }
 
   if (tab === 'market') {
+    // Rail Chợ: the currency read-outs stay, but the stall lives in here too.
+    // Rows and gates come from gameScreen/helpers.ts — the same numbers the
+    // journal's market panel renders — so a rail button never offers an action
+    // the reducer would refuse. Sealed wares are one quiet row, not 24 dead
+    // buttons; the journal names each lock.
+    const wares = marketRows(game)
+    const open = wares.filter((ware) => !ware.stageLocked)
+    const exchanges = currencyExchangeRows(game)
+    const lock = marketLockReason(game, locale)
     return (
       <div className="proto-npc-list">
-        <div className="proto-npc"><div className="proto-npc__avatar">市</div><div><div className="proto-npc__name">{vi ? 'Giá vàng' : 'Gold price'}</div><div className="proto-npc__meta">◎ {game.player.gold}</div></div><div className="proto-npc__heart">vàng</div></div>
-        <div className="proto-npc"><div className="proto-npc__avatar">◉</div><div><div className="proto-npc__name">{vi ? 'Giá bạc' : 'Silver price'}</div><div className="proto-npc__meta">◉ {game.player.silver}</div></div><div className="proto-npc__heart">bạc</div></div>
-        <div className="proto-npc"><div className="proto-npc__avatar">✦</div><div><div className="proto-npc__name">{vi ? 'Linh thạch' : 'Spirit stones'}</div><div className="proto-npc__meta">✦ {game.player.spiritStones}</div></div><div className="proto-npc__heart">LT</div></div>
+        {lock !== null && <RailLockNotice testId="rail-market-lock" text={lock} />}
+        <div className="proto-npc"><div className="proto-npc__avatar" aria-hidden="true">市</div><div><div className="proto-npc__name">{vi ? 'Giá vàng' : 'Gold price'}</div><div className="proto-npc__meta">◎ {game.player.gold}</div></div><div className="proto-npc__heart">vàng</div></div>
+        <div className="proto-npc"><div className="proto-npc__avatar" aria-hidden="true">◉</div><div><div className="proto-npc__name">{vi ? 'Giá bạc' : 'Silver price'}</div><div className="proto-npc__meta">◉ {game.player.silver}</div></div><div className="proto-npc__heart">bạc</div></div>
+        <div className="proto-npc"><div className="proto-npc__avatar" aria-hidden="true">✦</div><div><div className="proto-npc__name">{vi ? 'Linh thạch' : 'Spirit stones'}</div><div className="proto-npc__meta">✦ {game.player.spiritStones}</div></div><div className="proto-npc__heart">LT</div></div>
+        <div className="proto-market-exchange">
+          {exchanges.map((row, index) => (
+            <button className="proto-npc__action" disabled={!row.enabled} key={row.from} onClick={() => { onAction?.({ kind: 'convert_currency', from: row.from, qty: 1 }) }} type="button">
+              {index === 0 ? (vi ? 'Đổi 1 linh thạch → 10 vàng' : 'Exchange 1 spirit stone → 10 gold') : (vi ? 'Đổi 10 bạc → 1 vàng' : 'Exchange 10 silver → 1 gold')}
+            </button>
+          ))}
+        </div>
+        {open.map((ware) => (
+          <div className="proto-npc proto-market-row" key={ware.itemId}>
+            <div className="proto-npc__avatar" aria-hidden="true">{itemName(ware.itemId, locale).charAt(0)}</div>
+            <div>
+              <div className="proto-npc__name">{itemName(ware.itemId, locale)}</div>
+              <div className="proto-npc__meta">◎ {ware.price}</div>
+            </div>
+            <button
+              aria-label={vi ? `Mua ${itemName(ware.itemId, locale)}` : `Buy ${itemName(ware.itemId, locale)}`}
+              className="proto-npc__action"
+              disabled={!ware.enabled}
+              onClick={() => { onAction?.({ kind: 'buy', itemId: ware.itemId }) }}
+              type="button"
+            >
+              {vi ? 'Mua' : 'Buy'}
+            </button>
+          </div>
+        ))}
+        {wares.length > open.length && (
+          <div className="proto-npc">
+            <div />
+            <div>
+              <div className="proto-npc__name">{vi ? `Hàng chưa mở ×${String(wares.length - open.length)}` : `Sealed wares ×${String(wares.length - open.length)}`}</div>
+              <div className="proto-npc__meta">{vi ? 'Xem Nhật ký để biết cảnh giới cần' : 'Open the journal to read the realm each needs'}</div>
+            </div>
+            <div />
+          </div>
+        )}
       </div>
     )
   }
@@ -326,9 +434,18 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
       const def = TECHNIQUES.find((t) => t.id === techId)
       return def === undefined ? techId : (vi ? def.nameVi : def.nameEn)
     }
+    // Same two predicates as the journal's path panel (gameScreen/helpers.ts):
+    // the rail offers Lĩnh ngộ for a manual actually in the bag, and Trang bị
+    // for gear owned and within reach. Sealed rows stay in the journal.
+    const learnable = techniqueRows(game).filter((row) => row.level === 0 && !row.locked)
+    const gear = equipmentRows(game).filter((row) => !row.locked)
+    const lock = pathLockReason(game, locale)
+    const slotLabel = (slot: string): string =>
+      (vi ? (slot === 'weapon' ? 'Vũ khí' : slot === 'robe' ? 'Y bào' : 'Phụ bối') : slot)
     return (
       <div className="proto-npc-list">
-        {techniques.length === 0
+        {lock !== null && <RailLockNotice testId="rail-path-lock" text={lock} />}
+        {techniques.length === 0 && learnable.length === 0 && gear.length === 0
           ? <div className="proto-npc"><div /><div><div className="proto-npc__name">—</div><div className="proto-npc__meta">{vi ? 'Chưa học công pháp' : 'No techniques learned'}</div></div><div /></div>
           : techniques.map(([id, lvl]) => (
             <div key={id} className="proto-npc">
@@ -340,6 +457,30 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
               <div className="proto-npc__heart">{vi ? 'Đã học' : 'Learned'}</div>
             </div>
           ))}
+        {learnable.map(({ technique, learnable: canLearn }) => (
+          <div key={technique.id} className="proto-npc">
+            <div className="proto-npc__avatar" aria-hidden="true">{(vi ? technique.nameVi : technique.nameEn).charAt(0)}</div>
+            <div>
+              <div className="proto-npc__name">{vi ? technique.nameVi : technique.nameEn}</div>
+              <div className="proto-npc__meta">{vi ? 'Đang giữ cơ duyên' : 'Source in hand'}</div>
+            </div>
+            <button className="proto-npc__action" disabled={!canLearn} onClick={() => { onAction?.({ kind: 'learn_technique', techniqueId: technique.id }) }} type="button">
+              {vi ? 'Lĩnh ngộ' : 'Learn'}
+            </button>
+          </div>
+        ))}
+        {gear.map(({ equipment, equipped, enabled }) => (
+          <div key={equipment.id} className="proto-npc">
+            <div className="proto-npc__avatar" aria-hidden="true">{(vi ? equipment.nameVi : equipment.nameEn).charAt(0)}</div>
+            <div>
+              <div className="proto-npc__name">{vi ? equipment.nameVi : equipment.nameEn}</div>
+              <div className="proto-npc__meta">{slotLabel(equipment.slot)}</div>
+            </div>
+            {equipped
+              ? <div className="proto-npc__heart">{vi ? 'Đang dùng' : 'Equipped'}</div>
+              : <button className="proto-npc__action" disabled={!enabled} onClick={() => { onAction?.({ kind: 'equip_item', itemId: equipment.itemId }) }} type="button">{vi ? 'Trang bị' : 'Equip'}</button>}
+          </div>
+        ))}
       </div>
     )
   }
@@ -438,19 +579,31 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
               )
             })
           ) : availableQuests.length > 0 ? (
-            availableQuests.slice(0, 3).map((q) => (
-              <div key={q.id} className="proto-system-quest-item">
-                <div className="proto-system-quest-name">{localized(locale, q)}</div>
-                <div className="proto-system-quest-step">{vi ? q.descVi : q.descEn}</div>
-                <button
-                  type="button"
-                  className="proto-system-quest-btn"
-                  onClick={() => onAction?.({ kind: q.requiredSystemId === undefined ? 'accept_quest' : 'system_accept_quest', questId: q.id })}
-                >
-                  {vi ? 'Nhận nhiệm vụ' : 'Accept quest'}
-                </button>
-              </div>
-            ))
+            availableQuests.slice(0, 3).map((q) => {
+              const check = q.acceptCheck
+              const notAtLocation = !check.ok && check.code === 'NOT_AT_LOCATION'
+              const reqLocId = !check.ok ? check.at : undefined
+              const reqLocation = reqLocId ? getLocation(reqLocId) : undefined
+              const reqLocationName = reqLocation ? localized(locale, reqLocation) : (reqLocId ?? '')
+              const locBadge = notAtLocation ? (vi ? `Cần tới: ${reqLocationName}` : `Required location: ${reqLocationName}`) : null
+
+              return (
+                <div key={q.id} className="proto-system-quest-item">
+                  <div className="proto-system-quest-name">{localized(locale, q)}</div>
+                  <div className="proto-system-quest-step">{vi ? q.descVi : q.descEn}</div>
+                  {locBadge && <span className="proto-system-quest-loc">{locBadge}</span>}
+                  <button
+                    type="button"
+                    className="proto-system-quest-btn"
+                    disabled={!check.ok}
+                    aria-label={`${vi ? 'Nhận nhiệm vụ' : 'Accept quest'}: ${localized(locale, q)}`}
+                    onClick={() => onAction?.({ kind: q.requiredSystemId === undefined ? 'accept_quest' : 'system_accept_quest', questId: q.id })}
+                  >
+                    {vi ? 'Nhận nhiệm vụ' : 'Accept quest'}
+                  </button>
+                </div>
+              )
+            })
           ) : (
             <div className="proto-system-empty">{vi ? 'Chưa có nhiệm vụ khả dụng.' : 'No quests available.'}</div>
           )}

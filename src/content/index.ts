@@ -16,6 +16,7 @@ import {
   TechniqueDefSchema,
   CoercionDefSchema,
 } from '../engine/schema'
+import type { QuestDef } from '../engine/content-types'
 import { ACHIEVEMENTS } from './achievements-data'
 import { BEATS, BEAT_PREDICATE_IDS } from './beats-data'
 import { CHAPTERS } from './chapters'
@@ -86,6 +87,88 @@ export { COERCIONS, coercionFor } from './killer'
 export interface ContentValidationReport {
   ok: boolean
   errors: string[]
+}
+
+const SYSTEM_CHAIN_PREFIX = 'q_sys_'
+/** `q_sys_<pool>_<NN>` — pool letters plus the 2-digit ordinal. */
+const SYSTEM_CHAIN_ID = /^q_sys_([a-z]+)_(\d\d)$/
+/** The flag `doCompleteQuest` really writes: `quest_${fullQuestId}_done`. */
+const SYSTEM_CHAIN_DONE_FLAG = /^quest_q_sys_([a-z]+)_(\d\d)_done$/
+const chainDoneFlag = (questId: string): string => `quest_${questId}_done`
+
+/**
+ * System quest chains must be walkable from their head, or the pool deadlocks in
+ * silence: a typo'd gate flag is never written, so nothing behind it can ever be
+ * accepted. Returns content errors (empty when the chains are sound).
+ */
+export function validateSystemQuestChains(
+  quests: readonly QuestDef[],
+  systemIds: readonly string[],
+): string[] {
+  const errors: string[] = []
+  const byId = new Map(quests.map((quest) => [quest.id, quest]))
+  const pools = new Map<string, QuestDef[]>()
+  for (const systemId of systemIds) pools.set(systemId.replace(/^sys_/, ''), [])
+
+  for (const quest of quests) {
+    if (!quest.id.startsWith(SYSTEM_CHAIN_PREFIX)) continue
+    const own = SYSTEM_CHAIN_ID.exec(quest.id)
+    const ownPool = own?.[1] ?? ''
+    if (own === null || !pools.has(ownPool)) {
+      errors.push(`SYSTEM_CHAIN: ${quest.id} matches no known system pool id (q_sys_<pool>_<NN>)`)
+      continue
+    }
+    pools.get(ownPool)!.push(quest)
+    if (quest.deadlineDays !== undefined) {
+      errors.push(`SYSTEM_CHAIN: ${quest.id} has deadlineDays; an expired chain quest is untakeable and has no abandon path`)
+    }
+    for (const flag of quest.requiredFlags) {
+      const gate = SYSTEM_CHAIN_DONE_FLAG.exec(flag)
+      if (gate === null) {
+        errors.push(`SYSTEM_CHAIN: ${quest.id} gate '${flag}' is not a chain completion flag (expected quest_q_sys_<pool>_<NN>_done, with the inner q_)`)
+        continue
+      }
+      if (gate[1] !== ownPool) {
+        errors.push(`SYSTEM_CHAIN: ${quest.id} gate '${flag}' references a quest outside its own pool ${ownPool}`)
+      } else if (!byId.has(`q_sys_${gate[1]}_${gate[2]}`)) {
+        errors.push(`SYSTEM_CHAIN: ${quest.id} gate '${flag}' names a quest that does not exist`)
+      }
+    }
+    if (quest.nextQuestId === undefined) continue
+    const target = byId.get(quest.nextQuestId)
+    if (target === undefined || !target.id.startsWith(SYSTEM_CHAIN_PREFIX)) {
+      errors.push(`SYSTEM_CHAIN: ${quest.id} nextQuest ${quest.nextQuestId} is not an existing system quest`)
+      continue
+    }
+    const targetPool = SYSTEM_CHAIN_ID.exec(target.id)?.[1] ?? ''
+    if (targetPool !== ownPool) {
+      errors.push(`SYSTEM_CHAIN: ${quest.id} nextQuest ${quest.nextQuestId} is outside pool ${ownPool}`)
+      continue
+    }
+    const expected = chainDoneFlag(quest.id)
+    if (target.requiredFlags.length !== 1 || target.requiredFlags[0] !== expected) {
+      errors.push(`SYSTEM_CHAIN: ${quest.id} -> ${quest.nextQuestId} is a one-way link: successor's requiredFlags are not exactly ['${expected}']`)
+    }
+  }
+
+  for (const [pool, members] of pools) {
+    if (members.length === 0) {
+      errors.push(`SYSTEM_CHAIN: pool sys_${pool} has no system quests`)
+      continue
+    }
+    // A fully-flat pool (no gates, no next links anywhere) is a legitimate
+    // pre-migration state — every quest is a "head" by default, so head
+    // uniqueness is not meaningful yet. The moment a pool shows chain evidence,
+    // the ramp contract applies: exactly one head, or the chain has a branch or
+    // a missing start and deadlocks.
+    const chained = members.some((quest) => quest.requiredFlags.length > 0 || quest.nextQuestId !== undefined)
+    if (!chained) continue
+    const heads = members.filter((quest) => quest.requiredFlags.length === 0)
+    if (heads.length !== 1) {
+      errors.push(`SYSTEM_CHAIN: pool sys_${pool}: expected exactly one head quest with no gate, found ${String(heads.length)}`)
+    }
+  }
+  return errors
 }
 
 export function validateAllContent(): ContentValidationReport {
@@ -176,6 +259,7 @@ export function validateAllContent(): ContentValidationReport {
       errors.push(`QUESTS: ${q.id} nextQuest ${q.nextQuestId} not found`)
     }
   }
+  errors.push(...validateSystemQuestChains(QUESTS, SYSTEMS.map((system) => system.id)))
   for (const n of NPCS) {
     if (!LOCATIONS.some((l) => l.id === n.locationId)) {
       errors.push(`NPCS: ${n.id} at unknown location ${n.locationId}`)

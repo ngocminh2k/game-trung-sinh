@@ -1,6 +1,30 @@
 import { getNpc, getQuest } from '../content'
+import { FLAG_QUEST_DONE } from '../content/flag-keys'
 import { countOf } from './utils'
-import type { GameState, QuestRuntime } from './types'
+import type { GameState, Locale, QuestRuntime } from './types'
+import type { QuestDef } from './content-types'
+
+export type QuestCategory = 'main' | 'side' | 'sect' | 'secret'
+
+export function getQuestCategory(quest: QuestDef): QuestCategory {
+  if (quest.requiredSystemId !== undefined || quest.id.startsWith('q_sys_') || quest.id.startsWith('q_sec_')) return 'sect'
+  if (quest.secret || quest.id.startsWith('q_secret_')) return 'secret'
+  if (quest.id.startsWith('q_main_') || quest.storySceneNextId !== undefined) return 'main'
+  return 'side'
+}
+
+export function questCategoryLabel(category: QuestCategory, locale: Locale): string {
+  switch (category) {
+    case 'main':
+      return locale === 'vi' ? 'Chính Tuyến' : 'Main Quest'
+    case 'side':
+      return locale === 'vi' ? 'Phụ Tuyến' : 'Side Quest'
+    case 'sect':
+      return locale === 'vi' ? 'Tông Môn' : 'Sect Quest'
+    case 'secret':
+      return locale === 'vi' ? 'Nhiệm Vụ Ẩn' : 'Secret Quest'
+  }
+}
 
 export type QuestCheckErr =
   | 'QUEST_UNKNOWN'
@@ -8,11 +32,24 @@ export type QuestCheckErr =
   | 'NOT_AT_LOCATION'
 
 export function questStatus(state: GameState, questId: string): 'available' | 'active' | 'completed' {
+  // The done flag (`quest_<id>_done`) is canonical. Legacy/buggy saves can
+  // carry a stale runtime that still reads `active`; a written flag must
+  // always win so a finished quest can never resurrect (C3-01 / C2-01).
+  if (state.flags[`quest_${questId}${FLAG_QUEST_DONE}`] === true) return 'completed'
   return state.quests[questId]?.status ?? 'available'
 }
 
 export function questRuntime(state: GameState, questId: string): QuestRuntime {
   return state.quests[questId] ?? { status: 'available', step: 0 }
+}
+
+/** Total unique completed quests across canonical flags and runtime state (C3-02). */
+export function countCompletedQuests(state: GameState): number {
+  const fromQuests = Object.keys(state.quests).filter((id) => questStatus(state, id) === 'completed')
+  const fromFlags = Object.entries(state.flags)
+    .filter(([k, v]) => v === true && k.startsWith('quest_') && k.endsWith(FLAG_QUEST_DONE))
+    .map(([k]) => k.slice('quest_'.length, -FLAG_QUEST_DONE.length))
+  return new Set([...fromQuests, ...fromFlags]).size
 }
 
 export function currentStepIndex(state: GameState, questId: string): number {
@@ -111,7 +148,12 @@ export function canCompleteQuest(
   const def = getQuest(questId)
   if (def === undefined) return { ok: false, code: 'QUEST_UNKNOWN' }
   if (questStatus(state, questId) !== 'active') return { ok: false, code: 'QUEST_WRONG_STATE' }
-  const expiry = state.flags[`quest_${questId}_expires_day`]
+  // Round-6 review (CRITICAL): expiry must only bind when the quest type still
+  // HAS a deadline. System quests dropped deadlineDays for chain ramping — a
+  // pre-change save can carry quest_<id>_expires_day with the quest still
+  // active, and there is no abandon path: turn-in would stay refused forever,
+  // so its _done flag never lands and the entire chain behind it is dead.
+  const expiry = def.deadlineDays === undefined ? undefined : state.flags[`quest_${questId}_expires_day`]
   if (typeof expiry === 'number' && state.day > expiry) return { ok: false, code: 'QUEST_WRONG_STATE' }
   // System Layer: turn-in happens from the System panel — no location gate.
   if (def.requiredSystemId === undefined) {

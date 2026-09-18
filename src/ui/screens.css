@@ -990,7 +990,8 @@
 .rail-drawer-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 1150;
+  pointer-events: auto;
   background: rgba(7, 23, 15, .55);
   backdrop-filter: blur(2px);
   animation: rail-drawer-fade var(--t-fast, 120ms) var(--ease-out, ease-out) both;
@@ -1064,10 +1065,17 @@
    selector overrides .drawer-panel's 420px left-slide without touching the
    rail drawer. :not([hidden]) keeps .system-dock[hidden] display:none intact. */
 #journal-screen:not([hidden]) {
+  /* position:fixed restores .drawer-panel's intent — index.css:93
+     .system-dock{position:relative} outranks the shared class on bundle order,
+     which made the centering transform below offset a FLOW box (journal top
+     -175px at 800×720, .journal-return off-viewport). ID beats both classes. */
+  position: fixed;
   left: 50%;
   top: 50%;
   right: auto;
   bottom: auto;
+  z-index: 1200;
+  pointer-events: auto;
   width: min(1120px, 94vw);
   height: min(880px, 92dvh);
   transform: translate(-50%, -50%);
@@ -1334,15 +1342,40 @@
 .proto-vital { padding: 10px; border: 1px solid var(--border); background: var(--surface); }
 .proto-vital .k { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; }
 .proto-vital .v { font-family: var(--mono); font-size: 18px; color: var(--wine); margin-top: 4px; }
-.proto-item-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.proto-item-grid {
+  position: relative;
+  z-index: 995;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  pointer-events: auto;
+}
 .proto-slot {
   aspect-ratio: 1; border: 1px dashed var(--border);
   background: var(--surface); display: flex; align-items: center; justify-content: center;
   font-size: 10px; color: var(--muted);
   position: relative;
+  pointer-events: auto;
 }
 .proto-slot.filled { border-style: solid; background: oklch(78% 0.13 85 / 0.18); color: var(--ink); }
 .proto-slot .qty { position: absolute; bottom: 2px; right: 4px; font-family: var(--mono); font-size: 9px; color: var(--wine); }
+
+/* Item hover popover & backdrop layer */
+.proto-item-popover-wrap {
+  pointer-events: none;
+}
+.proto-item-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 990;
+  background: transparent;
+  pointer-events: none;
+}
+.proto-item-popover {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: auto;
+}
 .proto-pulse { animation: proto-pulse 1.4s ease-in-out infinite; }
 @keyframes proto-pulse { 0%,100% { box-shadow: 0 0 0 0 oklch(56% 0.10 175 / 0.55); } 50% { box-shadow: 0 0 0 6px oklch(56% 0.10 175 / 0); } }
 
@@ -1368,12 +1401,14 @@
 }
 .proto-map .veil {
   position: absolute; inset: 0;
+  pointer-events: none;
   background:
     radial-gradient(ellipse at 60% 40%, transparent 45%, oklch(94% 0.02 80 / 0.28) 100%),
     linear-gradient(180deg, oklch(94% 0.02 80 / 0.10), oklch(94% 0.02 80 / 0.26));
 }
 .proto-map .grid-overlay {
   position: absolute; inset: 0;
+  pointer-events: none;
   background-image:
     linear-gradient(to right, oklch(34% 0.10 25 / 0.06) 1px, transparent 1px),
     linear-gradient(to bottom, oklch(34% 0.10 25 / 0.06) 1px, transparent 1px);
@@ -1429,6 +1464,17 @@
   padding: 10px 18px; font-weight: 600; letter-spacing: 0.04em;
 }
 .proto-command .try:hover { background: oklch(60% 0.11 175); }
+/* T4: a terminal run must LOOK closed, not just be refused by the engine
+   (reducer.ts:149). Matches .proto-map .pin-unreachable in proto-shell.css so
+   every locked world affordance reads with one voice. */
+.proto-command input:disabled,
+.proto-command .chips button:disabled,
+.proto-command .try:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+}
+.proto-command .chips button:disabled:hover { background: transparent; }
 
 .proto-zen-pill {
   position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
@@ -1568,7 +1614,8 @@
   backdrop-filter: blur(8px);
   display: none;
   align-items: center; justify-content: center;
-  z-index: 60;
+  z-index: 1200;
+  pointer-events: auto;
 }
 .proto-modal-backdrop.show { display: flex; }
 .proto-modal {
@@ -1578,6 +1625,7 @@
   animation: proto-pop .22s ease;
   max-height: 92vh; overflow: auto;
   position: relative;
+  pointer-events: auto;
 }
 @keyframes proto-pop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
 .proto-modal .x {
@@ -1587,6 +1635,16 @@
   color: var(--muted); font-size: 14px; z-index: 2;
 }
 .proto-modal .x:hover { color: var(--wine); border-color: var(--wine); }
+
+/* T-MODAL-ISOLATION: inert elements and containers must not receive pointer events */
+[inert],
+[inert] * {
+  pointer-events: none !important;
+}
+.proto-shell-wrap[inert],
+.proto-shell-wrap[inert] * {
+  pointer-events: none !important;
+}
 
 .proto-modal.saves { width: min(820px, 92vw); padding: 28px; }
 .proto-modal.saves h2 { margin: 0 0 4px; font-family: var(--display); color: var(--wine); font-size: 26px; }
@@ -1927,6 +1985,11 @@
 .proto-combat-overlay .acts button:hover { background: oklch(78% 0.13 85 / 0.15); }
 .proto-combat-overlay .acts button.primary { background: var(--accent); color: oklch(14% 0.02 60); border-color: var(--accent); }
 .proto-combat-overlay .acts button.danger { color: var(--danger); border-color: var(--danger); }
+/* Mid-fight pills: the player's own vitality colour (same token as the player HP bar). */
+.proto-combat-overlay .acts button.consumable { color: var(--accent); border-color: var(--accent); }
+.proto-combat-overlay .acts button.consumable:hover { background: oklch(56% 0.10 175 / 0.16); }
+/* T4: same lock voice as the command bar — run over, engine will refuse. */
+.proto-combat-overlay .acts button:disabled { opacity: 0.42; cursor: not-allowed; filter: grayscale(0.7); }
 
 /* Breakthrough */
 .proto-modal.breakthrough { width: min(620px, 92vw); padding: 28px; }
@@ -1973,8 +2036,15 @@
   /* RESIDUAL #31 (mobile half): .topbar is a flex ROW (index.css:41), so at
      375px the actions sit beside a 330px-tall brand instead of under it —
      e2e/issue17-mobile.spec.ts:37 measures exactly that. Column direction is
-     the documented "wrap" behaviour; day-chips still wrap among themselves. */
-  .game-shell > header.topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+     the documented "wrap" behaviour; day-chips still wrap among themselves.
+  RESIDUAL #31 (narrow half): below 921px the legacy topbar is the real one and
+  keeps the controls (GameScreen unmounts them from .proto-topbar), but ProtoShell
+  stays mounted, so its absolutely-positioned .proto-topbar (z:30, full-width band
+  over the top 52px) paints across the legacy header and swallows #journal-launcher
+  clicks — e2e caught "header.topbar #journal-launcher covered by <BUTTON.pin>".
+  Lift the in-flow legacy header above the whole proto band so its buttons win the
+  hit-test again. Symmetric with the ≥921px side where the legacy header retires. */
+  .game-shell > header.topbar { position: relative; z-index: 31; flex-direction: column; align-items: flex-start; gap: 12px; }
   .topbar-actions { flex-wrap: wrap; }
 }
 
@@ -1987,16 +2057,35 @@
      banner's +1 buttons already allocate, so hide the escape hatch too. */
   .attribute-banner-link { display: none; }
 
-  /* Fix #31: .world-content is hidden here, so the legacy header.topbar grid
-     item stretches to full shell height and its action buttons land mid-screen,
-     where the absolutely-positioned (thus later-painting) .proto-grid-main HUD
-     swallowed their clicks. Raise the topbar above the proto layer but keep its
-     oversized transparent box click-through, re-enabling only real controls.
-     ponytail: two coexisting topbars still overlap; ceiling = buttons float
-     over the HUD band. Upgrade path: move journal/exit/lang into ProtoShell's
-     own topbar and delete the legacy header at ≥921px. */
-  .game-shell > header.topbar { position: relative; z-index: 31; pointer-events: none; }
-  .game-shell > header.topbar :is(button, a) { pointer-events: auto; }
+  /* RESIDUAL #31 CLOSED: the legacy header.topbar is retired at ≥921px —
+     GameScreen's matchMedia gate UNMOUNTS its controls into ProtoShell's
+     .proto-topbar (topbarActions slot), so nothing can float over the HUD band
+     and no duplicate #journal-launcher / game-exit-menu / language-toggle can
+     mount. The visibility:hidden below is belt-and-braces for the empty header
+     shell (it stays mounted so game.spec.ts's inert contract on .topbar holds).
+     The old z-index:31 + pointer-events click-through workaround is deleted —
+     it only existed to make the floating legacy buttons clickable.
+     NOTE the box stays in flow on purpose: between 921 and 1200px .game-shell
+     is a grid (index.css:102) and header.topbar's row is the ONLY thing
+     clearing .story-panel below the 52px proto band — display:none let the
+     narration's .story-close slide under it (e2e 1100x800 caught exactly
+     that). visibility:hidden keeps the spacer, drops the duplicate brand.
+     Merged controls arrive from index.css with light-parchment colors that are
+     unreadable on the dark proto band; these scoped overrides (0,2,0 beats
+     index.css's 0,1,0) recolor them to the band's own ink/gold idiom.
+     ponytail: ceiling = styles duplicated from index.css by hand; upgrade path
+     = a dark-theme token layer if more controls ever merge into the band. */
+  .game-shell > header.topbar { visibility: hidden; }
+  .proto-topbar .topbar-actions { gap: 10px; }
+  .proto-topbar .day-chip { color: inherit; border-color: oklch(78% 0.13 85 / 0.3); }
+  .proto-topbar .day-stamp { color: var(--gold); border-color: var(--gold); }
+  .proto-topbar .journal-launcher { color: inherit; background: transparent; border-color: oklch(78% 0.13 85 / 0.3); }
+  .proto-topbar .journal-launcher:hover { color: oklch(22% 0.04 40); background: var(--gold); }
+  .proto-topbar .menu-exit { color: inherit; background: transparent; border-color: oklch(78% 0.13 85 / 0.3); }
+  .proto-topbar .menu-exit:hover { color: oklch(22% 0.04 40); background: var(--gold); }
+  .proto-topbar .language-toggle { border-color: oklch(78% 0.13 85 / 0.3); }
+  .proto-topbar .language-toggle button { color: inherit; background: transparent; }
+  .proto-topbar .language-toggle button.active { color: oklch(22% 0.04 40); background: var(--gold); }
 }
 .proto-shell-wrap { display: contents; }
 
@@ -2031,6 +2120,19 @@
    Defer to the overlay; the banner reappears the moment the story closes. */
 .game-shell.story-open > .attribute-banner { display: none; }
 
+/* Issue #40 Step 2: .ending-banner lifted out of .world-content into .game-shell.
+   Like .attribute-banner (above) it needs relative positioning + z-index:32
+   so it floats above the proto-topbar (z30) and stays readable/clickable.
+   Round-6 review MEDIUM-1: z32 + the 18px top margin makes the banner's box
+   overlap the 52px proto-topbar band, swallowing clicks on the lower strip of
+   the merged topbar controls (journal-launcher/exit/locale) — Playwright
+   centre-clicks never notice. The banner is pure text (p/h2/span/epilogue), so
+   make it fully click-through; the precondition is pinned by
+   test/issue40-terminal-surface.test.tsx (no interactive descendants). */
+.game-shell > .ending-banner { position: relative; z-index: 32; margin: 18px 24px 0; pointer-events: none; }
+@media (max-width: 920px) { .game-shell > .ending-banner { margin: 12px 16px 0; } }
+
+
 /* Restored from main @ 0e23e64 screens.css: rules for classes the merged UI still uses. */
 .save-slot-ngplus{display: inline-block; margin-left: 6px; padding: 1px 6px; border: 1px solid #bb7c28; border-radius: 999px; color: #bb7c28; font-family: 'DM Mono', monospace; font-size: 10px; white-space: nowrap; vertical-align: middle;}
 .playtest-card{margin:18px auto 0;max-width:860px;border:1px solid rgba(62,142,109,.35);border-left:4px solid #3e8e6d;padding:14px 18px;background:rgba(252,248,234,.72);box-shadow:0 9px 19px rgba(62,54,39,.06)}
@@ -2046,3 +2148,317 @@
 .playtest-submit{border-left:3px solid #b3402a;font-weight:600}
 .playtest-thanks{margin:18px auto 0;max-width:860px;color:#5d635d;font-size:14px}
 .playtest-card-portal{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:10000;max-width:880px;width:calc(100% - 32px);pointer-events:auto}
+
+/* ===========================================================================
+   ACHIEVEMENTS TAB PROGRESS & CODEX BADGES (T-ACHIEVE-PROGRESS)
+   =========================================================================== */
+.achievements {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  border-top: 1px solid rgba(66, 81, 62, .16);
+  padding-top: 12px;
+}
+
+.achievements button.achievement-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid rgba(66, 81, 62, .2);
+  border-radius: 6px;
+  background: rgba(255, 252, 244, .75);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.achievements button.achievement-badge:hover {
+  background: rgba(255, 255, 250, .98);
+  border-color: rgba(62, 142, 109, .45);
+  box-shadow: 0 2px 8px rgba(40, 60, 48, .09);
+  transform: translateY(-1px);
+}
+
+.achievements button.achievement-badge:focus-visible {
+  outline: 2px solid #2f5c42;
+  outline-offset: 2px;
+}
+
+.achievements button.achievement-badge.unlocked {
+  border-color: rgba(187, 124, 40, .42);
+  background: rgba(255, 249, 235, .9);
+}
+
+.achievements button.achievement-badge.unlocked .achievement-name {
+  color: #8f601b;
+}
+
+.achievements button.achievement-badge.unlocked .achievement-progress-fill {
+  background: #c2872e;
+}
+
+.achievements button.achievement-badge.is-past-life {
+  border-color: rgba(160, 141, 90, .36);
+  background: rgba(250, 247, 238, .8);
+}
+
+.achievements button.achievement-badge.is-past-life .achievement-name {
+  color: #8c7a4b;
+}
+
+.achievements button.achievement-badge.is-past-life .achievement-progress-fill {
+  background: #a08d5a;
+}
+
+.achievements button.achievement-badge.is-expanded {
+  border-color: rgba(47, 92, 66, .55);
+  box-shadow: 0 3px 10px rgba(40, 60, 48, .12);
+}
+
+.achievement-badge-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.achievement-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-family: Spectral, 'Noto Serif', serif;
+  font-size: 11px;
+  font-weight: 700;
+  font-style: normal;
+  color: #b3402a;
+  background: rgba(179, 64, 42, .08);
+  border: 1px solid rgba(179, 64, 42, .3);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.achievement-badge.is-past-life .achievement-seal {
+  color: #a08d5a;
+  border-color: rgba(160, 141, 90, .3);
+  background: rgba(160, 141, 90, .08);
+}
+
+.achievement-name {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #214434;
+  flex: 1;
+}
+
+.achievement-progress-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #55735c;
+  white-space: nowrap;
+}
+
+.achievement-desc {
+  font-size: 11.5px;
+  line-height: 1.34;
+  color: #61665e;
+}
+
+.achievement-progress-bar {
+  width: 100%;
+  height: 5px;
+  background: rgba(66, 81, 62, .14);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+
+.achievement-progress-fill {
+  height: 100%;
+  background: #3e8e6d;
+  border-radius: 999px;
+  transition: width 0.25s ease-out;
+}
+
+.achievement-popover {
+  margin-top: 5px;
+  padding: 6px 9px;
+  background: rgba(255, 253, 245, .95);
+  border: 1px dashed rgba(66, 81, 62, .26);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.achievement-popover-status {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 11px;
+  color: #2e503b;
+  margin-bottom: 2px;
+}
+
+.achievement-popover-criteria {
+  margin: 0;
+  color: #53594f;
+  line-height: 1.35;
+}
+
+/* ===========================================================================
+   BREAKTHROUGH PULSING GLOW (C3-06 / C2-06)
+   =========================================================================== */
+@keyframes breakthrough-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(216, 180, 97, 0.75);
+    border-color: #d8b461;
+  }
+  50% {
+    box-shadow: 0 0 12px 3px rgba(216, 180, 97, 0.9);
+    border-color: #f7d58b;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(216, 180, 97, 0.75);
+    border-color: #d8b461;
+  }
+}
+
+button.can-breakthrough,
+.quick-actions button.can-breakthrough,
+.proto-command .chips button.can-breakthrough {
+  border-color: #d8b461 !important;
+  color: #fff9e6 !important;
+  background: linear-gradient(135deg, #a37218 0%, #c49129 100%) !important;
+  font-weight: 700;
+  animation: breakthrough-pulse 1.8s ease-in-out infinite;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+button.can-breakthrough:hover,
+.quick-actions button.can-breakthrough:hover,
+.proto-command .chips button.can-breakthrough:hover {
+  background: linear-gradient(135deg, #b8831f 0%, #dab03f 100%) !important;
+  transform: translateY(-1px);
+}
+
+.meter.can-breakthrough .meter-bar,
+.meter-progress.can-breakthrough .meter-bar,
+.proto-bar.cultivation.can-breakthrough .track {
+  animation: breakthrough-pulse 1.8s ease-in-out infinite;
+  border-color: #d8b461 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.can-breakthrough,
+  .quick-actions button.can-breakthrough,
+  .proto-command .chips button.can-breakthrough,
+  .meter.can-breakthrough .meter-bar,
+  .meter-progress.can-breakthrough .meter-bar,
+  .proto-bar.cultivation.can-breakthrough .track {
+    animation: none !important;
+    box-shadow: 0 0 6px 2px rgba(216, 180, 97, 0.75);
+    border-color: #d8b461 !important;
+  }
+}
+
+/* ===========================================================================
+   LUNAR CALENDAR & FORECAST MODAL (C3-15 / C2-13)
+   =========================================================================== */
+.lunar-calendar-modal {
+  position: relative;
+  z-index: 125;
+  animation: modal-fade-in 180ms ease-out both;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lunar-calendar-modal {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .lunar-calendar-modal {
+    width: 96vw !important;
+    max-height: 94vh !important;
+  }
+}
+
+/* ===========================================================================
+   CONCISE MODE (C3-18 / C2-19)
+   =========================================================================== */
+.concise-mode-btn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border, rgba(0,0,0,0.15));
+  background: var(--surface, #fff);
+  color: var(--fg, #333);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 120ms ease-out;
+}
+.concise-mode-btn.active,
+.concise-mode-btn[aria-pressed="true"] {
+  background: #28553e;
+  color: #fff;
+  border-color: #1b3d2b;
+}
+.concise-mode-btn:hover {
+  opacity: 0.88;
+}
+
+.story-concise-toggle-btn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(80, 50, 20, 0.3);
+  background: rgba(255, 255, 255, 0.6);
+  color: #4a2c11;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: all 120ms ease;
+}
+.story-concise-toggle-btn[aria-pressed="true"] {
+  background: #3a6344;
+  color: #fdfbf7;
+  border-color: #274730;
+}
+.story-concise-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: #3a6344;
+  color: #fdfbf7;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+
+
+

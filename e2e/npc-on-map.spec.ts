@@ -24,30 +24,32 @@ async function beginPlaying(page: Page): Promise<void> {
   await expect(page.getByTestId('game-screen')).toBeVisible()
 }
 
-async function openGame(page: Page, game = freshGame(), locale: Locale = 'en'): Promise<void> {
+async function openGame(page: Page, game = freshGame(), locale: Locale = 'en', width = 800, height = 900): Promise<void> {
+  await page.setViewportSize({ width, height })
   const session: GameSession = { game, locale, chronicle: ['NPC on map E2E run.'] }
-  const slot = { slotId: 1, savedAt: 1, session }
+  const slot = { slotId: 1, savedAt: Date.now(), session }
   await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
-    if (window.localStorage.getItem(slotsKey) !== null) return
     window.localStorage.setItem(slotsKey, value)
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
   await page.goto('/')
   await beginPlaying(page)
+  const narration = page.getByTestId('narration-panel')
+  if (await narration.count() > 0) await narration.locator('.story-close').click()
 }
 
 test.describe('NPC presence and representation on regional map', () => {
   test('renders NPC nodes as distinct map pins and lists NPC node details in accessible summary', async ({ page }) => {
     await openGame(page, atLocation('village', 3, 3), 'vi')
 
-    // 1. Check NPC node pin exists on map grid with node-npc class and node testid
+    // 1. Check NPC node pin exists on map grid with map-pin--npc class and node testid
     const elderPorchPin = page.getByTestId('event-node-village-elder-porch')
     await expect(elderPorchPin).toBeVisible()
-    await expect(elderPorchPin).toHaveClass(/node-npc/)
+    await expect(elderPorchPin).toHaveClass(/map-pin--npc/)
 
     const elderDoorPin = page.getByTestId('event-node-village-elder-home')
     await expect(elderDoorPin).toBeVisible()
-    await expect(elderDoorPin).toHaveClass(/node-npc/)
+    await expect(elderDoorPin).toHaveClass(/map-pin--npc/)
 
     // 2. Check title attribute contains node kind and translated name
     await expect(elderPorchPin).toHaveAttribute('title', 'Người: Hiên nhà Cụ Mai Hoa')
@@ -66,20 +68,21 @@ test.describe('NPC presence and representation on regional map', () => {
   test('updates map context trail notes when stepping onto an NPC node', async ({ page }) => {
     await openGame(page, atLocation('village', 3, 3), 'vi') // Player at (3,3) "Your old hut"
 
-    await expect(page.getByTestId('map-current-cell')).toContainText('Nhà cũ của ngươi')
+    const currentCell = page.getByTestId('world-content').getByTestId('map-current-cell')
+    await expect(currentCell).toContainText('Nhà cũ của ngươi')
     await page.keyboard.press('ArrowLeft') // Move to (2,3) Elder Meihua's Door
 
-    await expect(page.getByTestId('map-current-cell')).toContainText('Cửa nhà Cụ Mai Hoa')
+    await expect(currentCell).toContainText('Cửa nhà Cụ Mai Hoa')
     const mapContext = page.locator('.map-context')
     await expect(mapContext).toContainText('Cửa nhà Cụ Mai Hoa')
     await expect(mapContext).toContainText('Một chốn có chuyện để nghe hoặc tự mình đổi thay.')
   })
 
   test('allows talking to local NPCs via Journey journal people tab', async ({ page }) => {
-    await openGame(page, atLocation('village', 3, 3), 'vi')
+    await openGame(page, atLocation('village', 3, 3), 'vi', 1280, 900)
 
     // Open Journal -> People tab
-    await page.getByRole('button', { name: 'Mở Hành trang và giang hồ' }).click()
+    await page.getByRole('button', { name: /Mở Hành trang|Open Journey journal/i }).click()
     await page.getByRole('tab', { name: /Người ở đây/ }).click()
 
     // Elder Meihua NPC card is displayed

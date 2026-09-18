@@ -12,7 +12,7 @@ function freshGame() {
 
 async function resumeGame(page: Page) {
   const session = { game: freshGame(), locale: 'vi', chronicle: ['Mobile check.'] }
-  const slot = { slotId: 1, savedAt: 1, session }
+  const slot = { slotId: 1, savedAt: Date.now(), session }
   await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
     window.localStorage.setItem(slotsKey, value)
     window.localStorage.setItem(activeSlotKey, '1')

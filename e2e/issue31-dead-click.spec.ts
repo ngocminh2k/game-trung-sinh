@@ -1,11 +1,10 @@
-// Issue #31 anti-regression: the legacy topbar's journal / language / exit buttons
-// and the ProtoShell HUD must all stay clickable at desktop viewports (>=1100px),
-// and the "open journal -> drink a pill" flow must actually reach the engine.
-//
-// Root cause was hit-testing, not visuals: .world-content is hidden at >=921px, so
-// header.topbar (a static grid item) stretched to the full shell height, its
-// flex-centred buttons landed mid-screen under the later-painting, absolutely
-// positioned .proto-grid-main, and every click hit the HUD instead.
+// Issue #31 anti-regression & RESIDUAL #31:
+// 1. At desktop viewports (>=921px), exactly ONE topbar control set exists:
+//    legacy header.topbar is hidden and its duplicated controls unmount into
+//    ProtoShell's .proto-topbar (no floating legacy buttons over the HUD band,
+//    no duplicate testids, no strict-mode dodging with .first()).
+// 2. Below 921px, the legacy header.topbar remains active and carries the controls.
+// 3. The "open journal -> drink pill -> exit to menu" flow reaches the engine.
 import { expect, test, type Page } from '@playwright/test'
 import { applyAction, newGame, type GameState, type Locale } from '../src/engine'
 
@@ -20,7 +19,7 @@ function outOfCombatGame(): GameState {
 }
 
 async function openGame(page: Page, locale: Locale): Promise<void> {
-  const slot = { slotId: 1, savedAt: 1, session: { game: outOfCombatGame(), locale, chronicle: ['Issue 31.'] } }
+  const slot = { slotId: 1, savedAt: Date.now(), session: { game: outOfCombatGame(), locale, chronicle: ['Issue 31.'] } }
   await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
     window.localStorage.setItem(slotsKey, value)
     window.localStorage.setItem(activeSlotKey, '1')
@@ -33,8 +32,9 @@ async function openGame(page: Page, locale: Locale): Promise<void> {
 }
 
 // What covers the button's own centre pixel? null = the button itself is on top.
+// Strict locator: NO .first() — duplicate matching nodes throw immediately.
 async function blockerOf(page: Page, selector: string): Promise<string | null> {
-  const target = page.locator(selector).first()
+  const target = page.locator(selector)
   await expect(target).toBeVisible()
   return target.evaluate((el) => {
     const r = el.getBoundingClientRect()
@@ -50,18 +50,26 @@ async function expectReachable(page: Page, selector: string): Promise<void> {
   expect(await blockerOf(page, selector), selector).toBeNull()
 }
 
-// Pre-fix CSS, re-injected after the app's own stylesheet so it wins on order.
-const UNFIX = '.game-shell > header.topbar{position:static !important;z-index:auto !important;pointer-events:auto !important}'
-
 for (const viewport of [{ width: 1280, height: 720 }, { width: 1100, height: 800 }]) {
   for (const locale of ['en', 'vi'] as Locale[]) {
     test(`shell buttons stay clickable at ${viewport.width}x${viewport.height} (${locale})`, async ({ page }) => {
       await page.setViewportSize(viewport)
       await openGame(page, locale)
 
-      for (const sel of ['#journal-launcher', '[data-testid="game-exit-menu"]', 'header.topbar .language-toggle button',
+      // Exactly ONE topbar is visible; legacy topbar is hidden and empty
+      await expect(page.locator('.game-shell > header.topbar')).toBeHidden()
+      await expect(page.locator('.game-shell > header.topbar :is(button, .topbar-actions)')).toHaveCount(0)
+
+      // Merged controls are unique, visible inside .proto-topbar, and clickable
+      for (const sel of [
+        '#journal-launcher',
+        '[data-testid="game-exit-menu"]',
+        '.proto-topbar .language-toggle button:nth-child(1)',
+        '.proto-topbar .language-toggle button:nth-child(2)',
         // The proto layer must not lose its own controls to the topbar fix either.
-        '.proto-leftrail .tabs button[data-tab="items"]', '.proto-righthud .proto-bar.hp']) {
+        '.proto-leftrail .tabs button[data-tab="items"]',
+        '.proto-righthud .proto-bar.hp',
+      ]) {
         await expectReachable(page, sel)
       }
 
@@ -71,12 +79,28 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 1100, height: 800
 }
 
 for (const locale of ['en', 'vi'] as Locale[]) {
-  test(`regression guard: without the fix the journal click is swallowed (${locale})`, async ({ page }) => {
+  test(`residual guard: legacy buttons do not float at >=921px and active below (${locale})`, async ({ page }) => {
+    // 1. Desktop (>=921px): legacy topbar retired, exactly ONE control set in .proto-topbar
     await page.setViewportSize({ width: 1280, height: 720 })
     await openGame(page, locale)
-    await page.addStyleTag({ content: UNFIX })
-    // Pre-fix, the centre pixel belongs to the proto HUD (e.g. DIV.tg-points).
-    expect(await blockerOf(page, '#journal-launcher')).toMatch(/proto|tg-/)
+
+    await expect(page.locator('.game-shell > header.topbar')).toBeHidden()
+    await expect(page.locator('.game-shell > header.topbar :is(button, .topbar-actions)')).toHaveCount(0)
+    await expect(page.locator('#journal-launcher')).toHaveCount(1)
+    await expect(page.locator('[data-testid="game-exit-menu"]')).toHaveCount(1)
+    await expect(page.locator('.proto-topbar #journal-launcher')).toBeVisible()
+    await expect(page.locator('.proto-topbar [data-testid="game-exit-menu"]')).toBeVisible()
+    await expect(page.locator('.proto-topbar .language-toggle button')).toHaveCount(2)
+    await expectReachable(page, '#journal-launcher')
+
+    // 2. Narrow (<921px): legacy topbar active and carrying the controls
+    await page.setViewportSize({ width: 900, height: 700 })
+    await expect(page.locator('.game-shell > header.topbar')).toBeVisible()
+    await expect(page.locator('.game-shell > header.topbar #journal-launcher')).toBeVisible()
+    await expect(page.locator('.game-shell > header.topbar [data-testid="game-exit-menu"]')).toBeVisible()
+    await expect(page.locator('.game-shell > header.topbar .language-toggle button')).toHaveCount(2)
+    await expect(page.locator('.proto-topbar #journal-launcher')).toHaveCount(0)
+    await expectReachable(page, 'header.topbar #journal-launcher')
   })
 
   test(`open journal -> drink pill -> exit to menu (${locale})`, async ({ page }) => {

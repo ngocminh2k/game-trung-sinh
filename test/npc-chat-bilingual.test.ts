@@ -2,7 +2,7 @@
 // assert en không còn dấu tiếng Việt + shape graph en ≡ vi (không có lỗ hổng).
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import {
   GENERIC_CONVERSATIONS,
   SCRIPTS,
@@ -17,6 +17,9 @@ import { NPCS } from '../src/content'
 // Dấu chỉ xuất hiện trong tiếng Việt (ASCII + Â/Ê/Ô/Ơ/Ư/Đ tách riêng từng ký tự
 // để regex không match chữ cái Latin thường dùng trong tiếng Anh).
 const VI_DIACRITICS = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i
+
+// Resolve source file path from test file location
+const SRC_DIR = resolve(__dirname, '../src/ui')
 
 function flatText(node: ChatNode, label: string): Array<[string, string]> {
   return [
@@ -167,7 +170,7 @@ describe('NpcChatModal bilingual dialogue (issue #32)', () => {
     const spread = new Set(NPCS.flatMap((npc) => ['a', 'b', 'c'].map((loc) => genericPickIndex(npc.id, loc))))
     expect(spread.size).toBeGreaterThan(1)
     // Nguồn không còn Math.random trong code (bỏ comment để không match giải thích).
-    const src = readFileSync(fileURLToPath(new URL('../src/ui/NpcChatModal.tsx', import.meta.url)), 'utf8')
+    const src = readFileSync(resolve(SRC_DIR, 'NpcChatModal.tsx'), 'utf8')
     const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
     expect(code).not.toMatch(/Math\.random\s*\(/)
   })
@@ -175,9 +178,68 @@ describe('NpcChatModal bilingual dialogue (issue #32)', () => {
   it('no authored `en:` literal contains Vietnamese diacritics', () => {
     // Quét tĩnh chính source file (kể cả label/chào hardcode ngoài SCRIPTS pool).
     // Toàn bộ en: literal trong file là single-quote một dòng.
-    const src = readFileSync(fileURLToPath(new URL('../src/ui/NpcChatModal.tsx', import.meta.url)), 'utf8')
+    const src = readFileSync(resolve(SRC_DIR, 'NpcChatModal.tsx'), 'utf8')
     const lits = [...src.matchAll(/en:\s*('(?:[^'\\]|\\.)*')/g)].map((m) => m[1]!.slice(1, -1))
     expect(lits.length).toBeGreaterThan(100)
     for (const s of lits) expect(VI_DIACRITICS.test(s), s.slice(0, 60)).toBe(false)
+  })
+
+  it('n_merchant_bao script identity and form of address match content/npcs.ts (T-NPC-NAME)', () => {
+    const merchant = NPCS.find((n) => n.id === 'n_merchant_bao')!
+    expect(merchant).toBeDefined()
+    const entry = SCRIPTS['n_merchant_bao']!
+    expect(entry.name.vi).toBe(merchant.nameVi)
+    expect(entry.name.en).toBe(merchant.nameEn)
+    for (const [nodeKey, node] of Object.entries(entry.script)) {
+      expect(node.npc.vi, `${nodeKey} vi npc`).toBe(merchant.nameVi)
+      expect(node.npc.en, `${nodeKey} en npc`).toBe(merchant.nameEn)
+    }
+    const farewell = entry.script['rumor']!.choices.find((c) => c.next === 'bye' && c.label.en.includes('Bao'))
+    expect(farewell).toBeDefined()
+    expect(farewell!.label.vi).toBe('Tạm biệt Thương nhân Bảo.')
+    expect(farewell!.label.en).toBe('Farewell, Merchant Bao.')
+    const scriptStr = JSON.stringify(entry)
+    expect(scriptStr).not.toContain('Lão Bạch')
+    expect(scriptStr).not.toContain('Old Bach')
+  })
+
+  it('all ask strings in GENERIC_CONVERSATIONS use valid protagonist inquiry phrasing and contain no first-person inverted pronouns (T-NPC-PERSPECTIVE)', () => {
+    for (const g of GENERIC_CONVERSATIONS) {
+      for (const t of g.threads) {
+        expect(t.ask.vi).not.toContain('sức khỏe của ta')
+        expect(t.ask.en).not.toContain('my health')
+      }
+    }
+    expect(GENERIC_CONVERSATIONS[0]!.threads[0]!.ask.vi).toBe('Hỏi thăm sức khỏe của đối phương.')
+    expect(GENERIC_CONVERSATIONS[0]!.threads[0]!.ask.en).toBe('Ask after their health.')
+  })
+
+  it('n_kid_xiaobao has specialized child dialogue options and no adult generic templates (T-NPC-KID)', () => {
+    const kid = NPCS.find((n) => n.id === 'n_kid_xiaobao')!
+    expect(kid).toBeDefined()
+    const entry = SCRIPTS['n_kid_xiaobao']
+    expect(entry).toBeDefined()
+    expect(entry!.name.vi).toBe(kid.nameVi)
+    expect(entry!.name.en).toBe(kid.nameEn)
+
+    // Identity check across all dialogue nodes
+    for (const [nodeKey, node] of Object.entries(entry!.script)) {
+      expect(node.npc.vi, `${nodeKey} vi npc`).toBe(kid.nameVi)
+      expect(node.npc.en, `${nodeKey} en npc`).toBe(kid.nameEn)
+    }
+
+    // Choices at start contain child-appropriate themes (crickets, candy/sweets, flying immortals)
+    const startChoicesVi = entry!.script['start']!.choices.map((c) => c.label.vi).join(' ')
+    expect(startChoicesVi).toMatch(/bắt dế/)
+    expect(startChoicesVi).toMatch(/kẹo/)
+    expect(startChoicesVi).toMatch(/thần tiên|bay/)
+
+    // Choices and dialogues must NOT contain adult generic templates (e.g. 'đường sá', 'làm ăn', 'sức khỏe phong trần')
+    const allTextVi = Object.values(entry!.script)
+      .flatMap((n) => [n.text.vi, ...n.choices.map((c) => c.label.vi)])
+      .join(' ')
+    expect(allTextVi).not.toContain('đường sá')
+    expect(allTextVi).not.toContain('làm ăn')
+    expect(allTextVi).not.toContain('sức khỏe phong trần')
   })
 })

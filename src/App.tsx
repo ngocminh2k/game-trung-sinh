@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PrototypeApp } from './ui/prototype/PrototypeApp'
-import { DEFAULT_GLOBAL_PROFILE, DEFAULT_SEED, applyAction, applyOfflineGains, chooseInheritedRelic, currentStoryScene, mergeGlobalProfile, narrate, newGame, readDeathCause, recordTerminal, resumeContextLine, storyRouteEncounter } from './engine'
+import { DEFAULT_GLOBAL_PROFILE, DEFAULT_SEED, applyAction, applyOfflineGains, chooseInheritedRelic, currentStoryScene, evaluateReincarnationKarma, findStoryChoice, mergeGlobalProfile, narrate, newGame, readDeathCause, recordTerminal, resumeContextLine, storyRouteEncounter } from './engine'
 import type { Action, GameDifficulty, GameEvent, GameState, GlobalProfile, Locale } from './engine'
-import { ENDINGS } from './content'
+import { ENDINGS, QUESTS } from './content'
 import { requestNarration } from './ai/narration'
 import { t } from './i18n'
 import { GameScreen } from './ui/GameScreen'
@@ -182,6 +182,19 @@ function firstFreeSlot(slots: Partial<Record<SlotId, SaveSlot>>): SlotId {
   return SLOT_IDS.find((slotId) => slots[slotId] === undefined) ?? 1
 }
 
+/** E2E baseline: `?fresh=1` boots to the menu instead of auto-resuming the
+ *  active slot, so menu-reaching specs no longer stall. Read-only — the save
+ *  and its resume marker stay in storage, Load Game works right after. The
+ *  query is also matched inside the hash: no router today, but a hash-carried
+ *  `#/?fresh=1` must not silently stop working if one ever lands. */
+function freshBootRequested(): boolean {
+  if (typeof window === 'undefined') return false
+  const { search, hash } = window.location
+  const hashQuery = hash.indexOf('?')
+  return new URLSearchParams(search).get('fresh') === '1'
+    || (hashQuery !== -1 && new URLSearchParams(hash.slice(hashQuery)).get('fresh') === '1')
+}
+
 /** True while a save still sits in the boot story (transmigration / system
  *  choice) and the player never refused the System — resume must reopen it. */
 function opensOnBootScene(game: GameState): boolean {
@@ -204,12 +217,15 @@ function App() {
   const [settings, setSettings] = useState<PlayerSettings>(() => storage === undefined ? { ...DEFAULT_SETTINGS } : loadSettings(storage))
   const [slots, setSlots] = useState<Partial<Record<SlotId, SaveSlot>>>(() => storage === undefined ? {} : loadSaveSlots(storage))
   const [activeSlot, setActiveSlotState] = useState<SlotId | null>(() => storage === undefined ? null : getActiveSlot(storage))
+  const freshBoot = freshBootRequested()
   // Issue #17: F5 resumes the active run instead of dropping to the menu —
   // mirrors the occupied-slot branch of selectSlot (loading beat included).
   // Issue #14 (AC3): settle offline gains here too. The save-on-session-change
   // effect rewrites savedAt on mount, so a reload that skipped this would
   // silently swallow the absence — selectSlot is not the only entry point.
   const [session, setSession] = useState<GameSession | null>(() => {
+    // ?fresh=1 — skip the auto-resume, land on the menu, keep the slot.
+    if (freshBoot) return null
     if (activeSlot === null) return null
     const slot = slots[activeSlot]
     if (slot === undefined) return null
@@ -266,6 +282,10 @@ function App() {
     setLocale(next.locale)
     if (typeof window !== 'undefined') saveSettings(browserStorage(), next)
   }, [])
+
+  const toggleConciseMode = useCallback(() => {
+    updateSettings({ ...settings, conciseMode: !settings.conciseMode })
+  }, [settings, updateSettings])
 
   // Slot selection. Occupied slot resumes in place — unless we arrived from a
   // new game that needs a target slot, in which case any pick is overwrite
@@ -371,11 +391,19 @@ function App() {
       setGlobalProfile(nextProfile)
       saveGlobalProfile(local, nextProfile)
     }
-    // Story advances through NPC talk + quest turn-ins, not by stepping onto
-    // any event pin — that made every pin pop the same global scene (2026-09-08).
+    // Story advances through story quest completion or explicit scene unlocks (T-STORY-LOOP).
+    // Ambient milestone beats (currentBeat) are flavor and decoupled from story popups (T-STORY-COMBAT-POPUP).
+    // Routine chatter with NPCs does not open the story modal.
     // Route-target nodes keep their own full-screen encounter via
     // storyRouteEncounter, which renders independently of storyOpen.
-    const opensStory = result.events.some((event) => event.type === 'TALKED')
+    const storyQuestCompleted = result.events.some(
+      (event) => event.type === 'QUEST_COMPLETED' && (event.questId.startsWith('q_main_') || QUESTS.find((q) => q.id === event.questId)?.storySceneNextId !== undefined)
+    )
+    const storySceneUnlocked = result.state.flags.story_scene !== previous.game.flags.story_scene && action.kind !== 'story_choice'
+    const hasSelectableStoryChoice = currentStoryScene(result.state).choices.some(
+      (choice) => findStoryChoice(result.state, choice.id) !== undefined
+    )
+    const opensStory = (storyQuestCompleted || storySceneUnlocked) && hasSelectableStoryChoice
     const bootScene = currentStoryScene(previous.game).id
     const resolvesSystemBoot = action.kind === 'story_choice'
       && (bootScene === 'scene_transmigration' || bootScene === 'scene_system_selection')
@@ -434,8 +462,11 @@ function App() {
     const handler = (event: KeyboardEvent) => {
       const target = event.target
       if (sessionRef.current === null) return
-      if (storyOpen) {
-        if (event.key === 'Escape') { event.preventDefault(); setStoryOpen(false) }
+      const hasBlockingModal = storyOpen || (typeof document !== 'undefined' && Array.from(
+        document.querySelectorAll<HTMLElement>('[role="dialog"], [aria-modal="true"]')
+      ).some(el => !el.hidden && !el.hasAttribute('hidden') && !el.closest('[hidden]') && !el.classList.contains('proto-item-popover') && (!el.classList.contains('proto-modal-backdrop') || el.classList.contains('show'))))
+      if (hasBlockingModal) {
+        if (storyOpen && event.key === 'Escape') { event.preventDefault(); setStoryOpen(false) }
         return
       }
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return
@@ -474,13 +505,16 @@ function App() {
       inheritedRelicId: relic ?? undefined,
     })
     // Close the loop on the global profile: tally the finished run, remember the
-    // inherited relic for the *next* new game, and bump the highest cycle reached.
+    // inherited relic for the *next* new game, bump the highest cycle reached, and
+    // award earned reincarnation karma by achieved milestones (C3-02).
+    const karma = evaluateReincarnationKarma(prev.game)
     const nextProfile = recordTerminal(
       globalProfileRef.current,
       prev.game.endingId,
       [],
       nextNpPlus,
       relic,
+      karma.total,
     )
     globalProfileRef.current = nextProfile
     setGlobalProfile(nextProfile)
@@ -527,7 +561,24 @@ function App() {
   if (phase === 'loading') return <LoadingScreen locale={session.locale} onDone={() => setPhase('playing')} />
   return <>
     {storyOpen && <div className="story-backdrop" onClick={() => setStoryOpen(false)} aria-hidden="true" />}
-    <GameScreen actionKind={motion.kind} actionNonce={motion.nonce} game={session.game} locale={session.locale} chronicle={session.chronicle} chronicleKinds={session.chronicleKinds} onAction={act} onLocaleChange={changeLocale} onRestart={restart} onExitToMenu={exitToMenu} storyOpen={storyOpen} onStoryClose={() => setStoryOpen(false)} unlockedEndingIds={globalProfile.unlockedEndingIds} unlockedAchievementIds={globalProfile.unlockedAchievementIds} />
+    <GameScreen
+      actionKind={motion.kind}
+      actionNonce={motion.nonce}
+      game={session.game}
+      locale={session.locale}
+      chronicle={session.chronicle}
+      chronicleKinds={session.chronicleKinds}
+      onAction={act}
+      onLocaleChange={changeLocale}
+      onRestart={restart}
+      onExitToMenu={exitToMenu}
+      storyOpen={storyOpen}
+      onStoryClose={() => setStoryOpen(false)}
+      unlockedEndingIds={globalProfile.unlockedEndingIds}
+      unlockedAchievementIds={globalProfile.unlockedAchievementIds}
+      conciseMode={settings.conciseMode}
+      onConciseModeToggle={toggleConciseMode}
+    />
     {session.game.terminal && telemetryId !== null && (
       <PlaytestSurveyCard game={session.game} locale={session.locale} runId={telemetryId} onSubmit={submitSurvey} />
     )}

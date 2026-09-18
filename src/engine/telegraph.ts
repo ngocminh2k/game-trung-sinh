@@ -11,7 +11,7 @@ import { HIGH_DANGER_LEVEL, ITEM_TALISMAN, damageMultiplier } from './constants'
 import type { GameState } from './types'
 import { TIME_MODS, currentTimeOfDay } from './time'
 import { flagNum } from './utils'
-import { WEATHER_EFFECTS, weatherFor } from './weather'
+import { WEATHER_EFFECTS, weatherFor, getEffectiveWeatherEffects } from './weather'
 
 export interface TravelRisk {
   /** Expected HP cost range of entering the zone, current modifiers applied. */
@@ -43,7 +43,14 @@ export function travelRisk(state: GameState, locationId: string): TravelRisk {
   const freeToday = enteringRegion && flagNum(state.flags, `danger_tick_${locationId}`) === state.day
   if (freeToday) return { min: 0, max: 0, warded: false, weatherAmplified: false, danger, freeToday: true }
   const timeDamageMod = TIME_MODS[currentTimeOfDay(state)].dangerDamage
-  const weatherMod = WEATHER_EFFECTS[weatherFor(state.seed, state.day).id]?.travelCostMod ?? 1
+  const weather = weatherFor(state.seed, state.day)
+  const baseEffects = WEATHER_EFFECTS[weather.id] ?? {
+    herbPriceMod: 1,
+    bossPowerMod: 1,
+    travelCostMod: 1,
+    hiddenNpcChance: 0,
+  }
+  const weatherMod = getEffectiveWeatherEffects(state, baseEffects, weather.kind).travelCostMod
   const diffMod = damageMultiplier(state.difficulty ?? 'balanced')
   // Round-5 review (CRITICAL): multiply in doMove's EXACT operand order —
   // ((rolled * diff) * time) * weather. Pre-factoring `diff * time * weather`

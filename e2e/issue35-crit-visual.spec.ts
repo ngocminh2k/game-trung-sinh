@@ -25,7 +25,7 @@ function critGame(): GameState {
 async function openGame(page: Page, locale: Locale): Promise<void> {
   const slot = {
     slotId: 1,
-    savedAt: 1,
+    savedAt: Date.now(),
     session: {
       game: critGame(),
       locale,

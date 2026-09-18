@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from '../src/App'
@@ -45,18 +45,29 @@ describe('browser game journey', () => {
     await waitFor(() => expect(window.localStorage.getItem('phe-can-ky:slots')).toContain('market'))
   })
 
-  it('opens narration for NPC dialogue and returns to exploration on dismissal', async () => {
+  it('handles NPC dialogue without modal lock and records to chronicle', async () => {
     const user = userEvent.setup()
     render(<App />)
     beginGame()
 
     await user.click(screen.getByRole('button', { name: 'Mở Hành trang và giang hồ' }))
     await user.click(screen.getByRole('tab', { name: /Người ở đây/ }))
-    await user.click(screen.getAllByRole('button', { name: 'Nói chuyện' })[0]!)
-    expect(screen.getByTestId('narration-panel')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: /^Tiếp tục/ }))
+    // Click the first NPC's "Nói chuyện" button in the People dock panel
+    // Use aria-label since buttons have "Nói chuyện với [Name]" as accessible name
+    const journal = screen.getByTestId('journal-screen')
+    const talkButtons = within(journal).getAllByRole('button', { name: /Nói chuyện với/ })
+    await user.click(talkButtons[0]!)
 
+    // T-STORY-LOOP: Dialogue no longer traps player in global narration-panel
     expect(screen.queryByTestId('narration-panel')).toBeNull()
+    expect(screen.getByTestId('game-screen').className).toContain('action-talk')
+
+    // Chronicle records the dialogue
+    await user.click(screen.getByRole('button', { name: 'Mở Hành trang và giang hồ' }))
+    const chronicleTab = document.getElementById('dock-tab-chronicle')
+    if (chronicleTab === null) throw new Error('dock-tab-chronicle missing')
+    fireEvent.click(chronicleTab)
+    await waitFor(() => expect(screen.getByTestId('chronicle-panel').textContent).toContain('Mai Hoa'))
   })
 
   it('blocks travel keys until an open dialogue is dismissed', async () => {
@@ -65,14 +76,20 @@ describe('browser game journey', () => {
     beginGame()
 
     const startCell = currentCellText()
-    await user.click(screen.getByRole('button', { name: 'Mở Hành trang và giang hồ' }))
-    await user.click(screen.getByRole('tab', { name: /Người ở đây/ }))
-    await user.click(screen.getAllByRole('button', { name: 'Nói chuyện' })[0]!)
+    // Open dialogue with NPC on map
+    const npcPin = screen.getAllByRole('button', { name: /Nói chuyện với Cụ Mai Hoa/ })[0]!
+    await user.click(npcPin)
+    expect(screen.getByRole('dialog')).toBeTruthy()
+
+    // While dialogue is open, travel keys are blocked
     fireEvent.keyDown(window, { key: 'ArrowDown' })
     expect(currentCellText()).toBe(startCell)
 
+    // Dismiss dialogue
     fireEvent.keyDown(window, { key: 'Escape' })
-    expect(screen.queryByTestId('narration-panel')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    // Travel keys work again
     fireEvent.keyDown(window, { key: 'ArrowDown' })
     await waitFor(() => expect(currentCellText()).not.toBe(startCell))
   })
@@ -102,20 +119,17 @@ describe('browser game journey', () => {
     render(<App />)
     beginGame()
 
-    await user.click(screen.getByRole('button', { name: 'Mở Hành trang và giang hồ' }))
-    await user.click(screen.getByRole('tab', { name: /Người ở đây/ }))
-    await user.click(screen.getAllByRole('button', { name: 'Nói chuyện' })[0]!)
-    await user.type(screen.getByLabelText('Viết hành động khác'), 'nói chuyện với cụ Mai Hoa')
-    await user.click(screen.getByRole('button', { name: 'Thử vận' }))
+    const commandInput = screen.getByLabelText(/Nhập mệnh lệnh|Command input/i)
+    await user.type(commandInput, 'nói chuyện với cụ Mai Hoa')
+    await user.click(screen.getByRole('button', { name: /Thử vận|Try/i }))
 
     // The redesign moved the chronicle feed into the journal dock and only
     // mounts the active tab's panel (the old aria-label 'Biên niên ký' was
-    // dropped); the dock is inert while the story overlay is open, so activate
-    // its tab by id and assert the reducer's reply in the mounted panel.
+    // dropped); activate its tab by id and assert the reducer's reply in the mounted panel.
     const chronicleTab = document.getElementById('dock-tab-chronicle')
     if (chronicleTab === null) throw new Error('dock-tab-chronicle missing')
     fireEvent.click(chronicleTab)
     await waitFor(() => expect(screen.getByTestId('chronicle-panel').textContent).toContain('Mai Hoa'))
-    expect(screen.getByTestId('narration-panel')).toBeTruthy()
+    expect(screen.getByTestId('game-screen').className).toContain('action-talk')
   })
 })

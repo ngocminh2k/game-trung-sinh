@@ -1,13 +1,10 @@
-import { KeyboardEvent, type RefObject } from 'react'
+import { KeyboardEvent, useState, type RefObject } from 'react'
 import {
   ACHIEVEMENTS,
-  EQUIPMENT,
   NPCS,
   QUESTS,
   RECIPES,
-  SHOP_STOCK,
   TALENTS,
-  TECHNIQUES,
   getItem,
   getEquipmentByItem,
   getLocation,
@@ -16,9 +13,13 @@ import {
   activeSystem,
   canCompleteQuest,
   currentStepIndex,
+  getQuestCategory,
   isQuestUnlocked,
+  questCategoryLabel,
+  questStatus,
   storageRemaining,
 } from '../../engine'
+import { canAcceptQuest } from '../../engine/quests'
 import type { Action, GameState, Locale } from '../../engine'
 import type { EquipmentDef } from '../../engine/content-types'
 import itemsStillLife from '../../assets/art/items-still-life.webp'
@@ -30,9 +31,14 @@ import {
   itemName,
   itemTier,
   localized,
+  marketRows,
   moveDockFocus,
   obscuredName,
+  currencyExchangeRows,
+  equipmentRows,
+  getAchievementProgress,
   stageRequirement,
+  techniqueRows,
   word,
 } from './helpers'
 
@@ -53,18 +59,27 @@ interface DockTabBarProps {
   chronicleLength: number
 }
 
+/** Quest badge: what the player can act on right now. Completed/total sat at
+ * "0/210" for every run of the AI playtest, so accepting a quest changed nothing
+ * the player could see. Active first, then available-and-unlocked. */
+function questCountLabel(game: GameState, locale: Locale): string {
+  const active = QUESTS.filter((quest) => questStatus(game, quest.id) === 'active').length
+  if (active > 0) return `${String(active)} ${word(locale, 'đang nhận', 'active')}`
+  const available = QUESTS.filter((quest) => questStatus(game, quest.id) === 'available' && isQuestUnlocked(game, quest.id)).length
+  return `${String(available)} ${word(locale, 'khả dụng', 'available')}`
+}
+
 export function DockTabBar({ activeDock, game, locale, onSelect, localNpcsCount, chronicleLength }: DockTabBarProps): JSX.Element {
-  const completedQuests = QUESTS.filter((quest) => game.quests[quest.id]?.status === 'completed').length
+  const questCount = questCountLabel(game, locale)
   const chronicleCount = chronicleLength
   const tabs: ReadonlyArray<readonly [DockPanel, string, string | number]> = [
     ['people', word(locale, 'Người ở đây', 'People here'), localNpcsCount],
-    ['quests', word(locale, 'Nhiệm vụ', 'Quests'), `${completedQuests}/${QUESTS.length}`],
+    ['quests', word(locale, 'Nhiệm vụ', 'Quests'), questCount],
     ['inventory', word(locale, 'Túi đồ & kho', 'Bag & storage'), 0 /* filled by parent */],
     ['market', word(locale, 'Chợ & thành tựu', 'Market & deeds'), `${game.achievements.length}/${ACHIEVEMENTS.length}`],
     ['path', word(locale, 'Đạo đồ & trang bị', 'Path & equipment'), word(locale, 'tu vi', 'cultivation')],
     ['chronicle', word(locale, 'Biên niên', 'Chronicle'), chronicleCount],
   ]
-  void completedQuests
   return (
     <div className="dock-tabs" aria-label={word(locale, 'Hệ thống phụ', 'Secondary systems')} role="tablist">
       {tabs.map(([id, label, count]) => (
@@ -248,11 +263,78 @@ export function DockPanelMarket({
   unlockedAchievementIds?: readonly string[]
 }): JSX.Element {
   void _actionKind
+  const [expandedAchievementId, setExpandedAchievementId] = useState<string | null>(null)
   return (
     <section aria-labelledby="market-title">
       <div className="panel-heading compact">
         <h2 id="market-title">{word(locale, 'Chợ & thành tựu', 'Market & achievements')}</h2>
         <span>{game.achievements.length}/{ACHIEVEMENTS.length}</span>
+      </div>
+      <div className="achievements" role="region" aria-label={word(locale, 'Danh sách thành tựu', 'Achievements list')}>
+        {ACHIEVEMENTS.map((achievement) => {
+          const unlocked = game.achievements.includes(achievement.id)
+          // AC1: a deed from another slot's life persists globally — stamp it
+          // faded so cross-run progress is visible, not just stored.
+          const pastLife = !unlocked && (unlockedAchievementIds?.includes(achievement.id) ?? false)
+          const HAN_SEAL = '成'
+          const desc = locale === 'vi' ? achievement.descVi : achievement.descEn
+          const name = localized(locale, achievement)
+          const progress = getAchievementProgress(game, achievement.id, locale, unlocked)
+          const isExpanded = expandedAchievementId === achievement.id
+          const statusText = unlocked
+            ? word(locale, 'Đã đạt', 'Unlocked')
+            : pastLife
+              ? i18n(locale, 'ui.achievements.pastLife')
+              : word(locale, 'Chưa đạt', 'Locked')
+          const ariaLabel = `${name} · ${desc} · ${progress.progressText} (${statusText})`
+
+          return (
+            <button
+              type="button"
+              className={`achievement-badge ${unlocked ? 'unlocked' : pastLife ? 'is-past-life' : 'is-locked'}${isExpanded ? ' is-expanded' : ''}`}
+              key={achievement.id}
+              aria-label={ariaLabel}
+              aria-describedby={`achievement-desc-${achievement.id}`}
+              aria-expanded={isExpanded}
+              onClick={() => setExpandedAchievementId(isExpanded ? null : achievement.id)}
+              title={pastLife ? `${desc} · ${i18n(locale, 'ui.achievements.pastLife')}` : desc}
+            >
+              <div className="achievement-badge-header">
+                {(unlocked || pastLife) && (
+                  <i aria-hidden="true" className="achievement-seal" data-testid="achievement-seal">
+                    {HAN_SEAL}
+                  </i>
+                )}
+                <span className="achievement-name">{name}</span>
+                <span className="achievement-progress-text">{progress.progressText}</span>
+              </div>
+              <div className="achievement-desc" id={`achievement-desc-${achievement.id}`}>
+                {desc}
+              </div>
+              <div className="achievement-progress-bar" aria-hidden="true">
+                <div
+                  className="achievement-progress-fill"
+                  style={{ width: `${progress.percent}%` }}
+                />
+              </div>
+              {isExpanded && (
+                <div className="achievement-popover" role="tooltip">
+                  <div className="achievement-popover-status">
+                    <span>{statusText}</span>
+                    <span>{progress.percent}%</span>
+                  </div>
+                  <p className="achievement-popover-criteria">{desc}</p>
+                  {progress.hintVi && progress.hintEn && !unlocked && progress.percent >= 50 && (
+                    <div className="achievement-hint">
+                      <span className="achievement-hint-label">{word(locale, '💭 Manh mối', '💭 Hint')}</span>
+                      <p className="achievement-hint-text">{word(locale, progress.hintVi, progress.hintEn)}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </button>
+          )
+        })}
       </div>
       <section className="refinement-list" aria-labelledby="refinement-title">
         <div className="refinement-heading">
@@ -288,43 +370,36 @@ export function DockPanelMarket({
           : word(locale, 'Chỉ giao dịch được tại Chợ Tụ Vân. Các món vẫn được ghi nhớ ở đây.', 'Trading is available only at Cloudgather Market. The wares remain listed here.')}
       </p>
       <div className="currency-exchange" data-testid="currency-exchange">
-        <button
-          disabled={game.terminal || encounterLocked || game.player.locationId !== 'market' || (game.player.spiritStones ?? 0) < 1}
-          onClick={() => onAction({ kind: 'convert_currency', from: 'spiritStone', qty: 1 })}
-          type="button"
-        >
-          {word(locale, 'Đổi 1 linh thạch → 10 vàng', 'Exchange 1 spirit stone → 10 gold')}
-        </button>
-        <button
-          disabled={game.terminal || encounterLocked || game.player.locationId !== 'market' || (game.player.silver ?? 0) < 10}
-          onClick={() => onAction({ kind: 'convert_currency', from: 'silver', qty: 1 })}
-          type="button"
-        >
-          {word(locale, 'Đổi 10 bạc → 1 vàng', 'Exchange 10 silver → 1 gold')}
-        </button>
+        {currencyExchangeRows(game).map((row, index) => (
+          <button
+            disabled={!row.enabled}
+            onClick={() => onAction({ kind: 'convert_currency', from: row.from, qty: 1 })}
+            type="button"
+            key={row.from}
+          >
+            {index === 0
+              ? word(locale, 'Đổi 1 linh thạch → 10 vàng', 'Exchange 1 spirit stone → 10 gold')
+              : word(locale, 'Đổi 10 bạc → 1 vàng', 'Exchange 10 silver → 1 gold')}
+          </button>
+        ))}
       </div>
       <div className="shop-list">
-        {SHOP_STOCK.map((id) => {
-          const item = getItem(id)
-          if (item === undefined || item.buyPrice === null) return null
-          const stageLocked = game.player.stage < (item.requiredStage ?? 0)
-          return (
-            <div className={stageLocked ? 'is-locked' : ''} key={id}>
-              <span>
-                {stageLocked
-                  ? `${word(locale, 'Hàng chưa mở', 'Sealed wares')} · ${stageRequirement(locale, item.requiredStage ?? 0)}`
-                  : `${itemName(id, locale)} · ${String(item.buyPrice)}◎`}
-              </span>
-              <button
-                disabled={game.terminal || encounterLocked || stageLocked || game.player.locationId !== 'market'}
-                onClick={() => onAction({ kind: 'buy', itemId: id })}
-                type="button"
-              >
-                {stageLocked ? word(locale, 'Chưa mở', 'Locked') : word(locale, 'Mua', 'Buy')}
-              </button>
-            </div>
-          )
-        })}
+        {marketRows(game).map((row) => (
+          <div className={row.stageLocked ? 'is-locked' : ''} key={row.itemId}>
+            <span>
+              {row.stageLocked
+                ? `${word(locale, 'Hàng chưa mở', 'Sealed wares')} · ${stageRequirement(locale, getItem(row.itemId)?.requiredStage ?? 0)}`
+                : `${itemName(row.itemId, locale)} · ${String(row.price)}◎`}
+            </span>
+            <button
+              disabled={!row.enabled}
+              onClick={() => onAction({ kind: 'buy', itemId: row.itemId })}
+              type="button"
+            >
+              {row.stageLocked ? word(locale, 'Chưa mở', 'Locked') : word(locale, 'Mua', 'Buy')}
+            </button>
+          </div>
+        ))}
       </div>
       <section aria-label={word(locale, 'Túi đồ tại chợ', 'Bag at market')} className="market-bag-summary">
         <p className="section-kicker">{word(locale, 'Hành lý sau giao dịch', 'Bag after trading')}</p>
@@ -354,22 +429,6 @@ export function DockPanelMarket({
               })}
         </ul>
       </section>
-      <div className="achievements">
-        {ACHIEVEMENTS.map((achievement) => {
-          const unlocked = game.achievements.includes(achievement.id)
-          // AC1: a deed from another slot's life persists globally — stamp it
-          // faded so cross-run progress is visible, not just stored.
-          const pastLife = !unlocked && (unlockedAchievementIds?.includes(achievement.id) ?? false)
-          const HAN_SEAL = '成'
-          const desc = locale === 'vi' ? achievement.descVi : achievement.descEn
-          return (
-            <span className={unlocked ? 'unlocked' : pastLife ? 'is-past-life' : ''} key={achievement.id} title={pastLife ? `${desc} · ${i18n(locale, 'ui.achievements.pastLife')}` : desc}>
-              {(unlocked || pastLife) && <i aria-hidden="true" className="achievement-seal" data-testid="achievement-seal">{HAN_SEAL}</i>}
-              {localized(locale, achievement)}
-            </span>
-          )
-        })}
-      </div>
     </section>
   )
 }
@@ -427,12 +486,8 @@ export function DockPanelPath({
 
         <section>
           <h3>{word(locale, 'Công pháp', 'Techniques')}</h3>
-          {TECHNIQUES.map((technique) => {
-            const level = game.techniques[technique.id] ?? 0
-            const sourceHeld = technique.sourceItemId !== undefined && (game.inventory[technique.sourceItemId] ?? 0) > 0
+          {techniqueRows(game).map(({ technique, level, locked, learnable }) => {
             const stageLocked = game.player.stage < technique.requiredStage
-            const locked = level === 0 && (stageLocked || !sourceHeld)
-            const canLearn = technique.sourceItemId !== undefined && sourceHeld && level < technique.maxLevel && game.player.stage >= technique.requiredStage
             const artwork = techniqueArtFor(technique.id)
             const status = level > 0
               ? word(locale, 'Đã học', 'Learned')
@@ -448,7 +503,7 @@ export function DockPanelPath({
                 </div>
                 {level > 0 || locked
                   ? <em>{status}</em>
-                  : <button disabled={game.terminal || encounterLocked || !canLearn} onClick={() => onAction({ kind: 'learn_technique', techniqueId: technique.id })} type="button">{word(locale, 'Lĩnh ngộ', 'Learn')}</button>}
+                  : <button disabled={!learnable} onClick={() => onAction({ kind: 'learn_technique', techniqueId: technique.id })} type="button">{word(locale, 'Lĩnh ngộ', 'Learn')}</button>}
               </div>
             )
           })}
@@ -456,17 +511,13 @@ export function DockPanelPath({
 
         <section>
           <h3>{word(locale, 'Trang bị', 'Equipment')}</h3>
-          {EQUIPMENT.map((equipment) => {
-            const equipped = game.equipment[equipment.slot] === equipment.itemId
-            const owned = (game.inventory[equipment.itemId] ?? 0) > 0
-            const item = getItem(equipment.itemId)
-            const stageLocked = game.player.stage < (item?.requiredStage ?? 0)
-            const locked = !equipped && (!owned || stageLocked)
+          {equipmentRows(game).map(({ equipment, equipped, locked, enabled }) => {
+            const stageLocked = game.player.stage < (getItem(equipment.itemId)?.requiredStage ?? 0)
             const artwork = itemArtFor(equipment.itemId)
             const status = equipped
               ? word(locale, 'Đang dùng', 'Equipped')
               : stageLocked
-                ? stageRequirement(locale, item?.requiredStage ?? 0)
+                ? stageRequirement(locale, getItem(equipment.itemId)?.requiredStage ?? 0)
                 : word(locale, 'Chưa sở hữu', 'Not owned')
             return (
               <div className={`rpg-entry art-entry ${locked ? 'is-locked' : ''}`} key={equipment.id}>
@@ -477,7 +528,7 @@ export function DockPanelPath({
                 </div>
                 {equipped || locked
                   ? <em>{status}</em>
-                  : <button disabled={game.terminal || game.encounter !== null} onClick={() => onAction({ kind: 'equip_item', itemId: equipment.itemId })} type="button">{word(locale, 'Trang bị', 'Equip')}</button>}
+                  : <button disabled={!enabled} onClick={() => onAction({ kind: 'equip_item', itemId: equipment.itemId })} type="button">{word(locale, 'Trang bị', 'Equip')}</button>}
               </div>
             )
           })}
@@ -498,28 +549,113 @@ export function DockPanelQuests({
   locale: Locale
   onAction: (action: Action) => void
 }): JSX.Element {
+  const nameFor = (quest: (typeof QUESTS)[number]): string => localized(locale, quest)
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'main' | 'side' | 'sect' | 'secret'>('all')
+
+  const unlockedQuests = QUESTS.filter((quest) => isQuestUnlocked(game, quest.id))
+  const filteredQuests = categoryFilter === 'all'
+    ? unlockedQuests
+    : unlockedQuests.filter((quest) => getQuestCategory(quest) === categoryFilter)
+
+  const availableAtLocation = unlockedQuests.filter((quest) => {
+    if (questStatus(game, quest.id) !== 'available') return false
+    const check = canAcceptQuest(game, quest.id)
+    return check.ok
+  })
+
+  const activeReadyToTurnIn = unlockedQuests.filter((quest) => {
+    if (questStatus(game, quest.id) !== 'active') return false
+    return canCompleteQuest(game, quest.id).ok
+  })
+
+  const filterOptions: Array<{ value: 'all' | 'main' | 'side' | 'sect' | 'secret'; label: string }> = [
+    { value: 'all', label: word(locale, 'Tất cả', 'All') },
+    { value: 'main', label: questCategoryLabel('main', locale) },
+    { value: 'side', label: questCategoryLabel('side', locale) },
+    { value: 'sect', label: questCategoryLabel('sect', locale) },
+    { value: 'secret', label: questCategoryLabel('secret', locale) },
+  ]
+
   return (
     <section aria-labelledby="quest-title">
       <div className="panel-heading compact">
         <h2 id="quest-title">{word(locale, 'Nhiệm vụ', 'Quests')}</h2>
-        <span>{QUESTS.filter((quest) => game.quests[quest.id]?.status === 'completed').length}/{QUESTS.length}</span>
+        <span role="status">{questCountLabel(game, locale)}</span>
       </div>
+
+      {/* Category filter bar */}
+      <div className="quest-filter-bar" role="group" aria-label={word(locale, 'Lọc theo loại', 'Filter by category')}>
+        {filterOptions.map((opt) => (
+          <button
+            key={opt.value}
+            className={`quest-filter-tab ${categoryFilter === opt.value ? 'is-active' : ''}`}
+            onClick={() => setCategoryFilter(opt.value)}
+            type="button"
+            aria-pressed={categoryFilter === opt.value}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Batch action buttons */}
+      {(availableAtLocation.length > 0 || activeReadyToTurnIn.length > 0) && (
+        <div className="quest-batch-actions" role="group" aria-label={word(locale, 'Hành động hàng loạt', 'Batch actions')}>
+          {availableAtLocation.length > 0 && (
+            <button
+              className="quest-batch-btn accept-all"
+              disabled={game.terminal || encounterLocked}
+              onClick={() => onAction({ kind: 'accept_all_quests' })}
+              type="button"
+            >
+              {word(locale, 'Nhận tất cả', 'Accept All')}
+              <em className="batch-count">({availableAtLocation.length})</em>
+            </button>
+          )}
+          {activeReadyToTurnIn.length > 0 && (
+            <button
+              className="quest-batch-btn claim-all"
+              disabled={game.terminal || encounterLocked}
+              onClick={() => onAction({ kind: 'claim_all_quests' })}
+              type="button"
+            >
+              {word(locale, 'Nộp tất cả', 'Turn In All')}
+              <em className="batch-count">({activeReadyToTurnIn.length})</em>
+            </button>
+          )}
+        </div>
+      )}
+
       <ul className="quest-list">
-        {QUESTS.filter((quest) => isQuestUnlocked(game, quest.id)).map((quest) => {
-          const status = game.quests[quest.id]?.status ?? 'available'
+        {filteredQuests.map((quest) => {
+          const status = questStatus(game, quest.id)
           const questSystem = quest.requiredSystemId === undefined ? null : activeSystem({ systemId: quest.requiredSystemId })
           const turnInReady = status === 'active' && canCompleteQuest(game, quest.id).ok
+          const acceptCheck = status === 'available' ? canAcceptQuest(game, quest.id) : undefined
+          const notAtLocation = acceptCheck !== undefined && !acceptCheck.ok && acceptCheck.code === 'NOT_AT_LOCATION'
+          const reqLocId = acceptCheck !== undefined && !acceptCheck.ok ? acceptCheck.at : undefined
+          const reqLocation = reqLocId ? getLocation(reqLocId) : undefined
+          const reqLocationName = reqLocation ? localized(locale, reqLocation) : (reqLocId ?? '')
+          const locBadge = notAtLocation ? (locale === 'vi' ? `Cần tới: ${reqLocationName}` : `Required location: ${reqLocationName}`) : null
+          const activeStep = quest.steps[currentStepIndex(game, quest.id)] ?? quest.steps[0]
+          const category = getQuestCategory(quest)
+
           return (
             <li key={quest.id} className={`quest-${status}`}>
               <div>
                 <strong>{localized(locale, quest)}</strong>
                 <span>{locale === 'vi' ? quest.descVi : quest.descEn}</span>
+                <span className={`quest-category-badge quest-category-${category}`}>
+                  {questCategoryLabel(category, locale)}
+                </span>
                 {questSystem !== null && <small className="system-quest-tag">{locale === 'vi' ? questSystem.headerVi : questSystem.headerEn} · {i18n(locale, 'system.difficulty')} {quest.difficulty}</small>}
+                {locBadge && <span className="proto-system-quest-loc">{locBadge}</span>}
               </div>
-              {status === 'active' && <p className="quest-step">{locale === 'vi' ? quest.steps[currentStepIndex(game, quest.id)]!.descVi : quest.steps[currentStepIndex(game, quest.id)]!.descEn}</p>}
+              {status === 'active' && activeStep !== undefined && <p className="quest-step">{locale === 'vi' ? activeStep.descVi : activeStep.descEn}</p>}
               {status === 'available' && (
                 <button
-                  disabled={game.terminal || encounterLocked}
+                  aria-label={`${word(locale, 'Nhận', 'Accept')}: ${nameFor(quest)}`}
+                  disabled={game.terminal || encounterLocked || !canAcceptQuest(game, quest.id).ok}
                   onClick={() => onAction({ kind: quest.requiredSystemId === undefined ? 'accept_quest' : 'system_accept_quest', questId: quest.id })}
                   type="button"
                 >
@@ -528,6 +664,7 @@ export function DockPanelQuests({
               )}
               {status === 'active' && (
                 <button
+                  aria-label={`${word(locale, 'Nộp', 'Turn in')}: ${nameFor(quest)}`}
                   disabled={game.terminal || encounterLocked || !turnInReady}
                   onClick={() => onAction({ kind: quest.requiredSystemId === undefined ? 'complete_quest' : 'system_turn_in_quest', questId: quest.id })}
                   type="button"
@@ -540,6 +677,9 @@ export function DockPanelQuests({
           )
         })}
       </ul>
+      {filteredQuests.length === 0 && (
+        <p className="muted quest-empty">{word(locale, 'Không có nhiệm vụ nào trong mục này.', 'No quests in this category.')}</p>
+      )}
     </section>
   )
 }
@@ -579,6 +719,7 @@ export function DockPanelPeople({
                   <strong>{localized(locale, npc)}</strong>
                   <span>{locale === 'vi' ? npc.roleVi : npc.roleEn}</span>
                   <button
+                    aria-label={`${word(locale, 'Nói chuyện với', 'Talk to')} ${localized(locale, npc)}`}
                     disabled={game.terminal || encounterLocked}
                     onClick={() => { onCloseJournal(); onAction({ kind: 'talk', npcId: npc.id }) }}
                     type="button"
@@ -593,6 +734,8 @@ export function DockPanelPeople({
     </section>
   )
 }
+
+export const PeopleDockPanel = DockPanelPeople
 
 export function ChronicleFeed({
   chronicle,

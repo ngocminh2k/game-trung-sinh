@@ -1,5 +1,6 @@
 import { EQUIPMENT, getEquipmentByItem } from '../content/rpg'
 import { ITEM_HERB } from './constants'
+import type { BuriedRelic, GlobalProfile } from './globalProfile'
 import type { GameState } from './types'
 
 // Issue #14 (AC2): the best item a finished run carried into the next life.
@@ -42,3 +43,82 @@ export function chooseInheritedRelic(state: GameState): string | null {
 
   return candidates.length > 0 ? (candidates[0] ?? null) : null
 }
+
+/** C3-13: Can the player bury an item at their current coordinates? */
+export function canBuryRelic(state: GameState, itemId: string): boolean {
+  if (!state.player.alive) return false
+  return (state.inventory[itemId] ?? 0) >= 1
+}
+
+/** C3-13: Bury an inventory item at current player coordinates into GlobalProfile. */
+export function buryRelic(
+  state: GameState,
+  profile: GlobalProfile,
+  itemId: string,
+): { state: GameState; profile: GlobalProfile; buried: BuriedRelic } | null {
+  if (!canBuryRelic(state, itemId)) return null
+
+  const count = state.inventory[itemId] ?? 0
+  const nextInventory = { ...state.inventory }
+  if (count <= 1) {
+    delete nextInventory[itemId]
+  } else {
+    nextInventory[itemId] = count - 1
+  }
+
+  const buried: BuriedRelic = {
+    itemId,
+    locationId: state.player.locationId,
+    x: state.player.posX,
+    y: state.player.posY,
+  }
+
+  const nextState: GameState = {
+    ...state,
+    inventory: nextInventory,
+  }
+
+  const nextProfile: GlobalProfile = {
+    ...profile,
+    buriedRelic: buried,
+  }
+
+  return { state: nextState, profile: nextProfile, buried }
+}
+
+/** C3-13: Can the player unearth a buried relic at their current coordinates? */
+export function canUnearthRelic(state: GameState, profile: GlobalProfile): boolean {
+  if (!state.player.alive || profile.buriedRelic === null) return false
+  return (
+    state.player.locationId === profile.buriedRelic.locationId &&
+    state.player.posX === profile.buriedRelic.x &&
+    state.player.posY === profile.buriedRelic.y
+  )
+}
+
+/** C3-13: Unearth the buried relic, adding it to inventory and clearing the profile slot. */
+export function unearthRelic(
+  state: GameState,
+  profile: GlobalProfile,
+): { state: GameState; profile: GlobalProfile; unearthedItemId: string } | null {
+  if (!canUnearthRelic(state, profile) || profile.buriedRelic === null) return null
+
+  const itemId = profile.buriedRelic.itemId
+  const nextInventory = {
+    ...state.inventory,
+    [itemId]: (state.inventory[itemId] ?? 0) + 1,
+  }
+
+  const nextState: GameState = {
+    ...state,
+    inventory: nextInventory,
+  }
+
+  const nextProfile: GlobalProfile = {
+    ...profile,
+    buriedRelic: null,
+  }
+
+  return { state: nextState, profile: nextProfile, unearthedItemId: itemId }
+}
+

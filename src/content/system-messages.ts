@@ -27,8 +27,11 @@ export const SYSTEM_MESSAGES: SystemMessage[] = [
   {
     id: 'sys_quest_loaded',
     kind: 'quest',
-    templateVi: 'Nhiệm vụ chính tải xong: {quest}. Hạn: {days} ngày. {objective}',
-    templateEn: 'Main quest loaded: {quest}. Time limit: {days} days. {objective}',
+    // P3: never call a quest "chính"/"Main" — the emit site serves System, world,
+    // and side quests alike. The deadline sentence is optional and gets folded
+    // into {objective} by the reducer when a quest actually declares one.
+    templateVi: 'Nhiệm vụ tải xong: {quest}. {objective}',
+    templateEn: 'Quest loaded: {quest}. {objective}',
   },
   {
     id: 'sys_reward',

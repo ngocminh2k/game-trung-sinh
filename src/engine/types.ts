@@ -98,7 +98,10 @@ export interface EncounterState {
 }
 
 export interface GameState {
-  version: 1
+  /** Save-schema version; kept in lockstep with GAME_STATE_VERSION (constants.ts).
+   *  The literal type is the tripwire — bump constants without bumping this and
+   *  `newGame`'s `satisfies GameState` stops compiling. */
+  version: 2
   seed: string
   rng: number
   day: number
@@ -147,6 +150,22 @@ export interface GameState {
   /** Relic id inherited into this run's starting inventory, or null. Optional
    *  so older saves stay valid; the schema default fills null on parse. */
   inheritedRelicId?: string | null
+  /** C3-14: Hibernation state (Cơ chế Ngủ Đông) for anti-churn / busy players.
+   *  Freezes in-game countdowns, crop timers and daily decay up to 7 real days. */
+  hibernation?: HibernationState | null
+  /** C3-16: Active outfit id (E4: 0 combat stats). Optional; null when none equipped. */
+  activeOutfitId?: string | null
+  /** C3-16: Active title id (E4: 0 combat stats). Optional; null when none equipped. */
+  activeTitleId?: string | null
+  /** C3-16: List of unlocked outfit ids purchased with in-game currency. */
+  unlockedOutfits?: string[]
+  /** C3-16: List of unlocked title ids earned via milestones. */
+  unlockedTitles?: string[]
+}
+
+export interface HibernationState {
+  active: boolean
+  startedAt: number
 }
 
 export type Direction = 'north' | 'south' | 'east' | 'west'
@@ -177,6 +196,10 @@ export type Action =
   | { kind: 'system_turn_in_quest'; questId: string }
   /** Legacy alias retained for existing commands and saves. */
   | { kind: 'complete_quest'; questId: string }
+  /** C3-10: 1-click batch accept and batch turn-in */
+  | { kind: 'accept_all_quests'; questIds?: string[] }
+  | { kind: 'claim_all_quests'; questIds?: string[] }
+  | { kind: 'complete_all_quests'; questIds?: string[] }
   | { kind: 'choose_talent'; talentId: string }
   | { kind: 'learn_technique'; techniqueId: string }
   | { kind: 'equip_item'; itemId: string }
@@ -190,6 +213,10 @@ export type Action =
   | { kind: 'unlock_skill'; nodeId: string }
 
   | { kind: 'resolve_route_event'; approach: 'present' | 'withhold' }
+  /** C3-16: Outfits & Titles (E4: Zero combat stats) */
+  | { kind: 'buy_outfit'; outfitId: string }
+  | { kind: 'equip_outfit'; outfitId: string | null }
+  | { kind: 'equip_title'; titleId: string | null }
   /** Cưỡng đoạt (Issue #19): threaten a personality-opposite NPC. 'plunder'
    *  seizes their stores once per run (raises infamy, empties their goodwill);
    *  'back_off' is the restraint branch that repairs the relationship. */
@@ -311,6 +338,11 @@ export type GameEvent =
   | { type: 'ACHIEVEMENT_UNLOCKED'; achievementId: string }
   | { type: 'ENDING'; endingId: string }
   | { type: 'CORRECTION_REJECTED'; count: number }
+  /** C3-16: Outfits & Titles Events */
+  | { type: 'OUTFIT_BOUGHT'; outfitId: string; currency: string; amount: number }
+  | { type: 'OUTFIT_EQUIPPED'; outfitId: string | null }
+  | { type: 'TITLE_EQUIPPED'; titleId: string | null }
+  | { type: 'OUTFIT_TITLE_SYNERGY'; synergyId: string; visualAura: string }
   // `at` names the location the action requires; `context` is the attempted
   // action kind — NOT_AT_LOCATION gates a dozen flows, and the narrator needs
   // both to say WHERE to go instead of a shrug.

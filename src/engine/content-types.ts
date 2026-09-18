@@ -324,6 +324,8 @@ export interface AchievementDef {
   nameEn: string
   descVi: string
   descEn: string
+  hintVi: string
+  hintEn: string
 }
 
 export interface BeatDef {
@@ -360,6 +362,8 @@ export interface StorySceneDef {
   titleEn: string
   textVi: string
   textEn: string
+  conciseVi?: string
+  conciseEn?: string
   choices: StoryChoiceDef[]
 }
 

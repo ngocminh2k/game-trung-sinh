@@ -207,6 +207,21 @@ export function SettingsScreen({ locale, settings, onChange, onBack }: SettingsS
       </div>
 
       <div className="settings-group">
+        <h2>{t(locale, 'ui.settings.conciseModeTitle')}</h2>
+        <p className="settings-hint">{t(locale, 'ui.settings.conciseModeHint')}</p>
+        <button
+          role="switch"
+          aria-checked={settings.conciseMode}
+          className="narration-switch concise-mode-switch"
+          data-testid="concise-mode-switch"
+          onClick={() => onChange({ ...settings, conciseMode: !settings.conciseMode })}
+        >
+          <span className="narration-track" aria-hidden="true"><i /></span>
+          {t(locale, settings.conciseMode ? 'ui.settings.conciseModeOn' : 'ui.settings.conciseModeOff')}
+        </button>
+      </div>
+
+      <div className="settings-group">
         <h2>Language</h2>
         <div className="menu-locale" role="group" aria-label="Language">
           <button aria-pressed={locale === 'vi'} onClick={() => onChange({ ...settings, locale: 'vi' })}>VI</button>

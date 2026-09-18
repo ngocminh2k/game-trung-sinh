@@ -1,0 +1,56 @@
+{"a":1,"t":"boot:new-game","name":"Kiếp mớiChọn khế ước & nhập đạo","id":"menu-new-game","changed":true,"ms":3868}
+{"a":2,"t":"boot:pick-system","name":"3Hệ Thống Hội ThươngHệ Thống tính tiền chính xác đến đồng bạ","id":"system-tile-sys_merchant","changed":true,"ms":2459}
+{"a":3,"t":"boot:difficulty","name":"Cân bằng","id":"difficulty-balanced","changed":true,"ms":1250}
+{"a":4,"t":"boot:confirm","name":"Ký khế ước","id":"newgame-confirm","changed":true,"ms":1265}
+{"a":5,"t":"boot:skip-loading","name":"Màn hình tải — nhấn để bắt đầu","id":"","changed":true,"ms":1499}
+{"a":6,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1232}
+{"a":7,"t":"map:travel","name":"Đi 4 bước tới Lũy tre","id":"map-pin-1-1","changed":true,"ms":1231}
+{"a":8,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1251}
+{"a":9,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1220}
+{"a":10,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1231}
+{"a":11,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1232}
+{"a":12,"t":"map:travel","name":"Đi tới Đường vào rừng sương (2 bước) — ⚠ bước vào −8..−12 HP","id":"map-pin-3-1","changed":true,"ms":1263}
+{"a":13,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1214}
+{"a":14,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1238}
+{"a":15,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1192}
+{"a":16,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1246}
+{"a":17,"t":"map:travel","name":"Đi 6 bước tới Dấu chân lang yêu — ⚠ bước vào −8..−12 HP","id":"map-pin-4-1","changed":true,"ms":1229}
+{"a":18,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1238}
+{"a":19,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1239}
+{"a":20,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1213}
+{"a":21,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1237}
+{"a":22,"t":"map:travel","name":"Đi tới Dấu ấn cổ bên hang (2 bước) — ⚠ bước vào −15..−20 HP","id":"map-pin-3-2","changed":true,"ms":1273}
+{"a":23,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1239}
+{"a":24,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1205}
+{"a":25,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1205}
+{"a":26,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1249}
+{"a":27,"t":"map:travel","name":"Đi 3 bước tới Bia đá vô danh","id":"map-pin-2-2","changed":true,"ms":1210}
+{"a":28,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1241}
+{"a":29,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1221}
+{"a":30,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1209}
+{"a":31,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1250}
+{"a":32,"t":"map:travel","name":"Đi 2 bước tới Phong ấn nứt vỡ — ⚠ bước vào −15..−20 HP","id":"map-pin-3-3","changed":true,"ms":1210}
+{"a":33,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1258}
+{"a":34,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1237}
+{"a":35,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1243}
+{"a":36,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1229}
+{"a":37,"t":"map:travel","name":"Đi 2 bước tới Bia đá vô danh","id":"map-pin-2-2","changed":true,"ms":1242}
+{"a":38,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1233}
+{"a":39,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1227}
+{"a":40,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1248}
+{"a":41,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1245}
+{"a":42,"t":"map:travel","name":"Đi 2 bước tới Phong ấn nứt vỡ — ⚠ bước vào −15..−20 HP","id":"map-pin-3-3","changed":true,"ms":1230}
+{"a":43,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1229}
+{"a":44,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1241}
+{"a":45,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1244}
+{"a":46,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1246}
+{"a":47,"t":"map:travel","name":"Đi 2 bước tới Bia đá vô danh","id":"map-pin-2-2","changed":true,"ms":1242}
+{"a":48,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":1252}
+{"a":49,"t":"play:Đạo đồ","name":"Đạo đồ","id":"","changed":true,"ms":1237}
+{"a":50,"t":"play:Hệ thống","name":"Hệ thống","id":"","changed":true,"ms":1243}
+{"a":51,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":1243}
+{"a":52,"t":"map:travel","name":"Đi 2 bước tới Phong ấn nứt vỡ — ⚠ bước vào −15..−20 HP","id":"map-pin-3-3","changed":true,"ms":1332}
+{"a":53,"t":"dialog:choose","name":"Gửi ấn tượng","id":"","changed":true,"ms":1255}
+{"a":54,"t":"dialog:choose","name":"Hệ thống","id":"","changed":false,"ms":20974}
+{"_summary":{"steps":54,"dead_clicks":1,"unique_gaps":["dialog:close: không tìm được điều khiển (/đóng|close|✕|quay lại/i) trên màn game","dialog mở nhưng không tìm thấy cách đóng"],"unique_issues":["tên dính chuỗi vô hồn: \"CCụ Mai Hoatrưởng làng♥ 0\" #button","tên dính chuỗi vô hồn: \"NNgo kể chuyệnngười kể chuyện♥ 0\" #button","tên dính chuỗi vô hồn: \"CChủ quán Hạnhchủ quán trọ♥ 0\" #button","tên dính chuỗi vô hồn: \"DDân binh Trườngdân binh♥ 0\" #button","tên dính chuỗi vô hồn: \"TTiểu Bảođứa trẻ tinh nghịch♥ 0\" #button","tên dính chuỗi vô hồn: \"NNông phu Tưnông phu♥ 0\" #button","tên dính chuỗi vô hồn: \"CCụ ông Thìncụ ông — chồng quá cố của Ma\" #button"],"last_chronicle":[],"screens_seen":["boot","play","map","dialog"],"days_seen":null,"errors":[]}}
+{"_telemetry_head":{"actions":53,"errors":[],"run":[{"version":1,"id":"pt-mu34s4gs-czrp","seed":"ink-and-jade","locale":"vi","difficulty":"balanced","startedAt":1789504509339,"endedAt":1789504568243,"endingId":"tragic_death","finalDay":1,"corrections":0,"nightForgotten":false,"steps":[{"t":2691,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":2692,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":2692,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":2692,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":3954,"day":1,"kind":"gather","loc":"village","hp":100,"qi":60,"gold":60},{"t":8922,"day":1,"kind":"move","loc":"village","hp":100,"qi":60,"gold":60},{"t":8923,"day":1,"kind":"move","loc":"misty_forest","hp":92,"qi":60,"gold":60},{"t":10203,"day":1,"kind":"gather","loc":"misty_forest","hp":92,"qi":60,"gold":60},{"t":15138,"day":1,"kind":"move","loc":"misty_forest","hp":92,"qi":60,"gold":60},{"t":15138,"day":1,"kind":"move","loc":"misty_forest","hp":92,"qi":60,"gold":60},{"t":15138,"day":1,"kind":"move","loc":"misty_forest","hp":92,"qi":60,"gold":60},{"t":15138,"day":1,"kind":"move","loc":"misty_forest","hp":92,"qi":60,"gold":60},{"t":15138,"day":1,"kind":"move","loc":"misty_forest","hp":92,"qi":60,"gold":60},{"t":15139,"day":1,"kind":"move","loc":"misty_forest","hp":80,"qi":60,"gold":60},{"t":16386,"day":1,"kind":"gather","loc":"misty_forest","hp":80,"qi":60,"gold":60},{"t":21370,"day":1,"kind":"move","loc":"misty_forest","hp":80,"qi":60,"gold":60},{"t":21371,"day":1,"kind":"move","loc":"sealed_cave","hp":65,"qi":60,"gold":60},{"t":22653,"day":1,"kind":"gather","loc":"sealed_cave","hp":65,"qi":60,"gold":60},{"t":27603,"day":1,"kind":"move","loc":"sealed_cave","hp":46,"qi":60,"gold":60},{"t":27603,"day":1,"kind":"move","loc":"sealed_cave","hp":46,"qi":60,"gold":60},{"t":27603,"day":1,"kind":"move","loc":"sealed_cave","hp":46,"qi":60,"gold":60},{"t":28836,"day":1,"kind":"gather","loc":"sealed_cave","hp":46,"qi":60,"gold":60},{"t":33802,"day":1,"kind":"move","loc":"sealed_cave","hp":46,"qi":60,"gold":60},{"t":33803,"day":1,"kind":"move","loc":"sealed_cave","hp":29,"qi":60,"gold":60},{"t":35052,"day":1,"kind":"gather","loc":"sealed_cave","hp":29,"qi":60,"gold":60},{"t":40089,"day":1,"kind":"move","loc":"sealed_cave","hp":29,"qi":60,"gold":60},{"t":40089,"day":1,"kind":"move","loc":"sealed_cave","hp":29,"qi":60,"gold":60},{"t":41335,"day":1,"kind":"gather","loc":"sealed_cave","hp":29,"qi":60,"gold":60},{"t":46352,"day":1,"kind":"move","loc":"sealed_cave","hp":29,"qi":60,"gold":60},{"t":46352,"day":1,"kind":"move","loc":"sealed_cave","hp":9,"qi":60,"gold":60},{"t":47584,"day":1,"kind":"gather","loc":"sealed_cave","hp":9,"qi":60,"gold":60},{"t":52602,"day":1,"kind":"move","loc":"sealed_cave","hp":9,"qi":60,"gold":60},{"t":52602,"day":1,"kind":"move","loc":"sealed_cave","hp":9,"qi":60,"gold":60},{"t":53869,"day":1,"kind":"gather","loc":"sealed_cave","hp":9,"qi":60,"gold":60},{"t":58903,"day":1,"kind":"move","loc":"sealed_cave","hp":9,"qi":60,"gold":60},{"t":58904,"day":1,"kind":"move","loc":"sealed_cave","hp":0,"qi":60,"gold":60}]}]}}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { NarratePayloadSchema, SuggestPayloadSchema } from '../vite.config'
+import { NarratePayloadSchema, SuggestPayloadSchema } from '../src/ai/proxy-helpers'
 
 // ---- Unit tests for the validation logic extracted from the proxy ----
 

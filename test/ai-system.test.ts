@@ -19,7 +19,9 @@ describe('S06 System AI boundary', () => {
       system: { id: 'sys_battle' },
       playerMessage: 'hello system',
     })
-    expect(payload?.questPool).toHaveLength(6)
+    // Design P1: a fresh pick sees only the chain head (requiredFlags: []).
+    expect(payload?.questPool).toHaveLength(1)
+    expect(payload?.questPool[0]?.id).toBe('q_sys_battle_01')
     expect(payload?.questPool.every((quest) => quest.id.startsWith('q_sys_battle_'))).toBe(true)
   })
 

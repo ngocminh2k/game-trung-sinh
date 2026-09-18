@@ -1,5 +1,6 @@
 import { ATTRIBUTE_POINTS_PER_BREAKTHROUGH } from './constants'
 import { applyProgress } from './stats'
+import { calculateHibernatedTime } from './time'
 import type { GameState } from './types'
 
 // Issue #14 (AC3): reward returning players for time away. 1 progress/hour
@@ -22,6 +23,7 @@ export interface OfflineGains {
   hoursAway: number
   progress: number
   breakthroughs: number
+  frozenHours?: number
 }
 
 // Minimal shape the helper needs; a full GameSession satisfies it structurally
@@ -34,15 +36,26 @@ export interface OfflineSession {
   chronicleKinds?: string[]
 }
 
-/** Whole-hour progress between two timestamps, or null below the 4h floor. */
+/** Whole-hour progress between two timestamps, accounting for hibernation freezing. */
 export function calculateOfflineGains(
   lastSavedAt: number,
   now: number,
-): { hoursAway: number; progressGain: number } | null {
+  hibernating: boolean = false,
+): { hoursAway: number; progressGain: number; frozenHours?: number } | null {
   const elapsedMs = Math.max(0, now - lastSavedAt)
-  if (elapsedMs < OFFLINE_MIN_MS) return null
-  const hoursAway = Math.floor(Math.min(elapsedMs, OFFLINE_CAP_MS) / (60 * 60 * 1000))
-  return { hoursAway, progressGain: hoursAway * OFFLINE_PROGRESS_PER_HOUR }
+  if (elapsedMs <= 0) return null
+  const { effectiveElapsedMs, frozenMs } = calculateHibernatedTime(elapsedMs, hibernating)
+  const frozenHours = Math.floor(frozenMs / (60 * 60 * 1000))
+
+  if (effectiveElapsedMs < OFFLINE_MIN_MS) {
+    return frozenHours > 0 ? { hoursAway: 0, progressGain: 0, frozenHours } : null
+  }
+  const hoursAway = Math.floor(Math.min(effectiveElapsedMs, OFFLINE_CAP_MS) / (60 * 60 * 1000))
+  return {
+    hoursAway,
+    progressGain: hoursAway * OFFLINE_PROGRESS_PER_HOUR,
+    ...(frozenHours > 0 ? { frozenHours } : {}),
+  }
 }
 
 /** Settle one slot-load: applies realm cascade + attribute points, appends the
@@ -53,12 +66,13 @@ export function applyOfflineGains<T extends OfflineSession>(
   session: T,
   elapsedMs: number,
   now: number,
-  lineFor: (hoursAway: number, progress: number) => string,
+  lineFor: (hoursAway: number, progress: number, frozenHours?: number) => string,
 ): { session: T; gains: OfflineGains | null } {
-  if (session.game.terminal || elapsedMs < OFFLINE_MIN_MS) {
+  const hibernating = session.game.hibernation?.active === true
+  if (session.game.terminal || (elapsedMs < OFFLINE_MIN_MS && !hibernating)) {
     return { session, gains: null }
   }
-  const calc = calculateOfflineGains(now - elapsedMs, now)
+  const calc = calculateOfflineGains(now - elapsedMs, now, hibernating)
   if (calc === null) return { session, gains: null }
 
   const advanced = applyProgress(session.game, calc.progressGain)
@@ -67,12 +81,14 @@ export function applyOfflineGains<T extends OfflineSession>(
     hoursAway: calc.hoursAway,
     progress: calc.progressGain,
     breakthroughs: advanced.breakthroughs,
+    frozenHours: calc.frozenHours,
   }
   return {
     session: {
       ...session,
       game: {
         ...session.game,
+        hibernation: null, // wake up upon return
         player: {
           ...session.game.player,
           stage: advanced.stage,
@@ -85,7 +101,7 @@ export function applyOfflineGains<T extends OfflineSession>(
       // Append (newest last, like act()) and keep chronicleKinds index-aligned
       // with chronicle — the feed colors each line by its kind at that index.
       // 'trained' reuses the existing cultivation-gain styling.
-      chronicle: [...session.chronicle, lineFor(calc.hoursAway, calc.progressGain)],
+      chronicle: [...session.chronicle, lineFor(calc.hoursAway, calc.progressGain, calc.frozenHours)],
       ...(session.chronicleKinds === undefined
         ? {}
         : { chronicleKinds: [...session.chronicleKinds, 'trained'] }),

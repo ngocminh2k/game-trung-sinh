@@ -134,13 +134,20 @@ interface AttributeAllocationProps {
   onAllocate: (attribute: AttributeName) => void
 }
 
+export interface AttributeOption {
+  attribute: AttributeName
+  seal: string
+  vi: string
+  en: string
+}
+
 // Shared by the side panel and the issue-#34 banner so their labels can never
 // drift apart.
-const ATTRIBUTE_OPTIONS: ReadonlyArray<{ attribute: AttributeName; vi: string; en: string }> = [
-  { attribute: 'body', vi: 'Thân', en: 'Body' },
-  { attribute: 'mind', vi: 'Tâm', en: 'Mind' },
-  { attribute: 'charm', vi: 'Mị', en: 'Charm' },
-  { attribute: 'luck', vi: 'Vận', en: 'Luck' },
+const ATTRIBUTE_OPTIONS: ReadonlyArray<AttributeOption> = [
+  { attribute: 'body', seal: '身', vi: 'Thân', en: 'Body' },
+  { attribute: 'mind', seal: '心', vi: 'Tâm', en: 'Mind' },
+  { attribute: 'charm', seal: '魅', vi: 'Mị', en: 'Charm' },
+  { attribute: 'luck', seal: '運', vi: 'Vận', en: 'Luck' },
 ]
 
 // Issue #34: English "1 point" vs "2 points" — shared so banner and panel agree.

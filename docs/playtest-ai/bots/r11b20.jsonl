@@ -1,0 +1,122 @@
+{"a":1,"t":"boot:new-game","name":"Kiếp mớiChọn khế ước & nhập đạo","id":"menu-new-game","changed":true,"ms":3809}
+{"a":2,"t":"boot:pick-system","name":"2Hệ Thống Luyện ĐanHệ Thống ghi chú về các phản ứng. Có nhữn","id":"system-tile-sys_alchemy","changed":true,"ms":869}
+{"a":3,"t":"boot:difficulty","name":"Cân bằng","id":"difficulty-balanced","changed":true,"ms":892}
+{"a":4,"t":"boot:confirm","name":"Ký khế ước","id":"newgame-confirm","changed":true,"ms":763}
+{"a":5,"t":"boot:skip-loading","name":"Màn hình tải — nhấn để bắt đầu","id":"","changed":true,"ms":1221}
+{"a":6,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":754}
+{"a":7,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":798}
+{"a":8,"t":"dialog:choose","name":"Dùng vật phẩm","id":"","changed":true,"ms":781}
+{"a":9,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":961}
+{"a":10,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":767}
+{"a":11,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":780}
+{"a":12,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":763}
+{"a":13,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":730}
+{"a":14,"t":"dialog:choose","name":"Dùng vật phẩm","id":"","changed":true,"ms":752}
+{"a":15,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":776}
+{"a":16,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":767}
+{"a":17,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":743}
+{"a":18,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":821}
+{"a":19,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":752}
+{"a":20,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":751}
+{"a":21,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":719}
+{"a":22,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":745}
+{"a":23,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":732}
+{"a":24,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":753}
+{"a":25,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":718}
+{"a":26,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":739}
+{"a":27,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":738}
+{"a":28,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":731}
+{"a":29,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":723}
+{"a":30,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":817}
+{"a":31,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":719}
+{"a":32,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":777}
+{"a":33,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":750}
+{"a":34,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":766}
+{"a":35,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":747}
+{"a":36,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":739}
+{"a":37,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":765}
+{"a":38,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":730}
+{"a":39,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":745}
+{"a":40,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":796}
+{"a":41,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":746}
+{"a":42,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":765}
+{"a":43,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":731}
+{"a":44,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":732}
+{"a":45,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":744}
+{"a":46,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":779}
+{"a":47,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":751}
+{"a":48,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":759}
+{"a":49,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":768}
+{"a":50,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":876}
+{"a":51,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":734}
+{"a":52,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":754}
+{"a":53,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":747}
+{"a":54,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":762}
+{"a":55,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":721}
+{"a":56,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":725}
+{"a":57,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":743}
+{"a":58,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":740}
+{"a":59,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":751}
+{"a":60,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":732}
+{"a":61,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":738}
+{"a":62,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":750}
+{"a":63,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":726}
+{"a":64,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":750}
+{"a":65,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":743}
+{"a":66,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":726}
+{"a":67,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":726}
+{"a":68,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":713}
+{"a":69,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":728}
+{"a":70,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":761}
+{"a":71,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":722}
+{"a":72,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":761}
+{"a":73,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":750}
+{"a":74,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":734}
+{"a":75,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":723}
+{"a":76,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":732}
+{"a":77,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":712}
+{"a":78,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":744}
+{"a":79,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":722}
+{"a":80,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":701}
+{"a":81,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":712}
+{"a":82,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":731}
+{"a":83,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":720}
+{"a":84,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":733}
+{"a":85,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":733}
+{"a":86,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":717}
+{"a":87,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":722}
+{"a":88,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":736}
+{"a":89,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":728}
+{"a":90,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":724}
+{"a":91,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":715}
+{"a":92,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":710}
+{"a":93,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":719}
+{"a":94,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":763}
+{"a":95,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":720}
+{"a":96,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":724}
+{"a":97,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":724}
+{"a":98,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":730}
+{"a":99,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":727}
+{"a":100,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":738}
+{"a":101,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":698}
+{"a":102,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":714}
+{"a":103,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":723}
+{"a":104,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":713}
+{"a":105,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":715}
+{"a":106,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":727}
+{"a":107,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":724}
+{"a":108,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":728}
+{"a":109,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":715}
+{"a":110,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":716}
+{"a":111,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":710}
+{"a":112,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":745}
+{"a":113,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":716}
+{"a":114,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":729}
+{"a":115,"t":"play:hái thảo","name":"Hái thảo","id":"","changed":true,"ms":719}
+{"a":116,"t":"play:Hành trang","name":"Mở Hành trang và giang hồ","id":"","changed":true,"ms":728}
+{"a":117,"t":"dialog:choose","name":"Trang bị ngay","id":"","changed":true,"ms":732}
+{"a":118,"t":"dialog:close","name":"← Về thế giới — đóng nhật ký (Esc)","id":"","changed":true,"ms":740}
+{"a":119,"t":"play:Chợ","name":"Chợ","id":"","changed":true,"ms":701}
+{"a":120,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":720}
+{"_summary":{"steps":120,"dead_clicks":0,"unique_gaps":[],"unique_issues":["tên dính chuỗi vô hồn: \"CCụ Mai Hoatrưởng làng♥ 0\" #button","tên dính chuỗi vô hồn: \"NNgo kể chuyệnngười kể chuyện♥ 0\" #button","tên dính chuỗi vô hồn: \"CChủ quán Hạnhchủ quán trọ♥ 0\" #button","tên dính chuỗi vô hồn: \"DDân binh Trườngdân binh♥ 0\" #button"],"last_chronicle":[],"screens_seen":["boot","play","dialog"],"days_seen":null,"errors":[]}}
+{"_telemetry_head":{"actions":120,"errors":[],"run":[{"version":1,"id":"pt-mu3j1r0b-143u","seed":"ink-and-jade","locale":"vi","difficulty":"balanced","startedAt":1789528473082,"endedAt":null,"endingId":null,"finalDay":2,"corrections":0,"nightForgotten":false,"steps":[{"t":1025,"day":1,"kind":"gather","loc":"village","hp":100,"qi":60,"gold":60},{"t":2624,"day":1,"kind":"use_item","loc":"village","hp":100,"qi":60,"gold":60},{"t":5208,"day":1,"kind":"train","loc":"village","hp":94,"qi":50,"gold":60},{"t":6006,"day":1,"kind":"gather","loc":"village","hp":94,"qi":50,"gold":60},{"t":7523,"day":1,"kind":"use_item","loc":"village","hp":100,"qi":50,"gold":60},{"t":8355,"day":1,"kind":"equip_item","loc":"village","hp":100,"qi":50,"gold":60},{"t":10668,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":11504,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":13037,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":15305,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":16053,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":17542,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":19805,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":20619,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":22172,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":24472,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":25251,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":26751,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":29131,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":29907,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":31419,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":33756,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":34558,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":36219,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":38505,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":39267,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":40778,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":43052,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":43820,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":45317,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":47609,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":48350,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":49835,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":52106,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":52885,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":54402,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":56637,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":57384,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":58833,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":61050,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":61800,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":63266,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":65501,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":66233,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":67682,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":69920,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":70668,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":72133,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":74348,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":75082,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":76547,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":78765,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":79500,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":80965,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":83181,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":83931,"day":2,"kind":"gather","loc":"village","hp":87,"qi":40,"gold":60},{"t":85398,"day":2,"kind":"equip_item","loc":"village","hp":87,"qi":40,"gold":60},{"t":87614,"day":2,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60}]}]}}

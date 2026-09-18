@@ -10,12 +10,12 @@ interface SlotEnvelope {
 }
 
 async function bootSlots(page: Page): Promise<void> {
-  // Issue #17 auto-resume boots straight into the run when a resume marker is
-  // set; these specs are about slot management, so start from the menu.
-  await page.addInitScript((key) => window.localStorage.removeItem(key), ACTIVE_KEY)
-  await page.goto('/')
+  // ?fresh=1 boots straight to the menu instead of auto-resuming; replacing
+  // state back to '/' ensures subsequent page.reload() tests canonical auto-resume.
+  await page.goto('/?fresh=1')
   await page.getByTestId('menu-load-game').click()
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
+  await page.evaluate(() => window.history.replaceState({}, '', '/'))
 }
 
 async function readSlots(page: Page): Promise<Record<string, SlotEnvelope>> {
@@ -27,10 +27,10 @@ async function readActive(page: Page): Promise<string | null> {
   return page.evaluate((key) => window.localStorage.getItem(key), ACTIVE_KEY)
 }
 
-// After a reload the app resumes the marked run (issue #17), so get back to the
-// menu through the in-game exit before opening the slot screen.
+// After a reload the app resumes the marked run (issue #17), so reach the
+// menu deterministically using ?fresh=1 before opening the slot screen.
 async function backToSlots(page: Page): Promise<void> {
-  await page.getByTestId('game-exit-menu').click()
+  await page.goto('/?fresh=1')
   await page.getByTestId('menu-load-game').click()
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
 }
@@ -62,6 +62,8 @@ test('W1 save-slots: selecting an empty slot starts a new game, travel advances 
 
   // Reload and verify the same slot remains active and the autosave captured the move.
   await page.reload()
+  await page.getByRole('button', { name: /nhấn|press/i }).click()
+  await expect(page.getByTestId('game-screen')).toBeVisible()
   await backToSlots(page)
   expect(await readActive(page)).toBe('1')
   const slots = await readSlots(page)
@@ -74,13 +76,17 @@ test('W1 save-slots: legacy session is migrated into slot 1 and the active slot 
     const legacy = { game: { version: 1, seed: 'legacy-migrate', rng: 1, day: 5, player: { hp: 10, qi: 10, gold: 0, attrs: { body: 1, mind: 1, charm: 1, luck: 1 }, stage: 0, progress: 0, posX: 3, posY: 3, locationId: 'village', alive: true }, spiritRoot: { kind: 'defective', elementVi: 'Mộc', elementEn: 'Wood', efficiency: 0.5 }, inventory: {}, storage: {}, flags: {}, quests: {}, achievements: [], talents: [], techniques: {}, equipment: { weapon: null, robe: null, accessory: null }, encounter: null, lastLotteryDay: null, corrections: 0, terminal: false, endingId: null }, locale: 'en', chronicle: ['legacy'] }
     window.localStorage.setItem('phe-can-ky:save:v1', JSON.stringify(legacy))
   })
-  await page.goto('/')
+  await page.goto('/?fresh=1')
   await page.getByTestId('menu-load-game').click()
   await expect(page.getByTestId('save-slots-screen')).toBeVisible()
   expect(await readActive(page)).toBe('1')
   const slots = await readSlots(page)
   expect(slots['1']?.session.game.seed).toBe('legacy-migrate')
   expect(slots['1']?.session.game.day).toBe(5)
+  // r7-review HIGH: W1 is the suite's only live v1 seed — pin that the load
+  // path actually stamped it to GAME_STATE_VERSION (unit proof exists at
+  // test/migration.test.ts:46; this is the end-to-end counterpart).
+  expect(slots['1']?.session.game.version).toBe(2)
 })
 
 test('W1 save-slots: deleting the active slot removes it and clears the active pointer', async ({ page }) => {
@@ -91,6 +97,8 @@ test('W1 save-slots: deleting the active slot removes it and clears the active p
   await page.getByRole('button', { name: /nhấn|press/i }).click()
   await expect(page.getByTestId('game-screen')).toBeVisible()
   await page.reload()
+  await page.getByRole('button', { name: /nhấn|press/i }).click()
+  await expect(page.getByTestId('game-screen')).toBeVisible()
   await backToSlots(page)
   // First click switches the delete button into confirm state; second click deletes.
   await page.getByRole('button', { name: /xóa lưu|delete save/i }).click()

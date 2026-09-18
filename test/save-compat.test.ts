@@ -9,7 +9,7 @@ import { validateGameState } from '../src/engine'
 import { GAME_STATE_VERSION } from '../src/engine/constants'
 
 const LEGACY_SAVE = {
-  version: 1,
+  version: 2,
   seed: 'pre-x20',
   rng: 1,
   day: 4,
@@ -38,8 +38,8 @@ const LEGACY_SAVE = {
 }
 
 describe('save compatibility (T13)', () => {
-  it('pins the game-state version to 1', () => {
-    expect(GAME_STATE_VERSION).toBe(1)
+  it('pins the game-state version to 2', () => {
+    expect(GAME_STATE_VERSION).toBe(2)
   })
 
   it('gives pre-x20 saves safe defaults for every new expansion field', () => {
@@ -53,7 +53,7 @@ describe('save compatibility (T13)', () => {
 
   it('keeps the legacy save data intact through the migration', () => {
     const restored = validateGameState(LEGACY_SAVE)
-    expect(restored.version).toBe(1)
+    expect(restored.version).toBe(GAME_STATE_VERSION)
     expect(restored.seed).toBe('pre-x20')
     expect(restored.day).toBe(4)
     expect(restored.player.hp).toBe(90)

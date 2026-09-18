@@ -1,0 +1,201 @@
+{
+  "name": "Game Design Knowledge Semantic Index",
+  "version": "1.0",
+  "generated_at": "2026-09-12",
+  "total_files": 66,
+  "primary_textbooks": [
+    {
+      "id": "schell_art_of_game_design",
+      "title": "The Art of Game Design: A Book of Lenses",
+      "author": "Jesse Schell",
+      "pages": 518,
+      "characters": 1110158,
+      "file": "5_Bo_50MB_OpenClaw/clean_docs/The_Art_of_Game_Design_Jesse_Schell.md",
+      "vietnamese_chapters": [
+        {
+          "chapter": 1,
+          "file": "5_Bo_50MB_OpenClaw/clean_docs/The_Art_of_Game_Design_Chuong_1_Viblo.md"
+        },
+        {
+          "chapter": 2,
+          "file": "5_Bo_50MB_OpenClaw/clean_docs/The_Art_of_Game_Design_Chuong_2_Viblo.md"
+        },
+        {
+          "chapter": 3,
+          "file": "5_Bo_50MB_OpenClaw/clean_docs/The_Art_of_Game_Design_Chuong_3_Viblo.md"
+        }
+      ],
+      "key_topics": [
+        "100 Lenses",
+        "Elemental Tetrad",
+        "Experience Design",
+        "Game Psychology",
+        "Theme Unification"
+      ]
+    },
+    {
+      "id": "fullerton_game_design_workshop",
+      "title": "Game Design Workshop: A Playcentric Approach to Creating Innovative Games",
+      "author": "Tracy Fullerton",
+      "pages": 587,
+      "characters": 1717776,
+      "file": "5_Bo_50MB_OpenClaw/clean_docs/Game_Design_Workshop_Tracy_Fullerton.md",
+      "key_topics": [
+        "Playcentric Design",
+        "Formal Elements",
+        "Dramatic Elements",
+        "System Dynamics",
+        "Paper Prototyping",
+        "Playtesting",
+        "Game Balancing"
+      ]
+    },
+    {
+      "id": "rogers_level_up",
+      "title": "Level Up! The Guide to Great Video Game Design",
+      "author": "Scott Rogers",
+      "pages": 516,
+      "characters": 825732,
+      "file": "5_Bo_50MB_OpenClaw/clean_docs/Level_Up_The_Guide_to_Great_Video_Game_Design_Scott_Rogers.md",
+      "key_topics": [
+        "3Cs (Camera, Controls, Character)",
+        "Combat Design",
+        "Boss Battles",
+        "Level Design",
+        "HUD & UI",
+        "Platform Mechanics",
+        "Pitch Documents"
+      ]
+    },
+    {
+      "id": "koster_theory_of_fun",
+      "title": "A Theory of Fun for Game Design",
+      "author": "Raph Koster",
+      "edition": "Full Text 12 Chapters",
+      "characters": 194732,
+      "file": "1_Sach_Giao_Trinh/A_Theory_of_Fun_for_Game_Design_Raph_Koster_FULL.md",
+      "companion_slides_ocr": "1_Sach_Giao_Trinh/A_Theory_of_Fun_for_Game_Design_theoryoffun.com_ORIGINAL_2004.md",
+      "key_topics": [
+        "Fun as Learning",
+        "Pattern Recognition",
+        "Brain Cognition",
+        "Possibility Space",
+        "Game Ethics"
+      ]
+    },
+    {
+      "id": "juul_casual_revolution",
+      "title": "A Casual Revolution: Reinventing Video Games and Their Players",
+      "author": "Jesper Juul (MIT Press)",
+      "edition": "Expanded Author Research Edition",
+      "characters": 144613,
+      "file": "1_Sach_Giao_Trinh/Juul_Casual_Revolution_Expanded_Edition.md",
+      "key_topics": [
+        "Casual Games",
+        "Interface vs Gameplay",
+        "Match-3 Puzzle History",
+        "Failure & Difficulty Psychology"
+      ]
+    }
+  ],
+  "problem_index": [
+    {
+      "problem": "Combat feels floaty, lacks impact or punch",
+      "keywords": [
+        "combat",
+        "hitstop",
+        "juice",
+        "impact",
+        "screen shake",
+        "knockback"
+      ],
+      "target_file": "5_Bo_50MB_OpenClaw/clean_docs/Level_Up_The_Guide_to_Great_Video_Game_Design_Scott_Rogers.md",
+      "section": "Level 10: The Elements of Combat",
+      "recommendation": "Add hitstop freeze frames (2-4 frames), knockback displacement, audio impact, camera shake."
+    },
+    {
+      "problem": "Player drops out after Day 1 (Low D1/D7 retention)",
+      "keywords": [
+        "retention",
+        "onboarding",
+        "churn",
+        "ftue",
+        "first 5 minutes"
+      ],
+      "target_file": "3_Phan_Tich/SavaMeta_80pct_Game_Mobile_That_Bai_Sau_30_Ngay.md",
+      "section": "Tất cả bài viết",
+      "recommendation": "Shorten tutorial under 90s, grant early win within 2 minutes, clarify core loop before complexity."
+    },
+    {
+      "problem": "How to design multi-phase Boss fights",
+      "keywords": [
+        "boss",
+        "boss fight",
+        "phases",
+        "telegraph",
+        "arena"
+      ],
+      "target_file": "5_Bo_50MB_OpenClaw/clean_docs/Level_Up_The_Guide_to_Great_Video_Game_Design_Scott_Rogers.md",
+      "section": "Level 13: Now You're Playing with Power / The Big Boss",
+      "recommendation": "3-phase structure: Phase 1 introduce moves, Phase 2 combine with environmental hazards, Phase 3 desperate frenzy mode."
+    },
+    {
+      "problem": "How to write a 1-page GDD to pitch to executives or investors",
+      "keywords": [
+        "one pager",
+        "pitch",
+        "gdd template",
+        "high concept"
+      ],
+      "target_file": "2_GDD_Templates/IGA_OnePager_Template_GoogleDocs.md",
+      "section": "Whole template",
+      "recommendation": "Use 5 sections: Hook, Core Pillars (3 max), Core Loop, Target Audience, Visual Style."
+    },
+    {
+      "problem": "Camera clipping through walls or awkward 3D angles",
+      "keywords": [
+        "camera",
+        "3c",
+        "third person",
+        "clipping",
+        "fov",
+        "occlusion"
+      ],
+      "target_file": "5_Bo_50MB_OpenClaw/clean_docs/Level_Up_The_Guide_to_Great_Video_Game_Design_Scott_Rogers.md",
+      "section": "Level 7: The Three C's - Part 3: Camera",
+      "recommendation": "Implement smart pitch elevation near walls and object dither/fade transparency when occluding character."
+    },
+    {
+      "problem": "Players feel game is boring after mastering it",
+      "keywords": [
+        "fun",
+        "boredom",
+        "pattern",
+        "mastery",
+        "possibility space"
+      ],
+      "target_file": "1_Sach_Giao_Trinh/A_Theory_of_Fun_for_Game_Design_Raph_Koster_FULL.md",
+      "section": "Chapter 2: How the Brain Works & Chapter 7: The Problem with Learning",
+      "recommendation": "Introduce emergent systems, asymmetric player roles, or new mechanics that shift the possibility space."
+    },
+    {
+      "problem": "How to conduct an objective playtest without biasing players",
+      "keywords": [
+        "playtesting",
+        "user test",
+        "feedback paradox",
+        "observation"
+      ],
+      "target_file": "5_Bo_50MB_OpenClaw/clean_docs/Game_Design_Workshop_Tracy_Fullerton.md",
+      "section": "Chapter 9: Playtesting",
+      "recommendation": "Silence is golden: watch where players get stuck without speaking; observe actions, do not trust verbal explanations."
+    }
+  ],
+  "gdd_templates_map": {
+    "one_pager": "2_GDD_Templates/IGA_OnePager_Template_GoogleDocs.md",
+    "full_production_gdd": "2_GDD_Templates/IGA_GDD_Template_GoogleDocs.md",
+    "indie_simple_gdd": "2_GDD_Templates/itchio_barrels_Simple_GDD_Template.md",
+    "git_modular_markdown_gdd": "2_GDD_Templates/GitHub_LazyHatGuy_GDDMarkdownTemplate_README.md",
+    "beginner_gdd": "2_GDD_Templates/GitHub_kosinaz_GDD_Template_for_Beginners.md"
+  }
+}

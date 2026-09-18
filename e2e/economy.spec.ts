@@ -13,9 +13,8 @@ function freshGame(update?: (game: GameState) => GameState): GameState {
 
 async function openGame(page: Page, game = freshGame()): Promise<void> {
   const session: GameSession = { game, locale: 'en', chronicle: ['Economy acceptance save.'] }
-  const slot = { slotId: 1, savedAt: 1, session }
+  const slot = { slotId: 1, savedAt: Date.now(), session }
   await page.addInitScript(({ slotsKey, activeSlotKey, value }) => {
-    if (window.localStorage.getItem(slotsKey) !== null) return
     window.localStorage.setItem(slotsKey, value)
     window.localStorage.setItem(activeSlotKey, '1')
   }, { slotsKey: SLOTS_KEY, activeSlotKey: ACTIVE_SLOT_KEY, value: JSON.stringify({ 1: slot }) })
@@ -26,8 +25,10 @@ async function openGame(page: Page, game = freshGame()): Promise<void> {
   if (await narration.count() > 0) await narration.locator('.story-close').click()
 }
 
+const currencyStat = (page: Page, testId: string) => page.getByTestId(testId).first()
+
 async function readCurrency(page: Page, testId: string): Promise<number> {
-  const raw = await page.getByTestId(testId).textContent() ?? ''
+  const raw = await currencyStat(page, testId).textContent() ?? ''
   const match = raw.match(/(\d[\d,]*)/)
   return match === null ? -1 : Number(match[1].replace(/,/g, ''))
 }
@@ -50,7 +51,7 @@ test('trading at the market: gold first, silver covers any shortfall', async ({ 
   const pillRow = page.locator('.shop-list > div').filter({ hasText: 'Qi-Gathering Pill' })
   await pillRow.getByRole('button', { name: 'Buy' }).click()
 
-  await expect(page.getByTestId('currency-gold')).toContainText('0')
+  await expect(currencyStat(page, 'currency-gold')).toContainText('0')
   const silverAfter = await readCurrency(page, 'currency-silver')
   expect(silverAfter).toBeLessThan(silverBefore)
   // The bag after trading shows the purchase.
@@ -66,10 +67,10 @@ test('currency exchange: 1 spirit stone → 10 gold and 10 silver → 1 gold', a
   await page.locator('#dock-tab-market').click()
 
   await page.getByRole('button', { name: /Exchange 1 spirit stone → 10 gold/ }).click()
-  await expect(page.getByTestId('currency-gold')).toContainText('10')
-  await expect(page.getByTestId('currency-spirit-stones')).toContainText('1')
+  await expect(currencyStat(page, 'currency-gold')).toContainText('10')
+  await expect(currencyStat(page, 'currency-spirit-stones')).toContainText('1')
 
   await page.getByRole('button', { name: /Exchange 10 silver → 1 gold/ }).click()
-  await expect(page.getByTestId('currency-gold')).toContainText('11')
-  await expect(page.getByTestId('currency-silver')).toContainText('15')
+  await expect(currencyStat(page, 'currency-gold')).toContainText('11')
+  await expect(currencyStat(page, 'currency-silver')).toContainText('15')
 })

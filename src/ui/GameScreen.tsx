@@ -24,7 +24,10 @@ import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST,
   findStoryChoice,
   formatSystemMessage,
   nextStageThreshold,
+  isBreakthroughReady,
+  playerMaxHp,
   queueDrain,
+  questStatus,
   readDeathCause,
   RETREAT_HP_COST,
   storyRouteEncounter,
@@ -50,8 +53,10 @@ import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
 import { playerArtFor, type PlayerActionKey } from './playerArt'
 import { requestSuggestion } from '../ai/narration'
 import { requestSystemReply, type SystemReply } from '../ai/system'
+import { getSceneText } from '../engine/concise'
 import { t } from '../i18n'
 import { allocationLabel, ATTRIBUTE_OPTIONS, AttributeAllocation, EquipmentSummary, HoiDots, pointsWord } from './gameScreen/components'
+import { combatConsumableLabel, combatConsumables } from './gameScreen/helpers'
 import { type DockPanel } from './gameScreen/constants'
 import {
   ChronicleFeed,
@@ -87,6 +92,9 @@ export interface GameScreenProps {
   /** Achievements earned in past lives (AC1). The market panel stamps these on
    *  its deed list so cross-slot persistence is visible, not just stored. */
   unlockedAchievementIds?: readonly string[]
+  /** C3-18: Concise Mode condenses narrative event and scene descriptions down to 1–2 punchy sentences. */
+  conciseMode?: boolean
+  onConciseModeToggle?: () => void
 }
 
 function word(locale: Locale, vi: string, en: string): string {
@@ -188,10 +196,34 @@ function mapNodeGlyph(kind: 'npc' | 'event' | 'exit' | 'danger'): string {
   }
 }
 
-export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, chronicleKinds, onAction, onLocaleChange, onRestart = () => {}, onExitToMenu, storyOpen = false, onStoryClose = () => {}, unlockedEndingIds, unlockedAchievementIds }: GameScreenProps) {
+/** RESIDUAL #31: ≥921px ProtoShell owns the only topbar, so the legacy header's
+ * duplicated controls UNMOUNT (display:none would keep them in the DOM and
+ * duplicate ids/testids for RTL + Playwright strict locators). matchMedia is
+ * the single responsive source of truth; absent (jsdom/SSR) → legacy layout.
+ * ponytail: ceiling = fixed 921px breakpoint; upgrade path = share one
+ * useMediaQuery helper if a second responsive mount point ever appears. */
+const PROTO_TOPBAR_QUERY = '(min-width: 921px)'
+
+function useProtoMergedTopbar(): boolean {
+  const [merged, setMerged] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia?.(PROTO_TOPBAR_QUERY).matches === true,
+  )
+  useEffect(() => {
+    const query = window.matchMedia?.(PROTO_TOPBAR_QUERY)
+    if (query === undefined) return
+    const sync = (): void => { setMerged(query.matches) }
+    sync()
+    query.addEventListener?.('change', sync)
+    return () => { query.removeEventListener?.('change', sync) }
+  }, [])
+  return merged
+}
+
+export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, chronicle, chronicleKinds, onAction, onLocaleChange, onRestart = () => {}, onExitToMenu, storyOpen = false, onStoryClose = () => {}, unlockedEndingIds, unlockedAchievementIds, conciseMode, onConciseModeToggle }: GameScreenProps) {
   const [command, setCommand] = useState('')
   const [codexOpen, setCodexOpen] = useState(false)
   const [journalOpen, setJournalOpen] = useState(false)
+  const [protoModalActive, setProtoModalActive] = useState(false)
   const [activeDock, setActiveDock] = useState<DockPanel>(() => contextualDockFor(game.player.locationId))
   const [selectedInventoryItemId, setSelectedInventoryItemId] = useState<string | null>(null)
   const [hurtFeedbackNonce, setHurtFeedbackNonce] = useState<number | null>(null)
@@ -202,7 +234,6 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const [systemMessage, setSystemMessage] = useState('')
   const [systemReply, setSystemReply] = useState<SystemReply | null>(null)
   const [systemReplying, setSystemReplying] = useState(false)
-  const journalLauncher = useRef<HTMLButtonElement>(null)
   const chronicleRef = useRef<HTMLDivElement>(null)
   const allocationHeading = useRef<HTMLHeadingElement>(null!)
   const previousHp = useRef(game.player.hp)
@@ -218,10 +249,16 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const chronicleEndRef = useRef<HTMLLIElement>(null)
   const chronicleSeenCount = useRef(chronicle.length)
   const backgroundRefs = useRef<HTMLElement[]>([])
+  const journalSurfaceRef = useRef<HTMLElement | null>(null)
+  const protoShellWrapRef = useRef<HTMLDivElement | null>(null)
+  const endingBannerRef = useRef<HTMLElement | null>(null)
   const feedbackTimers = useRef<number[]>([])
   const storyLauncherRef = useRef<HTMLElement | null>(null)
   const basicStrikeRef = useRef<HTMLButtonElement | null>(null)
   const firstStoryChoiceRef = useRef<HTMLButtonElement | null>(null)
+  // Raised with the terminal state (also defined here so the inert effect below
+  // can see it — it previously knew only about storyOpen).
+  const [deathDismissed, setDeathDismissed] = useState(false)
   // P1-7: cycle the free-text placeholder through three locale-tagged
   // examples so the input visibly rotates as the story panel stays open.
   const placeholderExamples = locale === 'vi'
@@ -242,6 +279,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const showHurtFeedback = hurtFeedbackNonce === actionNonce
   const playerPose = playerPoseFor(actionKind, game, showHurtFeedback)
   const routeEncounter = storyRouteEncounter(game)
+  const protoMergedTopbar = useProtoMergedTopbar()
   const system = activeSystem(game)
   const systemQuests = system === null || game.flags.system_refused === true ? [] : systemQuestsFor(game)
   const systemFeed = game.systemQueue === undefined || game.flags.system_refused === true || system === null ? [] : queueDrain(game.systemQueue, 3).visible
@@ -270,9 +308,8 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     const timer = window.setTimeout(() => setHurtFeedbackNonce(actionNonce), retaliationAction ? 420 : 220)
     return () => window.clearTimeout(timer)
   }, [actionNonce, game.day, game.player.alive, game.player.hp, game.player.qi, retaliationAction])
-  useEffect(() => {
-    backgroundRefs.current.forEach((element) => element.toggleAttribute('inert', storyOpen))
-  }, [storyOpen])
+  // (background inert moved below, next to the terminal-state effects — it now
+  // tracks storyOpen AND the death dialog, one writer.)
   // P0-3: remember the element that opened the story, so we can restore focus when it closes.
   useEffect(() => {
     const saveLauncher = (event: FocusEvent) => {
@@ -333,7 +370,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         // toggle-then-set would cancel out and leave the journal open.
         event.stopImmediatePropagation()
         setJournalOpen(false)
-        window.requestAnimationFrame(() => journalLauncher.current?.focus())
+        window.requestAnimationFrame(() => document.getElementById('journal-launcher')?.focus())
         return
       }
       if (event.key.toLowerCase() === 'i' && !journalOpen && routeEncounter === undefined && !isTyping) {
@@ -362,7 +399,6 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     next?.focus()
   }
   const objective = deriveObjective(game, locale)
-  const [deathDismissed, setDeathDismissed] = useState(false)
   useEffect(() => {
     if (!game.terminal) setDeathDismissed(false)
   }, [game.terminal])
@@ -423,6 +459,43 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const ending = game.endingId === null ? undefined : ENDINGS.find((entry) => entry.id === game.endingId)
   const endingLines = ending === undefined ? [] : endingEpilogue(game, locale)
   const isDeath = game.terminal && game.endingId === 'tragic_death'
+  const deathDialog = isDeath && !deathDismissed && ending !== undefined
+  // Issue #40 round-6 review: inert used to fire for storyOpen only, so while
+  // DeathScreen (role=dialog aria-modal) was up the whole world stayed tabbable
+  // behind it. One writer for the attribute — story, death and journal share it
+  // so they cannot fight each other on re-render.
+  // T10: the journal drawer is a modal surface too — the world behind it stayed
+  // live (tabbable + clickable), leaving the drawer's own backdrop as the only
+  // thing between the player and a stray click on "Tu luyện". The drawer itself
+  // is registered as a background region (it must go inert behind the story
+  // panel / death screen), so the journalOpen pass skips it — otherwise opening
+  // the journal would disable the journal.
+  // T-MODAL-ISOLATION: also include protoModalActive (NPC chat, icon showcase, skill tree)
+  // C3-NEW-01: .proto-shell-wrap houses the proto modals; when protoModalActive is true,
+  // outer background regions become inert, but .proto-shell-wrap must stay active so modal
+  // controls remain interactive (ProtoShell isolates its own internal world/topbar controls).
+  useEffect(() => {
+    backgroundRefs.current.forEach((element) => {
+      const isDrawer = element === journalSurfaceRef.current
+      const isProtoWrap = element === protoShellWrapRef.current
+      const shouldBeInert =
+        storyOpen ||
+        deathDialog ||
+        (!isDrawer && journalOpen) ||
+        (!isDrawer && !isProtoWrap && protoModalActive)
+      element.toggleAttribute('inert', shouldBeInert)
+    })
+  }, [storyOpen, deathDialog, protoModalActive, journalOpen])
+  // Round-6 review MEDIUM-2: a role="status" region inserted with its text
+  // already present is not reliably announced, and React auto-focuses nothing —
+  // so an ending silently stranded the caret in the world behind it. Focus the
+  // (tabindex=-1) banner when it mounts, i.e. on terminal AND when the death
+  // dialog dismisses into it; DeathScreen focuses its own primary action on
+  // mount (see DeathScreen.tsx). Never fires mid-run: guarded by game.terminal.
+  useEffect(() => {
+    if (!game.terminal || ending === undefined || deathDialog) return
+    endingBannerRef.current?.focus()
+  }, [game.terminal, ending, deathDialog])
   const entries = Object.entries(game.inventory).filter(([, qty]) => qty > 0)
   const stored = Object.entries(game.storage).filter(([, qty]) => qty > 0)
   const selectedInventoryId = selectedInventoryItemId !== null && entries.some(([id]) => id === selectedInventoryItemId)
@@ -434,7 +507,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
   const encounterEnemy = game.encounter === null ? undefined : ENEMIES.find((enemy) => enemy.id === game.encounter?.enemyId)
   const localEnemy = ENEMIES.find((enemy) => enemy.locationId === game.player.locationId)
   const knownTechniques = TECHNIQUES.filter((technique) => (game.techniques[technique.id] ?? 0) > 0)
+  const fightPills = combatConsumables(game).map((item) => ({ item, qty: game.inventory[item.id] ?? 0 }))
   const encounterLocked = game.encounter !== null
+  const canBreakthrough = isBreakthroughReady(game.player.stage, game.player.realmLevel, game.player.progress)
   const deadlineRemaining = nightDeadlineRemaining(game)
   const sceneBackdrop = locationBackdropFor(game.player.locationId) ?? worldMapArt
   const sceneBackdropAlt = location === undefined
@@ -551,10 +626,66 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
     onAction({ kind: 'free_text', raw })
   }
 
+  // RESIDUAL #31: the topbar controls live in exactly ONE place. Below 921px
+  // they stay in the legacy header.topbar (.topbar-actions); at desktop they
+  // are handed to ProtoShell's band via the topbarActions slot instead, so no
+  // duplicate #journal-launcher / game-exit-menu / language-toggle ever mounts.
+  // Expose callback for ProtoShell to signal modal state
+  const setProtoModalActiveCallback = (active: boolean) => setProtoModalActive(active)
+
+  const topbarActions = (
+    <div className="topbar-actions">
+      <span className="day-chip">{word(locale, 'Ngày', 'Day')} {game.day} · {(locale === 'vi' ? TIME_OF_DAY_VI : TIME_OF_DAY_EN)[game.timeOfDay ?? 'sang']}</span>
+      {dayStamp !== null && <span className="day-stamp" data-testid="day-stamp" role="status">{word(locale, 'Ngày', 'Day')} {dayStamp}</span>}
+      {deadlineRemaining !== null && (
+        <span className="day-chip deadline-chip" data-testid="night-deadline-chip">
+          {word(locale, 'Đêm thứ mười hai', 'Twelfth night')}: {String(deadlineRemaining)} {word(locale, 'ngày', 'days')}
+        </span>
+      )}
+      {!journalOpen && routeEncounter === undefined && <button
+        aria-controls="journal-screen"
+        aria-label={word(locale, 'Mở Hành trang và giang hồ', 'Open Journey journal')}
+        className="journal-launcher"
+        id="journal-launcher"
+        onClick={() => {
+          setActiveDock('inventory')
+          setJournalOpen(true)
+        }}
+        type="button"
+      >
+        <span>{word(locale, 'Sổ tay', 'Journal')}</span>
+        <em>{entries.reduce((sum, [, qty]) => sum + qty, 0)}</em>
+        <kbd aria-hidden="true">I</kbd>
+      </button>}
+      {onExitToMenu !== undefined && <button className="menu-exit" data-testid="game-exit-menu" onClick={onExitToMenu} type="button">
+        {word(locale, 'Về menu', 'Menu')}
+      </button>}
+      <div className="language-toggle" role="group" aria-label="Language">
+        <button aria-current={locale === 'vi' ? 'true' : undefined} className={locale === 'vi' ? 'active' : ''} onClick={() => onLocaleChange('vi')} type="button">VI</button>
+        <button aria-current={locale === 'en' ? 'true' : undefined} className={locale === 'en' ? 'active' : ''} onClick={() => onLocaleChange('en')} type="button">EN</button>
+      </div>
+    </div>
+  )
+
   return (
     <main className={`game-shell action-${actionKind ?? 'idle'} ${journalOpen ? 'journal-open' : ''} ${storyOpen ? 'story-open' : ''}`} data-testid="game-screen" lang={locale}>
       <a className="skip-link" href="#world-map">{word(locale, 'Bỏ qua đến bản đồ', 'Skip to map')}</a>
-      <a className="skip-link" href="#dock-panel-inventory">{word(locale, 'Bỏ qua đến hành trang', 'Skip to inventory')}</a>
+      {/* T8 (WCAG 2.4.1): #dock-panel-inventory lives inside the closed journal
+          drawer, so a plain hash-jump lands focus inside a hidden subtree — the
+          link named a destination the keyboard user could not reach. The href
+          stays (AT announces a real destination; the browser's default jump is
+          suppressed because it would run before React commits the drawer), and
+          the handler opens the drawer + moves focus into the panel instead. */}
+      <a
+        className="skip-link"
+        href="#dock-panel-inventory"
+        onClick={(event) => {
+          event.preventDefault()
+          setActiveDock('inventory')
+          setJournalOpen(true)
+          window.requestAnimationFrame(() => document.getElementById('dock-panel-inventory')?.focus())
+        }}
+      >{word(locale, 'Bỏ qua đến hành trang', 'Skip to inventory')}</a>
       {/* Issue #34 round 5 (reviewer MEDIUM 2): the engine refuses
           allocate_attribute while an encounter is open (reducer.ts:421), so the
           +1 buttons here were clickable lies mid-fight. Same reason the gate
@@ -587,15 +718,50 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </span>
         </div>
       )}
-      <div className="proto-shell-wrap">
-        <ProtoShell
-          game={game}
+      {/* Issue #40 Step 2: lift DeathScreen and .ending-banner out of
+          .world-content so the terminal states render above the desktop
+          display:none cut (screens.css:1985). Mirrors the #34 attribute-banner lift. */}
+      {isDeath && !deathDismissed && ending !== undefined && (
+        <DeathScreen
           locale={locale}
+          ending={ending}
+          cause={readDeathCause(game) ?? ''}
+          onRestart={onRestart}
+          onDismiss={() => setDeathDismissed(true)}
+        />
+      )}
+      {game.terminal && ending !== undefined && !(isDeath && !deathDismissed) && (
+        <section aria-label={word(locale, 'Kết cục', 'Ending')} className="ending-banner" ref={(el) => { endingBannerRef.current = el }} role="status" tabIndex={-1}>
+          <p>{word(locale, 'Kết cục đã định', 'Your ending')}</p>
+          <h2>{localized(locale, ending)}</h2>
+          <span>{locale === 'vi' ? ending.epitaphVi : ending.epitaphEn}</span>
+          <div className="ending-epilogue">
+            {endingLines.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}
+          </div>
+        </section>
+      )}
+      <div
+        className="proto-shell-wrap"
+        ref={(element) => {
+          protoShellWrapRef.current = element
+          backgroundRegion(element)
+        }}
+        inert={journalOpen || storyOpen || deathDialog ? '' : undefined}
+        style={journalOpen || storyOpen || deathDialog ? { pointerEvents: 'none' } : undefined}
+      >
+        <ProtoShell
           chronicle={chronicle}
-          onAction={onAction}
-          onLocaleChange={onLocaleChange}
+          chronicleKinds={chronicleKinds}
+          game={game}
           journalOpen={journalOpen}
+          locale={locale}
+          onAction={onAction}
           onJournalToggle={() => setJournalOpen((j) => !j)}
+          onLocaleChange={onLocaleChange}
+          topbarActions={protoMergedTopbar ? topbarActions : undefined}
+          onModalChange={setProtoModalActiveCallback}
+          conciseMode={conciseMode}
+          onConciseModeToggle={onConciseModeToggle}
         />
       </div>
       <header className="topbar" ref={backgroundRegion}>
@@ -606,38 +772,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <h1>Phế Căn Ký <span>/ Tale of the Broken Root</span></h1>
           </div>
         </div>
-        <div className="topbar-actions">
-          <span className="day-chip">{word(locale, 'Ngày', 'Day')} {game.day} · {(locale === 'vi' ? TIME_OF_DAY_VI : TIME_OF_DAY_EN)[game.timeOfDay ?? 'sang']}</span>
-          {dayStamp !== null && <span className="day-stamp" data-testid="day-stamp" role="status">{word(locale, 'Ngày', 'Day')} {dayStamp}</span>}
-          {deadlineRemaining !== null && (
-            <span className="day-chip deadline-chip" data-testid="night-deadline-chip">
-              {word(locale, 'Đêm thứ mười hai', 'Twelfth night')}: {String(deadlineRemaining)} {word(locale, 'ngày', 'days')}
-            </span>
-          )}
-          {!journalOpen && routeEncounter === undefined && <button
-            aria-controls="journal-screen"
-            aria-label={word(locale, 'Mở Hành trang và giang hồ', 'Open Journey journal')}
-            className="journal-launcher"
-            id="journal-launcher"
-            onClick={() => {
-              setActiveDock('inventory')
-              setJournalOpen(true)
-            }}
-            ref={journalLauncher}
-            type="button"
-          >
-            <span>{word(locale, 'Sổ tay', 'Journal')}</span>
-            <em>{entries.reduce((sum, [, qty]) => sum + qty, 0)}</em>
-            <kbd aria-hidden="true">I</kbd>
-          </button>}
-          {onExitToMenu !== undefined && <button className="menu-exit" data-testid="game-exit-menu" onClick={onExitToMenu} type="button">
-            {word(locale, 'Về menu', 'Menu')}
-          </button>}
-          <div className="language-toggle" role="group" aria-label="Language">
-            <button aria-current={locale === 'vi' ? 'true' : undefined} className={locale === 'vi' ? 'active' : ''} onClick={() => onLocaleChange('vi')} type="button">VI</button>
-            <button aria-current={locale === 'en' ? 'true' : undefined} className={locale === 'en' ? 'active' : ''} onClick={() => onLocaleChange('en')} type="button">EN</button>
-          </div>
-        </div>
+        {!protoMergedTopbar && topbarActions}
       </header>
 
       <div className="world-content" data-testid="world-content" hidden={journalOpen || routeEncounter !== undefined}>
@@ -655,27 +790,6 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           </section>
         )}
 
-        {isDeath && !deathDismissed && ending !== undefined && (
-          <DeathScreen
-            locale={locale}
-            ending={ending}
-            cause={readDeathCause(game) ?? ''}
-            onRestart={onRestart}
-            onDismiss={() => setDeathDismissed(true)}
-          />
-        )}
-
-        {game.terminal && ending !== undefined && !(isDeath && !deathDismissed) && (
-          <section className="ending-banner" role="status">
-            <p>{word(locale, 'Kết cục đã định', 'Your ending')}</p>
-            <h2>{localized(locale, ending)}</h2>
-            <span>{locale === 'vi' ? ending.epitaphVi : ending.epitaphEn}</span>
-            <div className="ending-epilogue">
-              {endingLines.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}
-            </div>
-          </section>
-        )}
-
         {encounterEnemy !== undefined && game.encounter !== null && (
           <section aria-live="assertive" className="encounter-banner" role="status" aria-label={word(locale, 'Giao chiến đang diễn ra', 'Active encounter')}>
             <div>
@@ -689,6 +803,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               </button>
               {knownTechniques.map((technique) => <button key={technique.id} onClick={() => onAction({ kind: 'combat_attack', techniqueId: technique.id })} type="button">{word(locale, 'Xuất', 'Use')} {localized(locale, technique)} ({String(techniqueQiCost(technique.power, game.techniques[technique.id] ?? 0))} {word(locale, 'khí', 'qi')})</button>)}
               <button onClick={() => onAction({ kind: 'combat_defend' })} type="button">{word(locale, 'Thủ thế', 'Defend')}</button>
+              {fightPills.map((pill) => <button key={pill.item.id} onClick={() => onAction({ kind: 'use_item', itemId: pill.item.id, qty: 1 })} type="button" data-testid={`encounter-use-item-${pill.item.id}`}>{combatConsumableLabel(pill.item, locale, pill.qty)}</button>)}
               <button onClick={() => onAction({ kind: 'combat_retreat' })} type="button">
                 {word(locale, 'Rút lui', 'Retreat')} (−{String(RETREAT_HP_COST)} {word(locale, 'khí huyết', 'HP')})
               </button>
@@ -824,7 +939,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <p className="system-personality">{locale === 'vi' ? system.personalityVi : system.personalityEn}</p>
             <ul className="system-quest-list">
               {systemQuests.map((quest) => {
-                const status = game.quests[quest.id]?.status ?? 'available'
+                const status = questStatus(game, quest.id)
                 const turnInReady = status === 'active' && canCompleteQuest(game, quest.id).ok
                 return <li key={quest.id}>
                   <div><strong>{localized(locale, quest)}</strong><small>{t(locale, 'system.difficulty')} {quest.difficulty}</small></div>
@@ -837,7 +952,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <form className="system-chat" onSubmit={submitSystemMessage}>
               <label htmlFor="system-chat">{locale === 'vi' ? system.nameVi : system.nameEn}</label>
               <div><input disabled={game.terminal || systemReplying} id="system-chat" maxLength={300} onChange={(event) => setSystemMessage(event.target.value)} placeholder={t(locale, 'system.chatPlaceholder')} value={systemMessage} /><button disabled={game.terminal || systemReplying || systemMessage.trim().length === 0} type="submit">{word(locale, 'Hỏi', 'Talk')}</button></div>
-              {systemReply !== null ? <p role="status">{locale === 'vi' ? systemReply.textVi : systemReply.textEn}{systemReply.questId !== undefined && (game.quests[systemReply.questId]?.status ?? 'available') === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => { onAction({ kind: 'system_accept_quest', questId: systemReply.questId! }); setSystemReply(null) }} type="button">{t(locale, 'system.acceptQuest')}</button>}</p> : <small>{t(locale, 'system.chatFallback')}</small>}
+              {systemReply !== null ? <p role="status">{locale === 'vi' ? systemReply.textVi : systemReply.textEn}{systemReply.questId !== undefined && questStatus(game, systemReply.questId) === 'available' && <button disabled={game.terminal || encounterLocked} onClick={() => { onAction({ kind: 'system_accept_quest', questId: systemReply.questId! }); setSystemReply(null) }} type="button">{t(locale, 'system.acceptQuest')}</button>}</p> : <small>{t(locale, 'system.chatFallback')}</small>}
             </form>
           </section>}
           <section className="stats-card ink-card" aria-labelledby="stats-title">
@@ -852,9 +967,9 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
                 src={playerArtFor(playerPose)}
               />
             </figure>
-            <Meter label="HP" value={game.player.hp} max={100} tone="red" delta={statDeltas.nonce === 0 ? 0 : statDeltas.hp} deltaTestid="hp-delta" />
+            <Meter label="HP" value={game.player.hp} max={playerMaxHp(game)} tone="red" delta={statDeltas.nonce === 0 ? 0 : statDeltas.hp} deltaTestid="hp-delta" />
             <Meter label="Qi" value={game.player.qi} max={60} tone="jade" delta={statDeltas.nonce === 0 ? 0 : statDeltas.qi} deltaTestid="qi-delta" />
-            <Meter className="meter-progress" label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={nextStageThreshold(game.player.stage, game.player.realmLevel) ?? Math.max(1, game.player.progress)} tone="gold" />
+            <Meter className={`meter-progress ${canBreakthrough ? 'can-breakthrough' : ''}`.trim()} label={word(locale, 'Tiến độ', 'Progress')} value={game.player.progress} max={nextStageThreshold(game.player.stage, game.player.realmLevel) ?? Math.max(1, game.player.progress)} tone="gold" />
             <div className="stat-strip">
               <span data-testid="currency-gold"><span aria-hidden="true">◎</span> {game.player.gold} {word(locale, 'vàng', 'gold')}</span>
               <span data-testid="currency-silver"><span aria-hidden="true">◉</span> {game.player.silver ?? 0} {word(locale, 'bạc', 'silver')}</span>
@@ -879,7 +994,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 
           <section className="quick-actions ink-card" aria-label={word(locale, 'Thao tác nhanh', 'Quick actions')}>
             <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'rest' })} type="button">{word(locale, 'Nghỉ', 'Rest')}</button>
-            <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'train' })} type="button">{word(locale, 'Tu luyện', 'Cultivate')}</button>
+            <button className={canBreakthrough ? 'can-breakthrough' : undefined} disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'train' })} title={canBreakthrough ? word(locale, 'Đã đủ tu vi để đột phá!', 'Cultivation full! Ready to breakthrough!') : undefined} type="button">{canBreakthrough ? word(locale, '⚡ Đột phá', '⚡ Breakthrough') : word(locale, 'Tu luyện', 'Cultivate')}</button>
             <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'gather' })} type="button">{word(locale, 'Hái thảo', 'Gather')}</button>
             <button disabled={game.terminal || encounterLocked || game.player.pendingAttributePoints > 0} onClick={() => onAction({ kind: 'draw_lottery' })} type="button">{word(locale, 'Quay', 'Draw')}</button>
           </section>
@@ -896,11 +1011,28 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
               <h2 id="story-title">{locale === 'vi' ? scene.titleVi : scene.titleEn}</h2>
             </div>
             <span className="root-badge">{word(locale, 'Linh căn', 'Spirit root')}: {locale === 'vi' ? game.spiritRoot.elementVi : game.spiritRoot.elementEn}</span>
+            {onConciseModeToggle !== undefined && (
+              <button
+                type="button"
+                className="story-concise-toggle-btn"
+                data-testid="story-concise-toggle-btn"
+                aria-pressed={conciseMode}
+                onClick={onConciseModeToggle}
+                title={locale === 'vi' ? 'Chuyển chế độ tóm tắt / văn xuôi' : 'Toggle concise / full prose'}
+              >
+                {conciseMode ? '⚡ ' + (locale === 'vi' ? 'Tóm tắt' : 'Concise') : '📖 ' + (locale === 'vi' ? 'Văn xuôi' : 'Full')}
+              </button>
+            )}
+            {conciseMode && (
+              <span className="story-concise-badge" data-testid="story-concise-badge">
+                {locale === 'vi' ? 'Tóm tắt' : 'Concise'}
+              </span>
+            )}
           </div>
           <figure className="scene-backdrop">
             <img alt={sceneBackdropAlt} src={sceneBackdrop} />
           </figure>
-          <p className="beat-copy">{locale === 'vi' ? scene.textVi : scene.textEn}</p>
+          <p className="beat-copy">{getSceneText(scene, locale, conciseMode ?? false)}</p>
           <button
             aria-controls="story-chronicle"
             className="chronicle-jump"
@@ -1003,9 +1135,10 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
           aria-hidden="true"
           className="drawer-backdrop"
           data-testid="drawer-backdrop"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation()
             setJournalOpen(false)
-            window.requestAnimationFrame(() => journalLauncher.current?.focus())
+            window.requestAnimationFrame(() => document.getElementById('journal-launcher')?.focus())
           }}
         />
       )}
@@ -1016,8 +1149,12 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
         data-testid="journal-screen"
         hidden={!journalOpen || routeEncounter !== undefined}
         id="journal-screen"
-        ref={backgroundRegion}
+        ref={(element) => {
+          journalSurfaceRef.current = element
+          backgroundRegion(element)
+        }}
         role="dialog"
+        onClick={(e) => e.stopPropagation()}
       >
         <InkCorner corner="bottom-left" />
         <div className="journal-heading dock-heading">
@@ -1025,10 +1162,19 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             <p className="eyebrow">{word(locale, 'Sổ tay hành tẩu', 'Wandering journal')}</p>
             <h2 id="system-dock-title">{word(locale, 'Hành trang & giang hồ', 'Journey systems')}</h2>
           </div>
-          <button className="journal-return" onClick={() => {
-            setJournalOpen(false)
-            window.requestAnimationFrame(() => journalLauncher.current?.focus())
-          }} type="button">
+          {/* T10: the visible label alone ("← Về thế giới Esc") named no close
+              action — the `Esc` hint is aria-hidden. The aria-label keeps the
+              visible text as its prefix (WCAG 2.5.3) so the /Back to world/ and
+              /← Về thế giới/ locators still resolve. */}
+          <button
+            aria-label={word(locale, '← Về thế giới — đóng nhật ký (Esc)', '← Back to world — close journal (Esc)')}
+            className="journal-return"
+            onClick={() => {
+              setJournalOpen(false)
+              window.requestAnimationFrame(() => document.getElementById('journal-launcher')?.focus())
+            }}
+            type="button"
+          >
             {word(locale, '← Về thế giới', '← Back to world')} <kbd aria-hidden="true">Esc</kbd>
           </button>
         </div>
@@ -1048,7 +1194,7 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
             game={game}
             locale={locale}
             onAction={onAction}
-            onCloseJournal={() => { setJournalOpen(false); window.requestAnimationFrame(() => journalLauncher.current?.focus()) }}
+            onCloseJournal={() => { setJournalOpen(false); window.requestAnimationFrame(() => document.getElementById('journal-launcher')?.focus()) }}
           />,
           quests: <DockPanelQuests
             encounterLocked={encounterLocked}

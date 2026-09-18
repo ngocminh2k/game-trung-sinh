@@ -1,5 +1,6 @@
 import { ENEMIES, getLocation, getRegionMap } from '../content'
-import { currentStoryScene, storyRouteEncounter, storyRouteTarget, type GameState, type Locale } from '../engine'
+import { getQuest } from '../content'
+import { currentStoryScene, storyRouteEncounter, storyRouteTarget, questStatus, type GameState, type Locale, currentStepIndex } from '../engine'
 import { t } from '../i18n'
 
 // Phase 2 of the 2026-08 design review: the "twelfth night" deadline is a real
@@ -41,6 +42,25 @@ export function deriveObjective(game: GameState, locale: Locale): string | null 
     return locale === 'vi'
       ? `${routeEncounter.contactVi} đang chờ câu trả lời của ngươi. Hoàn tất sự kiện tại chỗ trước khi quay lại lựa chọn.`
       : `${routeEncounter.contactEn} is waiting for your answer. Resolve the on-site event before returning to the choice.`
+  }
+  // Active quests take precedence over route targets, local dangers, and generic cultivation progress.
+  // Inspect active quests in game.quests with status === 'active'. Done-flagged
+  // quests are skipped even when a stale runtime still reads active — the done
+  // flag is canonical (C3-01 / C2-01).
+  for (const [questId, rt] of Object.entries(game.quests)) {
+    if (rt?.status === 'active' && questStatus(game, questId) === 'active') {
+      const quest = getQuest(questId)
+      if (quest !== undefined && quest.steps.length > 0) {
+        const stepIdx = currentStepIndex(game, questId)
+        // No `?? steps[0]` fallback: an out-of-bounds index means the runtime
+        // is stale (desynced save) — skip the quest instead of reverting to
+        // step 0 text that could resurrect a finished quest.
+        const step = quest.steps[stepIdx]
+        if (step !== undefined) {
+          return locale === 'vi' ? step.descVi : step.descEn
+        }
+      }
+    }
   }
   const routeTarget = storyRouteTarget(game)
   if (routeTarget !== undefined) {

@@ -1,0 +1,32 @@
+{"a":1,"t":"boot:new-game","name":"Kiếp mớiChọn khế ước & nhập đạo","id":"menu-new-game","changed":true,"ms":1571}
+{"a":2,"t":"boot:pick-system","name":"4Hệ Thống Cờ BạcHệ Thống đã tính xác suất. Ngươi vẫn muốn th","id":"system-tile-sys_lottery","changed":true,"ms":1844}
+{"a":3,"t":"boot:difficulty","name":"Khó nhằn","id":"difficulty-hard","changed":true,"ms":2157}
+{"a":4,"t":"boot:confirm","name":"Ký khế ước","id":"newgame-confirm","changed":true,"ms":1458}
+{"a":5,"t":"boot:skip-loading","name":"Màn hình tải — nhấn để bắt đầu","id":"","changed":true,"ms":1661}
+{"a":6,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1737}
+{"a":7,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1099}
+{"a":8,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1081}
+{"a":9,"t":"map:travel","name":"Đi 4 bước tới Lũy tre","id":"map-pin-1-1","changed":true,"ms":1079}
+{"a":10,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1040}
+{"a":11,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1026}
+{"a":12,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1097}
+{"a":13,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1031}
+{"a":14,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1034}
+{"a":15,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1037}
+{"a":16,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1016}
+{"a":17,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1029}
+{"a":18,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1042}
+{"a":19,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1036}
+{"a":20,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1020}
+{"a":21,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1035}
+{"a":22,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1038}
+{"a":23,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1042}
+{"a":24,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1030}
+{"a":25,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1051}
+{"a":26,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1008}
+{"a":27,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1034}
+{"a":28,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1035}
+{"a":29,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1020}
+{"a":30,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1039}
+{"_summary":{"steps":30,"dead_clicks":0,"unique_gaps":["npc:talk: không tìm được điều khiển (/nói chuyện với|trò chuyện/) trên màn game","map:travel: không tìm được điều khiển (/^Đi (tới|\\d)/) trên màn game"],"unique_issues":["tên dính chuỗi vô hồn: \"CCụ Mai Hoatrưởng làng♥ 0\" #button","tên dính chuỗi vô hồn: \"NNgo kể chuyệnngười kể chuyện♥ 0\" #button","tên dính chuỗi vô hồn: \"CChủ quán Hạnhchủ quán trọ♥ 0\" #button","tên dính chuỗi vô hồn: \"DDân binh Trườngdân binh♥ 0\" #button","tên dính chuỗi vô hồn: \"TTiểu Bảođứa trẻ tinh nghịch♥ 0\" #button","tên dính chuỗi vô hồn: \"NNông phu Tưnông phu♥ 0\" #button","tên dính chuỗi vô hồn: \"CCụ ông Thìncụ ông — chồng quá cố của Ma\" #button"],"last_chronicle":[],"screens_seen":["boot","play","map"],"days_seen":null,"errors":[]}}
+{"_telemetry_head":{"actions":30,"errors":[],"run":[{"version":1,"id":"pt-mu2ukvbt-be3x","seed":"ink-and-jade","locale":"vi","difficulty":"hard","startedAt":1789487374744,"endedAt":null,"endingId":null,"finalDay":1,"corrections":0,"nightForgotten":false,"steps":[{"t":1640,"day":1,"kind":"draw_lottery","loc":"village","hp":100,"qi":60,"gold":60},{"t":4493,"day":1,"kind":"train","loc":"village","hp":95,"qi":50,"gold":60},{"t":5595,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":5596,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":5597,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":5597,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":6704,"day":1,"kind":"draw_lottery","loc":"village","hp":95,"qi":50,"gold":60},{"t":8802,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":9957,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":12053,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":13117,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":15215,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":16318,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":18385,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":19469,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":21566,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":22702,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":24783,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":25870,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":27950,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60}]}]}}

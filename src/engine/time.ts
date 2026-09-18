@@ -94,3 +94,56 @@ export function restToDawn(state: GameState, events: GameEvent[]): GameState {
   events.push({ type: 'DAY_PASSED', day })
   return { ...state, day, timeOfDay: 'sang' }
 }
+
+/**
+ * C3-14: Hibernation constants and logic (Cơ chế Ngủ Đông).
+ * Allows busy players (persona p18) to freeze in-game countdowns, daily decay,
+ * and agricultural cycles for up to 7 real days (168 hours).
+ */
+export const HIBERNATE_MAX_DAYS = 7
+export const HIBERNATE_MAX_HOURS = 7 * 24 // 168
+export const HIBERNATE_MAX_MS = HIBERNATE_MAX_DAYS * 24 * 60 * 60 * 1000
+
+export function isHibernating(state: GameState): boolean {
+  return state.hibernation?.active === true
+}
+
+export function canHibernate(state: GameState): boolean {
+  return (
+    state.player.alive &&
+    !state.terminal &&
+    state.encounter === null &&
+    !isHibernating(state)
+  )
+}
+
+export function enterHibernation(state: GameState, now: number): GameState {
+  if (!canHibernate(state)) return state
+  return {
+    ...state,
+    hibernation: {
+      active: true,
+      startedAt: now,
+    },
+  }
+}
+
+export function wakeFromHibernation(state: GameState): GameState {
+  if (!state.hibernation) return state
+  return {
+    ...state,
+    hibernation: null,
+  }
+}
+
+export function calculateHibernatedTime(
+  elapsedMs: number,
+  hibernating: boolean,
+): { effectiveElapsedMs: number; frozenMs: number } {
+  if (!hibernating || elapsedMs <= 0) {
+    return { effectiveElapsedMs: Math.max(0, elapsedMs), frozenMs: 0 }
+  }
+  const frozenMs = Math.min(elapsedMs, HIBERNATE_MAX_MS)
+  const effectiveElapsedMs = Math.max(0, elapsedMs - frozenMs)
+  return { effectiveElapsedMs, frozenMs }
+}

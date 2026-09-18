@@ -32,7 +32,11 @@ describe('system notifications (T14 producers, canon §3)', () => {
     expect(errored).toBe(false)
     const entry = lastQueued(state)
     expect(entry?.id).toBe('sys_quest_loaded')
-    expect(entry?.vars.days).toBe(2)
+    // P3: system chain quests have no deadlineDays (chain-ramp P2), so the
+    // reducer omits the optional `days` var entirely — never emits days: 0.
+    expect(entry?.vars.days).toBeUndefined()
+    expect(String(entry?.vars.objective ?? '')).not.toMatch(/0\s*ngày/)
+    expect(String(entry?.vars.objectiveEn ?? '')).not.toMatch(/0\s*days/)
     expect(String(entry?.vars.quest ?? '')).toContain('Chiến Đấu I')
     expect(String(entry?.vars.questEn ?? '')).toContain('Battle I')
     expect(entry?.vars.objective).toBe('Giao nanh thú cho Hệ Thống.')

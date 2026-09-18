@@ -67,3 +67,44 @@ export function spendCurrency(p: CurrencyBalance, price: CurrencyPrice): Currenc
 
   return { gold, silver, spiritStones }
 }
+
+export const MARKET_TOLL_RATE = 0.15
+
+export function calculateMarketToll(amount: number, isCrossRegional = true): number {
+  if (!isCrossRegional || amount <= 0) return 0
+  return Math.round(amount * MARKET_TOLL_RATE)
+}
+
+export function applyMarketToll(
+  amount: number,
+  isCrossRegional = true,
+  mode: 'sell' | 'buy' = 'sell',
+): { baseAmount: number; toll: number; netAmount: number } {
+  const toll = calculateMarketToll(amount, isCrossRegional)
+  const netAmount = mode === 'sell' ? Math.max(0, amount - toll) : amount + toll
+  return { baseAmount: amount, toll, netAmount }
+}
+
+export function calculateArbitrage(
+  buyPrice: number,
+  sellPrice: number,
+  crossRegionalBuy = false,
+  crossRegionalSell = true,
+): {
+  grossProfit: number
+  totalToll: number
+  netProfit: number
+  rawMarginPercent: number
+  netMarginPercent: number
+} {
+  const grossProfit = sellPrice - buyPrice
+  const rawMarginPercent = buyPrice > 0 ? ((sellPrice - buyPrice) / buyPrice) * 100 : 0
+  const buyToll = calculateMarketToll(buyPrice, crossRegionalBuy)
+  const sellToll = calculateMarketToll(sellPrice, crossRegionalSell)
+  const totalToll = buyToll + sellToll
+  const effectiveBuy = buyPrice + buyToll
+  const effectiveSell = Math.max(0, sellPrice - sellToll)
+  const netProfit = effectiveSell - effectiveBuy
+  const netMarginPercent = effectiveBuy > 0 ? (netProfit / effectiveBuy) * 100 : 0
+  return { grossProfit, totalToll, netProfit, rawMarginPercent, netMarginPercent }
+}

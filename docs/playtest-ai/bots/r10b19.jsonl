@@ -1,0 +1,80 @@
+{"a":1,"t":"boot:new-game","name":"Kiếp mớiChọn khế ước & nhập đạo","id":"menu-new-game","changed":true,"ms":1675}
+{"a":2,"t":"boot:pick-system","name":"4Hệ Thống Cờ BạcHệ Thống đã tính xác suất. Ngươi vẫn muốn th","id":"system-tile-sys_lottery","changed":true,"ms":1419}
+{"a":3,"t":"boot:difficulty","name":"Khó nhằn","id":"difficulty-hard","changed":true,"ms":1283}
+{"a":4,"t":"boot:confirm","name":"Ký khế ước","id":"newgame-confirm","changed":true,"ms":1461}
+{"a":5,"t":"boot:skip-loading","name":"Màn hình tải — nhấn để bắt đầu","id":"","changed":true,"ms":2009}
+{"a":6,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1286}
+{"a":7,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1272}
+{"a":8,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1278}
+{"a":9,"t":"map:travel","name":"Đi 4 bước tới Lũy tre","id":"map-pin-1-1","changed":true,"ms":1249}
+{"a":10,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1227}
+{"a":11,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1227}
+{"a":12,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1250}
+{"a":13,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1261}
+{"a":14,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1248}
+{"a":15,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1229}
+{"a":16,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1225}
+{"a":17,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1201}
+{"a":18,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1236}
+{"a":19,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1249}
+{"a":20,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1213}
+{"a":21,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1220}
+{"a":22,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1257}
+{"a":23,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1207}
+{"a":24,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1243}
+{"a":25,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1234}
+{"a":26,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1214}
+{"a":27,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1230}
+{"a":28,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1231}
+{"a":29,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1215}
+{"a":30,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1230}
+{"a":31,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1242}
+{"a":32,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1229}
+{"a":33,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1212}
+{"a":34,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1215}
+{"a":35,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1222}
+{"a":36,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1227}
+{"a":37,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1235}
+{"a":38,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1227}
+{"a":39,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1218}
+{"a":40,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1232}
+{"a":41,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1218}
+{"a":42,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1230}
+{"a":43,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1223}
+{"a":44,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1216}
+{"a":45,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1226}
+{"a":46,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1214}
+{"a":47,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1212}
+{"a":48,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1212}
+{"a":49,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1216}
+{"a":50,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1221}
+{"a":51,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1217}
+{"a":52,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1221}
+{"a":53,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1226}
+{"a":54,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1220}
+{"a":55,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1212}
+{"a":56,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1209}
+{"a":57,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1242}
+{"a":58,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1235}
+{"a":59,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1239}
+{"a":60,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1227}
+{"a":61,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1231}
+{"a":62,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1240}
+{"a":63,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1224}
+{"a":64,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1233}
+{"a":65,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1212}
+{"a":66,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1227}
+{"a":67,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1209}
+{"a":68,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1211}
+{"a":69,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1223}
+{"a":70,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1226}
+{"a":71,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1212}
+{"a":72,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1232}
+{"a":73,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1239}
+{"a":74,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1261}
+{"a":75,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1231}
+{"a":76,"t":"play:Quay số","name":"Quay số","id":"","changed":true,"ms":1231}
+{"a":77,"t":"play:Thử Vận","name":"Thử Vận","id":"","changed":true,"ms":1218}
+{"a":78,"t":"play:tu luyện","name":"Tu luyện","id":"","changed":true,"ms":1214}
+{"_summary":{"steps":78,"dead_clicks":0,"unique_gaps":["npc:talk: không tìm được điều khiển (/nói chuyện với|trò chuyện/) trên màn game","map:travel: không tìm được điều khiển (/^Đi (tới|\\d)/) trên màn game"],"unique_issues":["tên dính chuỗi vô hồn: \"CCụ Mai Hoatrưởng làng♥ 0\" #button","tên dính chuỗi vô hồn: \"NNgo kể chuyệnngười kể chuyện♥ 0\" #button","tên dính chuỗi vô hồn: \"CChủ quán Hạnhchủ quán trọ♥ 0\" #button","tên dính chuỗi vô hồn: \"DDân binh Trườngdân binh♥ 0\" #button"],"last_chronicle":[],"screens_seen":["boot","play","map"],"days_seen":null,"errors":[]}}
+{"_telemetry_head":{"actions":78,"errors":[],"run":[{"version":1,"id":"pt-mu3hvwul-3viq","seed":"ink-and-jade","locale":"vi","difficulty":"hard","startedAt":1789526521100,"endedAt":null,"endingId":null,"finalDay":1,"corrections":0,"nightForgotten":false,"steps":[{"t":1936,"day":1,"kind":"draw_lottery","loc":"village","hp":100,"qi":60,"gold":60},{"t":4567,"day":1,"kind":"train","loc":"village","hp":95,"qi":50,"gold":60},{"t":5865,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":5865,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":5866,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":5866,"day":1,"kind":"move","loc":"village","hp":95,"qi":50,"gold":60},{"t":7145,"day":1,"kind":"draw_lottery","loc":"village","hp":95,"qi":50,"gold":60},{"t":9631,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":10983,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":13511,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":14797,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":17245,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":18563,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":21046,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":22348,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":24828,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":26113,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":28599,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":29878,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":32363,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":33631,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":36130,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":37396,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":39861,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":41146,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":43628,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":44896,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":47381,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":48646,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":51113,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":52393,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":54845,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":56112,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":58596,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":59862,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":62344,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":63612,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":66079,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":67364,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":69876,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":71142,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":73660,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":74928,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":77425,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":78694,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":81142,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":82409,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":84876,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":86161,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":88710,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60},{"t":89977,"day":1,"kind":"draw_lottery","loc":"village","hp":87,"qi":40,"gold":60},{"t":92463,"day":1,"kind":"train","loc":"village","hp":87,"qi":40,"gold":60}]}]}}

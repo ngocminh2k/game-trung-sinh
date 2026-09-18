@@ -12,12 +12,25 @@ import {
   QUESTS,
   SHOP_STOCK,
   STORY_SCENES,
+  getItem,
   npcsAt,
   validateAllContent,
 } from '../src/content'
 import { newGame, validateGameState } from '../src/engine'
+import { GAME_STATE_VERSION } from '../src/engine/constants'
+import { t } from '../src/i18n'
+import { SCRIPTS } from '../src/ui/NpcChatModal'
 
 describe('content integrity', () => {
+  it('n_merchant_bao identity matches NpcChatModal script name and address (T-NPC-NAME)', () => {
+    const merchant = NPCS.find((n) => n.id === 'n_merchant_bao')!
+    expect(merchant).toBeDefined()
+    expect(merchant.nameVi).toBe('Thương nhân Bảo')
+    expect(merchant.nameEn).toBe('Merchant Bao')
+    expect(SCRIPTS['n_merchant_bao']!.name.vi).toBe(merchant.nameVi)
+    expect(SCRIPTS['n_merchant_bao']!.name.en).toBe(merchant.nameEn)
+  })
+
   it('has exactly 60 NPCs with unique ids and bilingual fields', () => {
     expect(NPCS).toHaveLength(60)
     const ids = new Set(NPCS.map((n) => n.id))
@@ -69,8 +82,19 @@ describe('content integrity', () => {
   })
 
   it('shop stock matches buyable items and prices are fixed', () => {
-    const expected = ITEMS.filter((i) => i.buyPrice !== null).map((i) => i.id)
+    // Hidden manuals stay purchasable via the reducer's static-buyPrice path
+    // and free-text buy (aliases), but are NOT listed as shop stock — they are
+    // quest-chain artifacts, not market goods (reviewer-chain MEDIUM-2).
+    const expected = ITEMS.filter((i) => i.buyPrice !== null && !i.id.endsWith('_hidden_manual')).map((i) => i.id)
     expect(SHOP_STOCK.sort()).toEqual(expected.sort())
+    for (const id of SHOP_STOCK) {
+      expect(id.endsWith('_hidden_manual')).toBe(false)
+    }
+    // ...but they MUST keep numeric buyPrice: doBuy's static-price path is the
+    // only guaranteed acquisition route if the assassin quest-pool drop ever
+    // misses (reducer.ts:786 — shop entry OR numeric buyPrice).
+    expect(getItem('shadow_molt_hidden_manual')?.buyPrice).toBe(420)
+    expect(getItem('shadow_eclipse_step_hidden_manual')?.buyPrice).toBe(500)
     for (const item of ITEMS) {
       if (item.sellPrice !== null) {
         expect(item.sellPrice).toBeLessThanOrEqual(item.buyPrice ?? item.sellPrice + 1000)
@@ -141,12 +165,16 @@ describe('beats', () => {
     const chapters = new Set(BEATS.map((b) => b.chapter))
     expect(chapters).toEqual(new Set([1, 2, 3, 4, 5]))
   })
+
+  it('difficulty option story translates as Cốt truyện in Vietnamese (T-LOC-STORY)', () => {
+    expect(t('vi', 'ui.settings.difficulty.story')).toBe('Cốt truyện')
+  })
 })
 
 describe('state schema', () => {
   it('fresh game state passes the zod GameState schema', () => {
     const state = validateGameState(JSON.parse(JSON.stringify(newGame('schema-check'))))
-    expect(state.version).toBe(1)
+    expect(state.version).toBe(GAME_STATE_VERSION)
     expect(state.player.alive).toBe(true)
   })
 
