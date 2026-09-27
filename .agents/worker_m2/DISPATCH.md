@@ -1,49 +1,56 @@
-## 2026-09-07T21:52:46Z
-You are Worker M2 for the UI Icon Shortfall project.
-Your working directory: C:\Users\minhd\orca\workspaces\game-trung-sinh\redesign-game-UI\.agents\worker_m2
-Your parent conversation ID: c32728b6-eadd-4f93-a876-f4f10e8ff39a
+# DISPATCH: Milestone 2 — Worker (2-Tier Pipeline in The System)
 
-MANDATORY FIRST STEP: Read the authoritative request at C:\Users\minhd\orca\workspaces\game-trung-sinh\redesign-game-UI\.agents\ORIGINAL_REQUEST.md.
-Also read PROJECT.md and TEST_INFRA.md at the workspace root, and consult docs/agent-work/asset-requests/ui-icon-shortfall-2026-09-08.md for exact concept descriptions.
+You are the Worker for Milestone 2 (`teamwork_preview_worker`).
+Your working directory is F:\game-trung-sinh\.agents\worker_m2.
+Your project workspace is F:\game-trung-sinh.
 
 MANDATORY INTEGRITY WARNING:
 DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A teamwork_preview_auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
 
-Scope Boundaries (Exclusive Write Ownership):
-You exclusively own and must create exactly 23 PNG files in `src/assets/art/pins/event/`:
-1. `bamboo-rampart.png` (Lũy tre xanh)
-2. `old-house.png` (Căn nhà cổ)
-3. `village-well.png` (Giếng làng)
-4. `fortune-wheel.png` (Vòng quay số phận)
-5. `tea-house.png` (Trà quán ven đường)
-6. `arena.png` (Đấu trường tỷ thí)
-7. `treasure-pavilion.png` (Tàng bảo các)
-8. `meditation-wall.png` (Tường thiền định)
-9. `herb-terrace.png` (Bậc thang dược thảo)
-10. `fog-crossroads.png` (Ngã tư sương mù)
-11. `cloud-nest.png` (Tổ mây bồng bềnh)
-12. `wind-bell.png` (Chuông gió phong linh)
-13. `nameless-stele.png` (Bia đá vô danh)
-14. `wind-cliff.png` (Vách đá ngắm gió)
-15. `herb-garden.png` (Vườn linh dược bí cảnh)
-16. `dry-oasis.png` (Ốc đảo khô hạn)
-17. `ice-mirror.png` (Gương băng tuyết)
-18. `auction-stall.png` (Sạp đấu giá cổ vật)
-19. `caravan-teahouse.png` (Trà đình đoàn buôn)
-20. `moon-water.png` (Thủy nguyệt dạ cảnh)
-21. `lotus-pond.png` (Đầm sen thanh tịnh)
-22. `broken-stele.png` (Bia tàn đổ nát)
-23. `cloud-library.png` (Tàng thư các mây)
+MANDATORY INPUT:
+Read ORIGINAL_REQUEST.md at: F:\game-trung-sinh\.agents\ORIGINAL_REQUEST.md (specifically ## 2026-09-19T21:36:35Z).
+Read Specification at: C:\Users\minhd\.gemini\antigravity-cli\brain\06ca1ff1-f946-40b5-9a50-c714faaa792b\jev_integration_spec.md
+Read Operating Contract at: F:\game-trung-sinh\AGENTS.md
+Read Scope at: F:\game-trung-sinh\.agents\orchestrator_2\PROJECT.md
+Read Explorer 1 Report at: F:\game-trung-sinh\.agents\explorer_m2_1\analysis.md and handoff.md
+Read Explorer 2 Report at: F:\game-trung-sinh\.agents\explorer_m2_2\analysis.md and handoff.md
+Read Spec Miner 3 Report at: F:\game-trung-sinh\.agents\spec_miner_m2_3\analysis.md and handoff.md
 
-Technical & Aesthetic Requirements:
-- Each icon must be a genuine 128x128 PNG with 8-bit alpha transparency (alpha = 0 for transparent background, 4 corners alpha = 0, transparent ratio 15%-98%, outer border margin transparent).
-- Style: Vietnamese ink-wash (*mực tàu giấy bản*) base `#180F09` with Turquoise / Ngọc lam accent `#178771` (oklch(56% 0.10 175)). Centered subject, ~10% padding. No modern gradients, no 3D, no emojis, no borders, no text.
-- Tooling: You can use `generate_image` tool to generate AI ink-wash subjects on clean white backgrounds, and use `scripts/process-ui-icon.mjs` (`processRawIconToStandardPng`) or automated Node.js scripts using `sharp` to composite, un-matte, trim, scale, and center into standard 128x128 transparent PNGs.
+Write Ownership:
+You exclusively own and are authorized to edit:
+- `src/ai/system.ts`
+- You may also claim your scope per AGENTS.md via `npm run agent:claim`.
+Do NOT edit other files unless strictly necessary for compilation.
 
-Self-Verification:
-Run a verification check on all 23 files using `verifyFile` from `scripts/verify-ui-icons.mjs` or run `node scripts/verify-ui-icons.mjs` and confirm all 23 of your files are marked valid.
-
-Output:
-Write your complete handoff report to:
-C:\Users\minhd\orca\workspaces\game-trung-sinh\redesign-game-UI\.agents\worker_m2\handoff.md
-When done, message parent (c32728b6-eadd-4f93-a876-f4f10e8ff39a) summarizing your completed files.
+Task Objectives (Milestone 2 - Requirement R2):
+1. Register agent claim per AGENTS.md:
+   `npm run agent:claim -- --id jev-system-two-tier --owner codex --objective "Implement 2-Tier Pipeline in src/ai/system.ts with Jev fast reflex and in-character fallback" --scope "src/ai/system.ts"`
+2. Implement the 2-Tier Pipeline in `src/ai/system.ts`:
+   - Import `classifySystemUtterance` from `./jev-client` and `type SystemFastDecision` from `./jev-schemas`.
+   - Update `SystemChatPayload` to optionally accept `fastDecision?: SystemFastDecision`.
+   - Export `fastClassifySystem(game: GameState, message: string): Promise<SystemFastDecision>` which directly calls `classifySystemUtterance(game, message)`.
+   - Update `requestSystemReply(game: GameState, message: string, locale: Locale): Promise<SystemReply | null>`:
+     a. If `!narrationWanted()`, return `null` immediately (crucial: do not call fetch, preserving existing test invariants).
+     b. Call Tier 1 `const fastDecision = await classifySystemUtterance(game, message)`.
+     c. Build payload via `buildSystemPayload(game, message, locale, fastDecision)`. If null or empty message, return null.
+     d. In Tier 2 call to `/api/narrate`:
+        - If response is OK and valid `SystemReply` JSON is returned, sanitize and validate that offered `questId` is present in `payload.questPool`. Return valid reply.
+        - If response fails (HTTP error, network exception, timeout, or invalid format), do NOT simply return null: invoke deterministic in-character fallback `buildDeterministicSystemReply(game, message, locale, fastDecision)` returning an authentic `SystemReply`!
+        - Exception: If the LLM specifically returned an invalid `offer_quest` with an unauthorized questId (hallucination), return `null` as required by test invariant in `test/ai-system.test.ts`.
+   - Implement `buildDeterministicSystemReply(game, message, locale, fastDecision)`:
+     - Derive response based on active system personality and `fastDecision`:
+       - If `fastDecision.isHostile` or `fastDecision.intent === 'defiance_mockery'`, respond with an in-character disciplinary reprimand matching the system's voice.
+       - If `fastDecision.intent === 'request_quest'` and `fastDecision.questId` is valid and present in active quest pool, return `{ kind: 'offer_quest', questId: fastDecision.questId, textVi: ..., textEn: ... }`. If pool is empty, return in-character chat explaining no quests are available.
+       - If `fastDecision.intent === 'chat_general'` or `'inquire_status'`, return in-character comment on player's current cultivation and vitals.
+   - Scenario Containment check: Ensure `src/ai/system.ts` DOES NOT import from `../content/(story|npcs|locations|endings-data|chapters|quests)`. All system definitions and quest queries come through `../engine`.
+3. Verification:
+   - Run `npm run typecheck` (must pass with 0 errors).
+   - Run `npx vitest run test/ai-jev-system.test.ts` (all 5 tests must pass).
+   - Run `npx vitest run test/ai-system.test.ts` (all 3 tests must pass).
+   - Run `npx vitest run test/system-scenario.test.ts` (must pass).
+   - Run `npx eslint src/ai/system.ts src/ai/jev-schemas.ts src/ai/jev-client.ts` (must be 0 errors, 0 warnings).
+   - Run `npm test` (full regression test suite).
+4. Documentation & Handoff:
+   - Record claim and changes in docs.
+   - Write completion report in F:\game-trung-sinh\.agents\worker_m2\handoff.md.
+   - Notify parent with send_message.

@@ -1,6 +1,6 @@
 /// <reference types="vitest/config" />
 import type { Plugin } from 'vite'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import react from '@vitejs/plugin-react'
 import {
@@ -10,6 +10,46 @@ import {
 } from './src/ai/proxy-helpers'
 
 export { NarratePayloadSchema, SuggestPayloadSchema, parseSuggestContent }
+
+interface SystemChatCandidate {
+  mode: 'chat' | 'offer_quest'
+  locale: string
+  system: {
+    id: string
+    nameVi: string
+    nameEn: string
+    personalityVi: string
+    personalityEn: string
+  }
+  context: {
+    day: number
+    stage: number
+    gold: number
+    luck: number
+    hp: number
+    qi: number
+  }
+  questPool: Array<{ id: string; difficulty: number; rewardGold: number }>
+  playerMessage: string
+  fastDecision?: {
+    intent: string
+    questId?: string
+    obedienceScore: number
+    isHostile: boolean
+    latencyMs: number
+  }
+}
+
+function isSystemChatPayload(body: unknown): body is SystemChatCandidate {
+  if (typeof body !== 'object' || body === null) return false
+  const c = body as { mode?: unknown; system?: unknown; playerMessage?: unknown }
+  return (
+    (c.mode === 'chat' || c.mode === 'offer_quest') &&
+    typeof c.system === 'object' &&
+    c.system !== null &&
+    typeof c.playerMessage === 'string'
+  )
+}
 
 function isSuggestPayload(body: unknown): body is { mode: 'suggest', locale: string, choices: Array<{ id: string }> } {
   if (typeof body !== 'object' || body === null) return false
@@ -52,6 +92,62 @@ async function suggestUpstream(
   return suggestion
 }
 
+async function systemChatUpstream(
+  url: string,
+  apiKey: string,
+  model: string,
+  body: SystemChatCandidate,
+): Promise<{ kind: 'chat' | 'offer_quest'; textVi: string; textEn: string; questId?: string }> {
+  const nameVi = body.system.nameVi || 'Hệ Thống'
+  const nameEn = body.system.nameEn || 'The System'
+  const personalityVi = body.system.personalityVi || 'Hệ Thống im lặng theo dõi.'
+  const personalityEn = body.system.personalityEn || 'The System watches in silence.'
+  const intent = body.fastDecision?.intent || 'chat_general'
+  const obedience = body.fastDecision?.obedienceScore ?? 3
+  const isHostile = body.fastDecision?.isHostile ?? false
+  const suggestedQuestId = body.fastDecision?.questId
+
+  const upstream = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      temperature: 0.75,
+      max_tokens: 220,
+      messages: [
+        {
+          role: 'system',
+          content: `You roleplay "${nameVi}" (${nameEn}) in a Vietnamese immortal cultivation (Tu Tiên / Tiên Hiệp) text RPG.
+System Persona (Vi): "${personalityVi}"
+System Persona (En): "${personalityEn}"
+Fast reflex analysis: intent="${intent}", player obedience=${obedience}/5, isHostile=${isHostile}.
+Valid available quest IDs in pool: ${JSON.stringify(body.questPool.map((q) => q.id))}.
+${suggestedQuestId ? `Suggested quest to issue: "${suggestedQuestId}".` : ''}
+
+Respond with ONLY valid JSON:
+{"kind":"chat"|"offer_quest","textVi":"...","textEn":"...","questId":"<id_or_omit>"}
+If isHostile is true or obedience <= 2, reprimand the host sharply in character. If offering a quest, questId must be in pool.`,
+        },
+        { role: 'user', content: body.playerMessage },
+      ],
+    }),
+  })
+  if (!upstream.ok) throw new Error(`upstream status ${upstream.status}`)
+  const data = (await upstream.json()) as { choices?: Array<{ message?: { content?: unknown } }> }
+  const rawContent = data.choices?.[0]?.message?.content
+  if (typeof rawContent !== 'string') throw new Error('invalid upstream reply')
+  const jsonMatch = rawContent.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('no json in upstream reply')
+  const parsed = JSON.parse(jsonMatch[0]) as { kind?: string; textVi?: string; textEn?: string; questId?: string }
+  const kind = parsed.kind === 'offer_quest' ? 'offer_quest' : 'chat'
+  return {
+    kind,
+    textVi: String(parsed.textVi || '').trim(),
+    textEn: String(parsed.textEn || '').trim(),
+    questId: typeof parsed.questId === 'string' ? parsed.questId : undefined,
+  }
+}
+
 function narrationProxy(): Plugin {
   return {
     name: 'deterministic-narration-proxy',
@@ -65,9 +161,10 @@ function narrationProxy(): Plugin {
           return
         }
 
-        const baseUrl = process.env.AI_BASE_URL?.replace(/\/$/, '')
-        const apiKey = process.env.AI_API_KEY
-        const model = process.env.AI_MODEL
+        const env = loadEnv('development', process.cwd(), '')
+        const baseUrl = (process.env.AI_BASE_URL || env.AI_BASE_URL)?.replace(/\/$/, '')
+        const apiKey = process.env.AI_API_KEY || env.AI_API_KEY
+        const model = process.env.AI_MODEL || env.AI_MODEL || 'ag/gemini-3-flash'
         if (baseUrl === undefined || apiKey === undefined || model === undefined) {
           res.statusCode = 503
           res.setHeader('Content-Type', 'application/json')
@@ -97,6 +194,20 @@ function narrationProxy(): Plugin {
               res.statusCode = 502
               res.setHeader('Content-Type', 'application/json')
               res.end(JSON.stringify({ choiceId: null }))
+            }
+            return
+          }
+
+          if (isSystemChatPayload(body)) {
+            try {
+              const systemReply = await systemChatUpstream(`${baseUrl}/chat/completions`, apiKey, model, body)
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify(systemReply))
+            } catch {
+              res.statusCode = 502
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: 'System AI unavailable' }))
             }
             return
           }

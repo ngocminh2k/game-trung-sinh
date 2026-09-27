@@ -466,5 +466,371 @@
   color: var(--muted, oklch(48% 0.03 50));
   font-size: 11px;
   line-height: 1.35;
-  margin: 0;
+}
+
+/* ===== Quest Tab ===== */
+
+.proto-quest-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+/* Objective section - pinned at top with emphasis */
+.proto-quest-tab__objective {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: color-mix(in oklch, var(--accent, oklch(56% 0.10 175)) 8%, var(--surface, oklch(97% 0.015 80)));
+  border: 1px solid color-mix(in oklch, var(--accent) 25%, transparent);
+  border-radius: 6px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.proto-quest-tab__objective-title {
+  font-family: var(--display, serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent, oklch(56% 0.10 175));
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.proto-quest-tab__objective-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg, oklch(22% 0.04 40));
+  font-weight: 500;
+}
+
+/* Filter chips */
+.proto-quest-tab__filters {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 2px;
+}
+
+.proto-quest-tab__filter {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border, oklch(82% 0.03 70));
+  background: transparent;
+  color: var(--muted, oklch(48% 0.03 50));
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.proto-quest-tab__filter:hover {
+  border-color: var(--accent, oklch(56% 0.10 175));
+  color: var(--accent);
+}
+
+.proto-quest-tab__filter--active {
+  background: var(--accent, oklch(56% 0.10 175));
+  border-color: var(--accent);
+  color: oklch(98% 0.01 80);
+  font-weight: 600;
+}
+
+/* Section headers */
+.proto-quest-tab__section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.proto-quest-tab__section-header {
+  font-family: var(--display, serif);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wine, oklch(34% 0.10 25));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
+
+.proto-quest-tab__section-header button {
+  font-size: 10px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.proto-quest-tab__section-header button:hover {
+  color: var(--accent);
+}
+
+/* Quest card */
+.proto-quest-tab__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--surface, oklch(97% 0.015 80));
+  border: 1px solid var(--border, oklch(82% 0.03 70));
+  border-radius: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.proto-quest-tab__card:hover {
+  border-color: color-mix(in oklch, var(--accent) 50%, var(--border));
+}
+
+.proto-quest-tab__card--active {
+  border-left: 3px solid var(--accent, oklch(56% 0.10 175));
+}
+
+.proto-quest-tab__card--available {
+  border-left: 3px solid var(--gold, oklch(78% 0.13 85));
+}
+
+.proto-quest-tab__card--completed {
+  opacity: 0.7;
+  border-left: 3px solid var(--muted);
+}
+
+/* Quest card: name row */
+.proto-quest-tab__name-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.proto-quest-tab__category-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.proto-quest-tab__name {
+  font-family: var(--display, serif);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--wine, oklch(34% 0.10 25));
+  flex: 1;
+  min-width: 0;
+}
+
+/* Quest card: step description */
+.proto-quest-tab__step {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--fg, oklch(22% 0.04 40));
+  font-weight: 500;
+}
+
+.proto-quest-tab__desc {
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--muted, oklch(48% 0.03 50));
+}
+
+/* Quest card: progress bar */
+.proto-quest-tab__progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: var(--muted);
+  font-family: var(--mono, monospace);
+}
+
+.proto-quest-tab__progress-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--border, oklch(82% 0.03 70));
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.proto-quest-tab__progress-fill {
+  height: 100%;
+  background: var(--accent, oklch(56% 0.10 175));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Quest card: location badge */
+.proto-quest-tab__loc-badge {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--wine, oklch(42% 0.12 30));
+  background: color-mix(in oklch, var(--gold, oklch(78% 0.12 85)) 18%, transparent);
+  border: 1px solid color-mix(in oklch, var(--gold) 40%, transparent);
+  border-radius: 3px;
+  padding: 1px 6px;
+  align-self: flex-start;
+}
+
+/* Quest card: action button */
+.proto-quest-tab__action {
+  align-self: flex-start;
+  margin-top: 2px;
+  background: var(--accent, oklch(56% 0.10 175));
+  border: 0;
+  color: oklch(98% 0.01 80);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.proto-quest-tab__action:hover {
+  background: oklch(60% 0.11 175);
+}
+
+.proto-quest-tab__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.proto-quest-tab__action--turnin {
+  background: var(--wine, oklch(34% 0.10 25));
+  color: var(--gold, oklch(78% 0.13 85));
+}
+
+.proto-quest-tab__action--turnin:hover {
+  background: oklch(38% 0.12 25);
+}
+
+/* Completed section toggle */
+.proto-quest-tab__completed-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: oklch(94% 0.01 80);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--muted);
+  width: 100%;
+  font-family: inherit;
+}
+
+.proto-quest-tab__completed-toggle:hover {
+  color: var(--fg);
+}
+
+/* Empty state */
+.proto-quest-tab__empty {
+  font-size: 11px;
+  color: var(--muted, oklch(48% 0.03 50));
+  font-style: italic;
+  padding: 8px 2px;
+}
+
+/* Onboarding hint card */
+.proto-quest-tab__onboarding {
+  padding: 10px 12px;
+  background: color-mix(in oklch, var(--gold, oklch(78% 0.13 85)) 12%, var(--surface));
+  border: 1px solid color-mix(in oklch, var(--gold) 35%, transparent);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.proto-quest-tab__onboarding-title {
+  font-family: var(--display, serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wine);
+}
+
+.proto-quest-tab__onboarding-text {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg);
+}
+
+.proto-quest-tab__onboarding-tip {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px dashed color-mix(in oklch, var(--gold) 25%, transparent);
+}
+
+.proto-quest-tab__onboarding-toggle {
+  background: none;
+  border: 1px dashed var(--border, oklch(82% 0.03 70));
+  border-radius: 4px;
+  color: var(--muted, oklch(48% 0.03 50));
+  font-size: 10px;
+  padding: 4px 8px;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 6px;
+  transition: all 0.15s ease;
+}
+
+.proto-quest-tab__onboarding-toggle:hover {
+  border-color: var(--accent, oklch(56% 0.10 175));
+  color: var(--fg, oklch(22% 0.04 40));
+}
+
+/* Category badge */
+.proto-quest-tab__badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  line-height: 1.2;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.proto-quest-tab__badge--main {
+  background: color-mix(in oklch, var(--gold, oklch(78% 0.13 85)) 22%, transparent);
+  color: var(--wine, oklch(34% 0.10 25));
+  border: 1px solid color-mix(in oklch, var(--gold) 50%, transparent);
+}
+
+.proto-quest-tab__badge--side {
+  background: color-mix(in oklch, var(--accent, oklch(56% 0.10 175)) 15%, transparent);
+  color: var(--accent, oklch(56% 0.10 175));
+  border: 1px solid color-mix(in oklch, var(--accent) 40%, transparent);
+}
+
+.proto-quest-tab__badge--system {
+  background: color-mix(in oklch, #8b5cf6 15%, transparent);
+  color: #7c3aed;
+  border: 1px solid color-mix(in oklch, #8b5cf6 40%, transparent);
+}
+
+.proto-quest-tab__badge--secret {
+  background: color-mix(in oklch, #f59e0b 15%, transparent);
+  color: #b45309;
+  border: 1px solid color-mix(in oklch, #f59e0b 40%, transparent);
+}
+
+/* Category subsection title */
+.proto-quest-tab__category-title {
+  font-family: var(--display, serif);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, oklch(48% 0.03 50));
+  margin-top: 6px;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }

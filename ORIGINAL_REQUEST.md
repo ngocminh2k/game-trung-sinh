@@ -49,3 +49,49 @@ Tài liệu đặc tả nguồn: docs/agent-work/asset-requests/ui-icon-shortfal
 ### Tính Thẩm Mỹ & Khớp Đặc Tả
 - [ ] Đúng phong cách tranh thủy mặc mực tàu giấy bản với các màu điểm xuyết chuẩn theo từng nhóm như đã mô tả trong tài liệu yêu cầu.
 - [ ] Chủ thể căn giữa, padding hợp lý (~10%), hiển thị sắc nét khi co về kích thước hiển thị trên map (32px - 48px).
+
+## 2026-09-19T21:36:35Z
+
+Triển khai tích hợp mô hình Jev (System One AI từ TypeSafe AI) vào thành phần The System của game-trung-sinh để phân loại ý đồ người chơi siêu tốc (~80ms), tích hợp cơ chế fallback ngoại tuyến, xác minh tự động hóa và mở Pull Request hoàn chỉnh.
+
+Working directory: F:\game-trung-sinh
+Integrity mode: development
+
+## Verification Resources
+- Bản đặc tả kỹ thuật kiến trúc & kịch bản kiểm thử: C:\Users\minhd\.gemini\antigravity-cli\brain\06ca1ff1-f946-40b5-9a50-c714faaa792b\jev_integration_spec.md
+- Hợp đồng tác tử dự án: F:\game-trung-sinh\AGENTS.md
+
+## Requirements
+
+### R1. Hiện thực hóa Jev System One Client & Schemas
+Triển khai module src/ai/jev-schemas.ts và src/ai/jev-client.ts sử dụng Zod để thẩm định dữ liệu. Thiết lập các câu hỏi định kiểu nghiêm ngặt theo 3 nguyên thủy của Jev (choice, score, noul). Giới hạn danh sách lựa chọn quest ID chỉ trong pool quest đang hoạt động của game engine (systemQuestsFor(game)).
+
+### R2. Tích hợp Pipeline 2-Tier vào The System
+Cập nhật luồng xử lý src/ai/system.ts để kết nối tầng phân loại Jev trước khi kích hoạt logic game engine và gọi LLM sinh văn phong. Đảm bảo có cơ chế tự động chuyển sang Fallback Rule-based an toàn nếu không có API key, khi offline hoặc khi thời gian phản hồi vượt quá 600ms.
+
+### R3. Bộ Kiểm Thử Tự Động Hóa (Automated Test Suite)
+Viết và hoàn thiện bộ kiểm thử tại test/ai-jev-system.test.ts kiểm chứng: phân loại intent chuẩn, bảo vệ chống ảo giác quest ID (Hallucination Defense), phát hiện người chơi chống đối/xúc phạm Hệ Thống, và xử lý suy giảm êm dịu khi mất mạng/timeout.
+
+### R4. Quản lý Git Branch & Mở Pull Request
+Tạo nhánh tính năng mới feat/jev-system-one, commit các thay đổi theo đúng chuẩn AGENTS.md, và tạo Pull Request (hoặc chuẩn bị PR script/patch) với mô tả kiến trúc 2-tier chi tiết kèm kết quả kiểm thử.
+
+## Acceptance Criteria
+
+### Tính Đúng Đắn & An Toàn Kiểu Dữ Liệu
+- [ ] Schema Zod thẩm định thành công toàn bộ cấu trúc request/response của Jev.
+- [ ] Lựa chọn questId bị ràng buộc 100% vào quest pool hợp lệ; không chấp nhận bất kỳ quest ID ngoại lai nào.
+- [ ] Phát hiện chính xác cờ isHostile và thang điểm obedienceScore (1 - 5).
+
+### Độ Bền & Hiệu Năng
+- [ ] Quá trình fallback ngoại tuyến hoàn tất tức thì và không ném Exception ra tầng UI.
+- [ ] Game tiếp tục hoạt động bình thường trong môi trường không có kết nối internet hoặc thiếu TYPESAFE_API_KEY.
+
+### Kiểm Thử & Đảm Bảo Chất Lượng
+- [ ] npx vitest run test/ai-jev-system.test.ts pass 100% tất cả các test case.
+- [ ] npm run typecheck chạy không có bất kỳ lỗi biên dịch TypeScript nào.
+- [ ] npm test toàn bộ regression test suite của dự án đều pass xanh.
+
+### Bàn Giao Mã Nguồn
+- [ ] Nhánh feat/jev-system-one được tạo sạch sẽ, không chứa các file rác hoặc thay đổi ngoài phạm vi.
+- [ ] Tạo Pull Request hoặc báo cáo handoff hoàn chỉnh theo quy chuẩn AGENTS.md.
+

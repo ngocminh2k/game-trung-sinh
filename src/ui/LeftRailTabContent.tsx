@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { Action, GameState, Locale } from '../engine'
 import {
   activeSystem,
@@ -11,10 +11,10 @@ import {
   questStatus,
   TECHNIQUES,
 } from '../engine'
-import { getItem, getLocation, NPCS, QUESTS } from '../content'
+import { getItem, getLocation, getNpc, NPCS, QUESTS } from '../content'
 import { itemArtFor } from './rpgArt'
 import { deriveObjective } from './objective'
-import { requestSystemReply } from '../ai/system'
+import { requestSystemReply, fastClassifySystem, buildDeterministicSystemReply } from '../ai/system'
 import { localized, systemNotificationText, currencyExchangeRows, equipmentRows, itemName, marketLockReason, marketRows, pathLockReason, techniqueRows } from './gameScreen/helpers'
 import './left-rail.css'
 
@@ -23,7 +23,7 @@ import './left-rail.css'
  *  Wire với prototype: people, vital, items, market, path, system
  * ========================================================================= */
 
-export type LeftTab = 'people' | 'vital' | 'items' | 'market' | 'path' | 'system'
+export type LeftTab = 'people' | 'vital' | 'items' | 'market' | 'path' | 'quest' | 'system'
 
 export interface LeftRailTabContentProps {
   tab: LeftTab
@@ -50,6 +50,14 @@ function RailLockNotice({ testId, text }: { testId: string; text: string }): JSX
   )
 }
 
+function getQuestCategory(questId: string): 'main' | 'side' | 'system' | 'secret' {
+  if (questId.startsWith('q_main_')) return 'main'
+  if (questId.startsWith('q_sys_')) return 'system'
+  const q = QUESTS.find(qq => qq.id === questId)
+  if (q?.secret) return 'secret'
+  return 'side'
+}
+
 export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: LeftRailTabContentProps): JSX.Element {
   const vi = locale === 'vi'
   const location = getLocation(game.player.locationId)
@@ -72,6 +80,11 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
   const [inputMessage, setInputMessage] = useState('')
   const [isReplying, setIsReplying] = useState(false)
 
+  // Quest tab state
+  const [questFilter, setQuestFilter] = useState<'all' | 'main' | 'side' | 'system' | 'secret'>('all')
+  const [showCompleted, setShowCompleted] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(true)
+
   // System derived quests & objective
   const objective = useMemo(() => deriveObjective(game, locale), [game, locale])
   const activeQuests = useMemo(() => QUESTS.filter((q) => questStatus(game, q.id) === 'active'), [game])
@@ -85,6 +98,7 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
       ),
     [game],
   )
+  const completedQuests = useMemo(() => QUESTS.filter((q) => questStatus(game, q.id) === 'completed'), [game])
 
   const systemIntro: SystemChatMessage = useMemo(() => {
     if (system !== null) {
@@ -152,32 +166,53 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [hovered])
 
+  const sendSystemMessage = useCallback((msg: string) => {
+    const trimmed = msg.trim()
+    if (!trimmed || isReplying || game.terminal) return
+    setInputMessage('')
+    setUserMessages((prev) => [...prev, { sender: 'player', text: trimmed }])
+    setIsReplying(true)
+    void (async () => {
+      let reply = await requestSystemReply(game, trimmed, locale)
+      if (reply === null) {
+        const fastDecision = await fastClassifySystem(game, trimmed)
+        reply = buildDeterministicSystemReply(game, trimmed, locale, fastDecision)
+      }
+      setIsReplying(false)
+      setUserMessages((prev) => [
+        ...prev,
+        {
+          sender: 'system',
+          text: vi ? reply.textVi : reply.textEn,
+          questId: reply.questId,
+        },
+      ])
+    })()
+  }, [game, isReplying, locale, vi])
+
   const handleSendSystemMessage = (e: FormEvent) => {
     e.preventDefault()
-    const msg = inputMessage.trim()
-    if (!msg || isReplying || game.terminal) return
-    setInputMessage('')
-    setUserMessages((prev) => [...prev, { sender: 'player', text: msg }])
-    setIsReplying(true)
-    void requestSystemReply(game, msg, locale).then((reply) => {
-      setIsReplying(false)
-      if (reply !== null) {
-        setUserMessages((prev) => [
-          ...prev,
-          {
-            sender: 'system',
-            text: vi ? reply.textVi : reply.textEn,
-            questId: reply.questId,
-          },
-        ])
-      } else {
-        const fallback = system
-          ? (vi ? `【${system.nameVi}】: ${system.personalityVi}` : `[${system.nameEn}]: ${system.personalityEn}`)
-          : (vi ? 'Hệ Thống im lặng.' : 'The System is silent.')
-        setUserMessages((prev) => [...prev, { sender: 'system', text: fallback }])
-      }
-    })
+    sendSystemMessage(inputMessage)
   }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const w = window as unknown as {
+      __sendSystemChat?: (msg: string) => void
+      __pendingSystemChat?: string
+    }
+    w.__sendSystemChat = (msg: string) => {
+      sendSystemMessage(msg)
+    }
+    if (w.__pendingSystemChat) {
+      const queued = w.__pendingSystemChat
+      w.__pendingSystemChat = undefined
+      sendSystemMessage(queued)
+    }
+    return () => {
+      delete w.__sendSystemChat
+    }
+  }, [sendSystemMessage])
 
   // expose for child click handlers when wired
   if (onNpcClick === undefined) { /* noop */ }
@@ -485,6 +520,255 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
     )
   }
 
+  if (tab === 'quest') {
+    const filteredActive = activeQuests.filter((q) => questFilter === 'all' || getQuestCategory(q.id) === questFilter)
+    const filteredAvailable = availableQuests.filter((q) => questFilter === 'all' || getQuestCategory(q.id) === questFilter)
+    const filteredCompleted = completedQuests.filter((q) => questFilter === 'all' || getQuestCategory(q.id) === questFilter)
+
+    const activeMain = filteredActive.filter(q => getQuestCategory(q.id) === 'main')
+    const activeSide = filteredActive.filter(q => getQuestCategory(q.id) === 'side')
+    const activeSystem = filteredActive.filter(q => getQuestCategory(q.id) === 'system')
+    const activeSecret = filteredActive.filter(q => getQuestCategory(q.id) === 'secret')
+
+    const availableMain = filteredAvailable.filter(q => getQuestCategory(q.id) === 'main')
+    const availableSide = filteredAvailable.filter(q => getQuestCategory(q.id) === 'side')
+    const availableSystem = filteredAvailable.filter(q => getQuestCategory(q.id) === 'system')
+    const availableSecret = filteredAvailable.filter(q => getQuestCategory(q.id) === 'secret')
+
+    const activeGroups = [
+      { cat: 'main' as const, titleVi: '🏯 Chính Tuyến', titleEn: '🏯 Main Quests', list: activeMain },
+      { cat: 'side' as const, titleVi: '📜 Chi Tuyến', titleEn: '📜 Side Quests', list: activeSide },
+      { cat: 'system' as const, titleVi: '⚙️ Nhiệm Vụ Hệ Thống', titleEn: '⚙️ System Quests', list: activeSystem },
+      { cat: 'secret' as const, titleVi: '🔒 Kỳ Ngộ / Cơ Duyên Ẩn', titleEn: '🔒 Secret Quests', list: activeSecret },
+    ].filter(g => g.list.length > 0)
+
+    const availableGroups = [
+      { cat: 'main' as const, titleVi: '🏯 Chính Tuyến Khả Dụng', titleEn: '🏯 Available Main Quests', list: availableMain },
+      { cat: 'side' as const, titleVi: '📜 Chi Tuyến Khả Dụng', titleEn: '📜 Available Side Quests', list: availableSide },
+      { cat: 'system' as const, titleVi: '⚙️ Nhiệm Vụ Hệ Thống', titleEn: '⚙️ Available System Quests', list: availableSystem },
+      { cat: 'secret' as const, titleVi: '🔒 Kỳ Ngộ / Cơ Duyên Ẩn', titleEn: '🔒 Secret Quests', list: availableSecret },
+    ].filter(g => g.list.length > 0)
+
+    const renderActiveQuestCard = (q: typeof filteredActive[number]) => {
+      const cat = getQuestCategory(q.id)
+      const icon = cat === 'main' ? '🏯' : cat === 'side' ? '📜' : cat === 'system' ? '⚙️' : '🔒'
+      const badgeText = cat === 'main' ? (vi ? 'Chính Tuyến' : 'Main') : cat === 'side' ? (vi ? 'Chi Tuyến' : 'Side') : cat === 'system' ? (vi ? 'Hệ Thống' : 'System') : (vi ? 'Kỳ Ngộ' : 'Secret')
+      const stepIdx = currentStepIndex(game, q.id)
+      const step = q.steps[stepIdx]
+      const turnInReady = canCompleteQuest(game, q.id).ok
+      const progressPct = q.steps.length > 0 ? ((stepIdx + 1) / q.steps.length) * 100 : 0
+      return (
+        <div key={q.id} className="proto-quest-tab-item proto-quest-tab__card proto-quest-tab__card--active">
+          <div className="proto-quest-tab-item-header proto-quest-tab__name-row">
+            <span className="proto-quest-tab-icon proto-quest-tab__category-icon">{icon}</span>
+            <span className="proto-quest-tab-name proto-quest-tab__name">{localized(locale, q)}</span>
+            <span className={`proto-quest-tab__badge proto-quest-tab__badge--${cat}`}>{badgeText}</span>
+          </div>
+          {step && <div className="proto-quest-tab-step proto-quest-tab__step"><strong>{vi ? step.descVi : step.descEn}</strong></div>}
+          <div className="proto-quest-tab-progress-text proto-quest-tab__progress">
+            <span>{vi ? 'Bước' : 'Step'} {stepIdx + 1}/{q.steps.length}</span>
+            <div className="proto-quest-tab__progress-bar">
+              <div className="proto-quest-tab__progress-fill" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+          {turnInReady && (
+            <button
+              type="button"
+              aria-label={vi ? `Nộp nhiệm vụ: ${localized(locale, q)}` : `Turn in quest: ${localized(locale, q)}`}
+              className="proto-quest-tab-action-btn proto-quest-tab__action proto-quest-tab__action--turnin"
+              onClick={() => onAction?.({ kind: q.requiredSystemId === undefined ? 'complete_quest' : 'system_turn_in_quest', questId: q.id })}
+            >
+              {vi ? 'Nộp nhiệm vụ' : 'Turn in'}
+            </button>
+          )}
+        </div>
+      )
+    }
+
+    const renderAvailableQuestCard = (q: typeof filteredAvailable[number]) => {
+      const cat = getQuestCategory(q.id)
+      const badgeText = cat === 'main' ? (vi ? 'Chính Tuyến' : 'Main') : cat === 'side' ? (vi ? 'Chi Tuyến' : 'Side') : cat === 'system' ? (vi ? 'Hệ Thống' : 'System') : (vi ? 'Kỳ Ngộ' : 'Secret')
+      const check = q.acceptCheck
+      const notAtLocation = !check.ok && check.code === 'NOT_AT_LOCATION'
+      const reqLocId = !check.ok ? check.at : undefined
+      const reqLocation = reqLocId ? getLocation(reqLocId) : undefined
+      const reqLocationName = reqLocation ? localized(locale, reqLocation) : (reqLocId ?? '')
+      const locBadge = notAtLocation ? (vi ? `Cần tới: ${reqLocationName}` : `Required location: ${reqLocationName}`) : null
+      const giverNpc = q.giverNpcId ? getNpc(q.giverNpcId) : undefined
+      const npcHint = check.ok && giverNpc ? (vi ? `Có thể nhận trực tiếp khi trò chuyện với ${giverNpc.nameVi}` : `Can accept directly by talking with ${giverNpc.nameEn}`) : null
+      return (
+        <div key={q.id} className="proto-quest-tab-item proto-quest-tab__card proto-quest-tab__card--available">
+          <div className="proto-quest-tab__name-row">
+            <span className="proto-quest-tab-name proto-quest-tab__name">{localized(locale, q)}</span>
+            <span className={`proto-quest-tab__badge proto-quest-tab__badge--${cat}`}>{badgeText}</span>
+          </div>
+          <div className="proto-quest-tab-desc proto-quest-tab__desc">{vi ? q.descVi : q.descEn}</div>
+          {npcHint && <div className="proto-quest-tab-npc-hint" style={{ fontSize: '11px', color: 'var(--accent, #6366f1)', opacity: 0.9, marginTop: '2px', marginBottom: '4px' }}>💬 {npcHint}</div>}
+          {locBadge && <span className="proto-quest-tab-loc-badge proto-quest-tab__loc-badge">{locBadge}</span>}
+          <button
+            type="button"
+            aria-label={vi ? `Nhận nhiệm vụ: ${localized(locale, q)}` : `Accept quest: ${localized(locale, q)}`}
+            className="proto-quest-tab-action-btn proto-quest-tab__action"
+            disabled={!check.ok}
+            onClick={() => onAction?.({ kind: q.requiredSystemId === undefined ? 'accept_quest' : 'system_accept_quest', questId: q.id })}
+          >
+            {vi ? 'Nhận nhiệm vụ' : 'Accept quest'}
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="proto-quest-tab-wrap proto-quest-tab" data-testid="leftrail-quest-panel">
+        {/* A) Header: Current Objective */}
+        <div className="proto-quest-tab-objective proto-quest-tab__objective">
+          <div className="proto-quest-tab-objective-title proto-quest-tab__objective-title">{vi ? '🎯 Mục tiêu hiện tại' : '🎯 Current Objective'}</div>
+          <div className="proto-quest-tab-objective-text proto-quest-tab__objective-text">{objective ?? (vi ? 'Tự do khám phá, tìm kiếm cơ duyên tu luyện.' : 'Freely explore and cultivate.')}</div>
+        </div>
+
+        {/* FTUE Onboarding / Primer Guide (Second Brain - SavaMeta & Jesse Schell) */}
+        {showOnboarding ? (
+          <div className="proto-quest-tab__onboarding" data-testid="quest-onboarding-guide">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="proto-quest-tab__onboarding-title">
+                {vi ? '📜 Chỉ Dẫn Nhập Môn Tu Tiên' : '📜 Cultivation Beginner Guide'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowOnboarding(false)}
+                aria-label={vi ? 'Thu gọn chỉ dẫn' : 'Dismiss guide'}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  color: 'var(--muted)',
+                  padding: '2px 4px',
+                }}
+              >
+                {vi ? '✕ Thu gọn' : '✕ Dismiss'}
+              </button>
+            </div>
+            <div className="proto-quest-tab__onboarding-text" style={{ whiteSpace: 'pre-line' }}>
+              {vi
+                ? '1. 🗺️ Khám Phá: Di chuyển giữa các địa danh (Làng, Chợ, Rừng Sương Mù) để mở rộng tầm mắt.\n2. 💬 Trò Chuyện: Đối thoại trực tiếp với NPC tại địa phương để nhận và nộp Chi Tuyến.\n3. 🏯 Chính Tuyến: Luôn ưu tiên theo sát nhiệm vụ Chính để đột phá cảnh giới và mở khóa bản đồ mới.\n4. ⚙️ Hệ Thống: Ký thác khế ước và hoàn thành nhiệm vụ đặc thù để nhận ân sủng thiên đạo.'
+                : '1. 🗺️ Explore: Travel between locations (Village, Market, Misty Forest) to expand horizons.\n2. 💬 Talk: Speak directly with local NPCs to accept and turn in Side Quests.\n3. 🏯 Main Quest: Follow Main Quests to break through realms and unlock new areas.\n4. ⚙️ System: Fulfill covenant quests to receive celestial blessings.'}
+            </div>
+            <div className="proto-quest-tab__onboarding-tip">
+              💡 {activeQuests.length === 0
+                ? (vi
+                    ? 'Gợi ý: Hãy gặp Cụ Mai Hoa tại Làng Thanh Mộc để bắt đầu bước chân đầu tiên trên đạo đồ.'
+                    : 'Hint: Speak with Elder Meihua at the Village to begin your cultivation journey.')
+                : (vi
+                    ? 'Gợi ý: Theo dõi tiến độ nhiệm vụ bên dưới và quay lại gặp người giao việc khi hoàn thành.'
+                    : 'Hint: Track your progress below and return to the quest giver once conditions are met.')}
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="proto-quest-tab__onboarding-toggle"
+            onClick={() => setShowOnboarding(true)}
+          >
+            {vi ? '📜 Xem lại Chỉ Dẫn Nhập Môn' : '📜 View Beginner Guide'}
+          </button>
+        )}
+
+        {/* B) Filter chips */}
+        <div className="proto-quest-tab-filters proto-quest-tab__filters">
+          {(['all', 'main', 'side', 'system', 'secret'] as const).map(f => (
+            <button
+              key={f}
+              className={`proto-quest-tab-filter-btn proto-quest-tab__filter ${questFilter === f ? 'active proto-quest-tab__filter--active' : ''}`}
+              onClick={() => setQuestFilter(f)}
+              type="button"
+            >
+              {f === 'all' ? (vi ? 'Tất cả' : 'All') :
+               f === 'main' ? (vi ? 'Chính tuyến' : 'Main') :
+               f === 'side' ? (vi ? 'Chi tuyến' : 'Side') :
+               f === 'system' ? (vi ? 'Hệ thống' : 'System') :
+               (vi ? 'Kỳ ngộ' : 'Secret')}
+            </button>
+          ))}
+        </div>
+
+        {/* C) Active quests section */}
+        {filteredActive.length > 0 && (
+          <div className="proto-quest-tab-section proto-quest-tab__section">
+            <div className="proto-quest-tab-section-title proto-quest-tab__section-header">
+              <span>{vi ? 'Đang thực hiện' : 'Active'} ({filteredActive.length})</span>
+            </div>
+            {questFilter === 'all' ? (
+              activeGroups.map(g => (
+                <div key={g.cat} className="proto-quest-tab-category-group">
+                  <div className="proto-quest-tab__category-title">
+                    {vi ? g.titleVi : g.titleEn} ({g.list.length})
+                  </div>
+                  {g.list.map(renderActiveQuestCard)}
+                </div>
+              ))
+            ) : (
+              filteredActive.map(renderActiveQuestCard)
+            )}
+          </div>
+        )}
+
+        {/* D) Available quests section */}
+        {filteredAvailable.length > 0 && (
+          <div className="proto-quest-tab-section proto-quest-tab__section">
+            <div className="proto-quest-tab-section-title proto-quest-tab__section-header">
+              <span>{vi ? 'Khả dụng' : 'Available'} ({filteredAvailable.length})</span>
+            </div>
+            {questFilter === 'all' ? (
+              availableGroups.map(g => (
+                <div key={g.cat} className="proto-quest-tab-category-group">
+                  <div className="proto-quest-tab__category-title">
+                    {vi ? g.titleVi : g.titleEn} ({g.list.length})
+                  </div>
+                  {g.list.map(renderAvailableQuestCard)}
+                </div>
+              ))
+            ) : (
+              filteredAvailable.map(renderAvailableQuestCard)
+            )}
+          </div>
+        )}
+
+        {/* Empty state when current category filter has no quests */}
+        {filteredActive.length === 0 && filteredAvailable.length === 0 && (
+          <div className="proto-quest-tab__empty">
+            {vi ? 'Không có nhiệm vụ nào trong danh mục này.' : 'No quests in this category.'}
+          </div>
+        )}
+
+        {/* E) Completed quests section */}
+        <div className="proto-quest-tab-section proto-quest-tab__section">
+          <button
+            type="button"
+            aria-expanded={showCompleted}
+            className="proto-quest-tab-collapse-btn proto-quest-tab__completed-toggle"
+            onClick={() => setShowCompleted(!showCompleted)}
+            style={{ width: '100%', textAlign: 'left' }}
+          >
+            <span>{showCompleted ? '▼' : '▶'} {vi ? 'Đã hoàn thành' : 'Completed'} ({filteredCompleted.length})</span>
+          </button>
+          {showCompleted && (
+            <div className="proto-quest-tab-completed-list">
+              {filteredCompleted.map(q => (
+                <div key={q.id} className="proto-quest-tab-completed-item proto-quest-tab__card proto-quest-tab__card--completed">
+                  <div className="proto-quest-tab__name-row">
+                    <span className="proto-quest-tab-name proto-quest-tab__name">{localized(locale, q)}</span>
+                    <span className="proto-quest-tab__badge proto-quest-tab__badge--side">{vi ? 'Đã xong' : 'Done'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   // system tab — Hội thoại Hệ Thống + Mục tiêu + Nhiệm vụ
   const systemName = system !== null ? (vi ? system.nameVi : system.nameEn) : (vi ? 'Hệ Thống' : 'System')
   const systemHeader = system !== null ? (vi ? system.headerVi : system.headerEn) : (vi ? 'Khế Ước Chưa Ký' : 'Unsigned Covenant')
@@ -539,76 +823,6 @@ export function LeftRailTabContent({ tab, game, locale, onAction, onNpcClick }: 
           {vi ? 'Hỏi' : 'Ask'}
         </button>
       </form>
-
-      {/* 4. Current Objective */}
-      <div className="proto-system-section-card">
-        <div className="proto-system-section-title">
-          <span>{vi ? '🎯 Mục tiêu hiện tại' : '🎯 Current Objective'}</span>
-        </div>
-        <div className="proto-system-objective-text">
-          {objective ?? (vi ? 'Tự do khám phá, tìm kiếm cơ duyên tu luyện.' : 'Freely explore and cultivate.')}
-        </div>
-      </div>
-
-      {/* 5. Quests */}
-      <div className="proto-system-section-card">
-        <div className="proto-system-section-title">
-          <span>{vi ? '📜 Nhiệm vụ' : '📜 Quests'}</span>
-          <span>{activeQuests.length > 0 ? `${activeQuests.length} ${vi ? 'đang nhận' : 'active'}` : (availableQuests.length > 0 ? `${availableQuests.length} ${vi ? 'khả dụng' : 'available'}` : '')}</span>
-        </div>
-        <div className="proto-system-quest-list">
-          {activeQuests.length > 0 ? (
-            activeQuests.map((q) => {
-              const stepIdx = currentStepIndex(game, q.id)
-              const step = q.steps[stepIdx]
-              const turnInReady = canCompleteQuest(game, q.id).ok
-              return (
-                <div key={q.id} className="proto-system-quest-item">
-                  <div className="proto-system-quest-name">{localized(locale, q)}</div>
-                  {step && <div className="proto-system-quest-step">{vi ? step.descVi : step.descEn}</div>}
-                  {turnInReady && (
-                    <button
-                      type="button"
-                      className="proto-system-quest-btn"
-                      onClick={() => onAction?.({ kind: q.requiredSystemId === undefined ? 'complete_quest' : 'system_turn_in_quest', questId: q.id })}
-                    >
-                      {vi ? 'Nộp nhiệm vụ' : 'Turn in'}
-                    </button>
-                  )}
-                </div>
-              )
-            })
-          ) : availableQuests.length > 0 ? (
-            availableQuests.slice(0, 3).map((q) => {
-              const check = q.acceptCheck
-              const notAtLocation = !check.ok && check.code === 'NOT_AT_LOCATION'
-              const reqLocId = !check.ok ? check.at : undefined
-              const reqLocation = reqLocId ? getLocation(reqLocId) : undefined
-              const reqLocationName = reqLocation ? localized(locale, reqLocation) : (reqLocId ?? '')
-              const locBadge = notAtLocation ? (vi ? `Cần tới: ${reqLocationName}` : `Required location: ${reqLocationName}`) : null
-
-              return (
-                <div key={q.id} className="proto-system-quest-item">
-                  <div className="proto-system-quest-name">{localized(locale, q)}</div>
-                  <div className="proto-system-quest-step">{vi ? q.descVi : q.descEn}</div>
-                  {locBadge && <span className="proto-system-quest-loc">{locBadge}</span>}
-                  <button
-                    type="button"
-                    className="proto-system-quest-btn"
-                    disabled={!check.ok}
-                    aria-label={`${vi ? 'Nhận nhiệm vụ' : 'Accept quest'}: ${localized(locale, q)}`}
-                    onClick={() => onAction?.({ kind: q.requiredSystemId === undefined ? 'accept_quest' : 'system_accept_quest', questId: q.id })}
-                  >
-                    {vi ? 'Nhận nhiệm vụ' : 'Accept quest'}
-                  </button>
-                </div>
-              )
-            })
-          ) : (
-            <div className="proto-system-empty">{vi ? 'Chưa có nhiệm vụ khả dụng.' : 'No quests available.'}</div>
-          )}
-        </div>
-      </div>
     </div>
   )
 }
@@ -619,5 +833,6 @@ export const LEFT_TAB_LABELS: Record<LeftTab, { glyph: string; label: string; ba
   items: { glyph: '囊', label: 'Hành trang', badge: 0 },
   market: { glyph: '市', label: 'Chợ' },
   path: { glyph: '道', label: 'Đạo đồ' },
+  quest: { glyph: '📜', label: 'Nhiệm vụ' },
   system: { glyph: '契', label: 'Hệ thống' },
 }

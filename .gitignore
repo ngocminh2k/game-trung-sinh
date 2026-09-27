@@ -24,3 +24,16 @@ run-pw.cmd
 state0.json
 scripts/.playtest-hosts.pids
 ending-shots/
+
+# ML models and weights (large binaries >100MB rejected by GitHub)
+models/
+*.onnx
+*.bin
+*.pt
+*.safetensors
+*.pth
+__pycache__/
+
+# Native crashes and lockfiles
+.sentry-native/
+*.conf.lock

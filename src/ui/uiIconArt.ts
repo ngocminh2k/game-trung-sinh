@@ -25,6 +25,7 @@ const TAB_ICONS: Readonly<Record<LeftTab, string>> = {
   items: tabItems,
   market: tabMarket,
   path: tabPath,
+  quest: tabSystem, // Placeholder
   system: tabSystem,
 }
 
