@@ -1,11 +1,13 @@
 import { JevResponseSchema, type SystemFastDecision } from './jev-schemas'
 import type { GameState } from '../engine'
 import { activeSystem, systemQuestsFor } from '../engine'
+import { layaOnnxManager } from './laya-onnx-client'
 
 export interface JevClientConfig {
   apiKey?: string
   endpoint?: string
   timeoutMs?: number
+  useLayaOnnx?: boolean
 }
 
 const DEFAULT_ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
@@ -17,6 +19,23 @@ export async function classifySystemUtterance(
   config: JevClientConfig = {}
 ): Promise<SystemFastDecision> {
   const startTime = Date.now()
+
+  // 1. Ưu tiên mô hình cục bộ Laya ONNX nếu được kích hoạt
+  const isTest = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test'
+  const allowLaya = config.useLayaOnnx === true || (config.useLayaOnnx !== false && !isTest)
+
+  if (allowLaya && layaOnnxManager.isReady()) {
+    const layaDecision = await layaOnnxManager.classify(game, playerMessage, {
+      timeoutMs: config.timeoutMs,
+    })
+    if (layaDecision) {
+      return layaDecision
+    }
+  } else if (allowLaya) {
+    // Kích hoạt nạp ngầm chạy sau lưng, hoàn toàn không chặn UI luồng chính
+    void layaOnnxManager.lazyLoad()
+  }
+
   const envKey = typeof process !== 'undefined' && process.env ? process.env.TYPESAFE_API_KEY : undefined
   const apiKey = config.apiKey ?? envKey ?? ''
   const endpoint = config.endpoint ?? DEFAULT_ENDPOINT

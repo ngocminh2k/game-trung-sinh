@@ -1,21 +1,21 @@
-## 2026-09-07T22:34:21Z
+# DISPATCH: Final Reviewer (PR, Git Branch & Contract Audit)
 
-You are the Final Reviewer for Milestone M5 (Iteration 2) of the UI Icon Shortfall project.
-Your working directory: C:\Users\minhd\orca\workspaces\game-trung-sinh\redesign-game-UI\.agents\reviewer_final
-Your parent conversation ID: c32728b6-eadd-4f93-a876-f4f10e8ff39a
+You are the Final Reviewer (`teamwork_preview_reviewer`).
+Your working directory is F:\game-trung-sinh\.agents\reviewer_final.
+Your project workspace is F:\game-trung-sinh.
 
-MANDATORY FIRST STEP: Read the authoritative request at C:\Users\minhd\orca\workspaces\game-trung-sinh\redesign-game-UI\.agents\ORIGINAL_REQUEST.md.
-Also read PROJECT.md, DEAD_ENDS.md, Reviewer 2's report at C:\Users\minhd\orca\workspaces\game-trung-sinh\redesign-game-UI\.agents\reviewer_2\handoff.md, and Worker Remediation's report at C:\Users\minhd\orca\workspaces\game-trung-sinh\redesign-game-UI\.agents\worker_remediation\handoff.md.
+MANDATORY INPUT:
+Read ORIGINAL_REQUEST.md at: F:\game-trung-sinh\.agents\ORIGINAL_REQUEST.md (specifically ## 2026-09-19T21:36:35Z).
+Read Specification at: C:\Users\minhd\.gemini\antigravity-cli\brain\06ca1ff1-f946-40b5-9a50-c714faaa792b\jev_integration_spec.md
+Read Operating Contract at: F:\game-trung-sinh\AGENTS.md
+Read Scope at: F:\game-trung-sinh\.agents\orchestrator_2\PROJECT.md
+Read Worker Report at: F:\game-trung-sinh\.agents\worker_m3_m4\handoff.md
 
-Objective:
-Independently verify that all defects and integrity violations identified in Iteration 1 have been completely resolved:
-1. Run the hardened verification suite: `node scripts/verify-ui-icons.mjs` (must pass 121/121 with exit code 0).
-2. Verify elimination of fake checkerboards and watermarks in `pins/exit/azure-pavilion.png`, `spirit-beast-ridge.png`, `moon-lake.png`, `bone-ash-ruins.png` (assert 0 grey grid pixels).
-3. Verify elimination of opaque/semi-opaque paper rectangles in `tabs/market.png`, `tabs/items.png`, `attrs/mind.png`, `pins/danger/bee-nest.png`, `pins/danger/claw-rock.png`, `pins/exit/herb-field.png`, `pins/exit/cloud-peak.png`, `pins/exit/sealed-cave.png`, `pins/npc/senior-lan.png`, `pins/event/dry-oasis.png` (assert inner corner alpha <= 10).
-4. Verify complete removal of Chinese characters: `banker-tin.png` (must have 0 Chinese characters, using antique Vietnamese coins / gold ingots / scale motif) and `storyteller-ngo.png` (folding fan must be clean of Chinese calligraphy).
-5. Verify remediation of the 18 NPC icons (items 24–30 and 50–60): confirm they adhere to authentic Vietnamese ink-wash style (#180F09) with Vermilion accents (#AC1922) matching exact spec concepts (no cartoon Minion goggles in dune-guide-sa, no sci-fi robot crystals in ice-hermit-bang, correct caravan banner in caravan-duong, correct blank spirit tablet in name-collector-tra).
-6. Run `npm run typecheck` to confirm clean compilation (exit code 0).
-
-Deliver your formal verdict (APPROVE or REQUEST_CHANGES) in your handoff report:
-C:\Users\minhd\orca\workspaces\game-trung-sinh\redesign-game-UI\.agents\reviewer_final\handoff.md
-When finished, send a message to parent (c32728b6-eadd-4f93-a876-f4f10e8ff39a) with your verdict and findings summary.
+Task:
+Perform independent final review of the entire integration, git branch, and Pull Request:
+1. Verify Git branch `feat/jev-system-one` and Pull Request #44 (`gh pr view 44`).
+2. Verify commit cleanliness: check `git show --stat 06660595e998997ec927ed5d7d2e62ec9c7c09cf`. Ensure NO foreign files (no locks, no .agents/, no .sentry-native/) were committed.
+3. Verify AGENTS.md contract compliance: check `docs/agent-work/active/` is clean, and handoffs in `docs/agent-work/handoffs/` are recorded.
+4. Run verification commands: `npm run typecheck`, `npx vitest run test/ai-jev-system.test.ts`, `npm run agent:check`.
+5. Provide your verdict: APPROVE or REQUEST_CHANGES in handoff.md.
+When done, notify parent with send_message.

@@ -4,6 +4,13 @@ import { narrationWanted } from './narration'
 import { classifySystemUtterance, type JevClientConfig } from './jev-client'
 import type { SystemFastDecision } from './jev-schemas'
 
+export {
+  classifyWithLayaOnnx,
+  triggerLayaPreload,
+  layaOnnxManager,
+  type LayaModelStatus,
+} from './laya-onnx-client'
+
 export interface SystemChatPayload {
   mode: 'chat' | 'offer_quest'
   locale: Locale
@@ -136,15 +143,13 @@ export function buildDeterministicSystemReply(
   // 2. Request quest
   if (decision.intent === 'request_quest') {
     const available = systemQuestsFor(game)
-    if (decision.questId) {
-      const quest = available.find((q) => q.id === decision.questId)
-      if (quest) {
-        return {
-          kind: 'offer_quest',
-          questId: quest.id,
-          textVi: `【${nameVi}】: Ký chủ yêu cầu nhiệm vụ. Ban bố: [${quest.nameVi}]. ${quest.descVi} Thưởng: ${quest.rewardGold} vàng.`,
-          textEn: `[${nameEn}]: Host requested a task. Issued: [${quest.nameEn}]. ${quest.descEn} Reward: ${quest.rewardGold} gold.`,
-        }
+    const quest = (decision.questId ? available.find((q) => q.id === decision.questId) : undefined) ?? available[0]
+    if (quest) {
+      return {
+        kind: 'offer_quest',
+        questId: quest.id,
+        textVi: `【${nameVi}】: Ký chủ yêu cầu nhiệm vụ. Ban bố: [${quest.nameVi}]. ${quest.descVi} Thưởng: ${quest.rewardGold} vàng.`,
+        textEn: `[${nameEn}]: Host requested a task. Issued: [${quest.nameEn}]. ${quest.descEn} Reward: ${quest.rewardGold} gold.`,
       }
     }
     return {

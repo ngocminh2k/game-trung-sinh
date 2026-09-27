@@ -6,8 +6,8 @@ declare module 'react' {
     inert?: '' | boolean | undefined
   }
 }
-import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, MAX_QI, RETREAT_HP_COST, checkMoveFrom, currentBeat, isBreakthroughReady, nextStageThreshold, playerMaxHp, techniqueQiCost, travelRisk, travelRiskLabel } from '../engine'
-import { CHAPTERS, ENEMIES, MAP_HEIGHT, MAP_WIDTH, NPCS, TECHNIQUES, getLocation, getRegionMap } from '../content'
+import { ATTRIBUTE_MAX, BASIC_STRIKE_QI_COST, MAX_QI, RETREAT_HP_COST, checkMoveFrom, currentBeat, isBreakthroughReady, nextStageThreshold, playerMaxHp, techniqueQiCost, travelRisk, travelRiskLabel, activeSystem, questStatus, isQuestUnlocked } from '../engine'
+import { CHAPTERS, ENEMIES, MAP_HEIGHT, MAP_WIDTH, NPCS, TECHNIQUES, getLocation, getRegionMap, QUESTS } from '../content'
 import { REALM_STAGES } from './gameScreen/constants'
 import { SkillTreePanel } from './gameScreen/panels'
 import { deriveObjective } from './objective'
@@ -115,7 +115,7 @@ export function ProtoShell({
         const p = JSON.parse(raw)
         return p.conciseMode === true
       }
-    } catch {}
+    } catch { /* noop */ }
     return false
   })
   const conciseActive = conciseMode ?? localConciseMode
@@ -131,7 +131,7 @@ export function ProtoShell({
             const curr = raw ? JSON.parse(raw) : {}
             localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...curr, conciseMode: next }))
           }
-        } catch {}
+        } catch { /* noop */ }
         return next
       })
     }
@@ -143,6 +143,7 @@ export function ProtoShell({
 
   
   // ponytail: inert on main.proto-shell isolates primary world controls; upgrade path: wrap shell + topbar into a unified dialog-inert boundary if topbar actions ever need modal isolation.
+  const autoQuestOpenedRef = useRef(false)
   const mainRef = useRef<HTMLElement>(null)
   useEffect(() => {
     mainRef.current?.toggleAttribute('inert', isModalActive)
@@ -286,6 +287,7 @@ export function ProtoShell({
       if (k === 'b') { setLeftTab('items'); setLeftMode('expanded'); return }
       if (k === 'p') { setLeftTab('people'); setLeftMode('expanded'); return }
       if (k === 'm') { setLeftTab('market'); setLeftMode('expanded'); return }
+      if (k === 'q') { setLeftTab('quest'); setLeftMode('expanded'); return }
       if (k === 'k') { setSkillTreeOpen(true); return }
       if (k === 'c') { setRightMode((m) => m === 'expanded' ? 'mini' : 'expanded'); return }
       if (k === 'l') { setTickerMode((m) => m === 'full' ? '1' : 'full'); return }
@@ -340,12 +342,60 @@ export function ProtoShell({
   const knownTechniques = TECHNIQUES.filter((t) => (game.techniques[t.id] ?? 0) > 0)
   const fightPills = combatConsumables(game).map((item) => ({ item, qty: game.inventory[item.id] ?? 0 }))
 
+  // Check if text is directed to The System
+  const isSystemDirected = (text: string) => {
+    const lower = text.toLowerCase()
+    return /^(hệ thống|he thong|system)\b/i.test(lower) ||
+      /nhiệm vụ|nhiem vu|quest|\bnv\b|xin việc|ban thưởng|vấn đạo|van dao|hỏi hệ thống|hoi he thong/.test(lower)
+  }
+
+  useEffect(() => {
+    // Auto-open quest tab when system is active but no quests accepted yet
+    const sys = activeSystem(game)
+    if (sys !== null && Object.values(game.quests).every(q => q?.status !== 'active') && leftTab !== 'quest') {
+      // Only auto-open once per session
+      if (!autoQuestOpenedRef.current) {
+        autoQuestOpenedRef.current = true
+        setLeftTab('quest')
+        setLeftMode('expanded')
+      }
+    }
+  }, [game.quests, game.systemId, game, leftTab])
+
   // === Submit free_text command ===
   const submitCommand = (e: FormEvent) => {
     e.preventDefault()
     if (peacetimeLocked || isDialogModalActive) return
     const v = command.trim()
     if (v.length === 0) return
+
+    // If directed to The System, route to System Chat on Left Rail
+    if (isSystemDirected(v)) {
+      setLeftTab('system')
+      if (leftMode === 'icon' || leftMode === 'hidden') {
+        setLeftMode('expanded')
+      }
+      setCommand('')
+      if (typeof window !== 'undefined') {
+        const w = window as unknown as {
+          __sendSystemChat?: (msg: string) => void
+          __pendingSystemChat?: string
+        }
+        if (w.__sendSystemChat) {
+          w.__sendSystemChat(v)
+        } else {
+          w.__pendingSystemChat = v
+          setTimeout(() => {
+            if (w.__sendSystemChat && w.__pendingSystemChat === v) {
+              w.__pendingSystemChat = undefined
+              w.__sendSystemChat(v)
+            }
+          }, 60)
+        }
+      }
+      return
+    }
+
     onAction({ kind: 'free_text', raw: v })
     setCommand('')
   }
@@ -510,6 +560,12 @@ export function ProtoShell({
                   })()}
                   <span>{vi ? meta.label : meta.glyph}</span>
                   {t === 'items' && Object.keys(game.inventory).length > 0 && <span className="badge">{Object.keys(game.inventory).length}</span>}
+                  {t === 'quest' && (() => {
+                    const active = QUESTS.filter(q => questStatus(game, q.id) === 'active').length
+                    const avail = QUESTS.filter(q => questStatus(game, q.id) === 'available' && isQuestUnlocked(game, q.id)).length
+                    const total = active + avail
+                    return total > 0 ? <span className="badge">{total}</span> : null
+                  })()}
                 </button>
               )
             })}

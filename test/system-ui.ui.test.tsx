@@ -312,7 +312,7 @@ describe('S07 System UI', () => {
     const onAction = vi.fn()
     const { rerender } = render(
       <LeftRailTabContent
-        tab="system"
+        tab="quest"
         game={game}
         locale="vi"
         onAction={onAction}
@@ -323,7 +323,7 @@ describe('S07 System UI', () => {
     const acceptBtn = screen.getByRole('button', { name: /Nhận nhiệm vụ: Lá thư lúc rạng đông/i })
     expect((acceptBtn as HTMLButtonElement).disabled).toBe(true)
     expect(acceptBtn.hasAttribute('disabled')).toBe(true)
-    const questItem = acceptBtn.closest('.proto-system-quest-item') as HTMLElement
+    const questItem = acceptBtn.closest('.proto-quest-tab-item') as HTMLElement
     expect(within(questItem).getByText('Cần tới: Làng Thanh Mộc')).toBeTruthy()
 
     fireEvent.click(acceptBtn)
@@ -332,7 +332,7 @@ describe('S07 System UI', () => {
     // When player is at Làng Thanh Mộc, accept button is enabled and no badge is shown for q_main_letter
     rerender(
       <LeftRailTabContent
-        tab="system"
+        tab="quest"
         game={{ ...base, player: { ...base.player, locationId: 'village' } }}
         locale="vi"
         onAction={onAction}
@@ -341,13 +341,13 @@ describe('S07 System UI', () => {
     const enabledBtn = screen.getByRole('button', { name: /Nhận nhiệm vụ: Lá thư lúc rạng đông/i })
     expect((enabledBtn as HTMLButtonElement).disabled).toBe(false)
     expect(enabledBtn.hasAttribute('disabled')).toBe(false)
-    const enabledItem = enabledBtn.closest('.proto-system-quest-item') as HTMLElement
+    const enabledItem = enabledBtn.closest('.proto-quest-tab-item') as HTMLElement
     expect(within(enabledItem).queryByText(/Cần tới:/)).toBeNull()
 
     // When player is at Vạn Thảo Cốc ('thousand_herbs_valley'), accept button is again disabled with badge
     rerender(
       <LeftRailTabContent
-        tab="system"
+        tab="quest"
         game={{ ...base, player: { ...base.player, locationId: 'thousand_herbs_valley' } }}
         locale="vi"
         onAction={onAction}
@@ -356,7 +356,7 @@ describe('S07 System UI', () => {
     const valleyBtn = screen.getByRole('button', { name: /Nhận nhiệm vụ: Lá thư lúc rạng đông/i })
     expect((valleyBtn as HTMLButtonElement).disabled).toBe(true)
     expect(valleyBtn.hasAttribute('disabled')).toBe(true)
-    const valleyItem = valleyBtn.closest('.proto-system-quest-item') as HTMLElement
+    const valleyItem = valleyBtn.closest('.proto-quest-tab-item') as HTMLElement
     expect(within(valleyItem).getByText('Cần tới: Làng Thanh Mộc')).toBeTruthy()
   })
 

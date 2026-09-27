@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { classifySystemUtterance } from '../src/ai/jev-client'
-import { fastClassifySystem, requestSystemReply } from '../src/ai/system'
+import { buildDeterministicSystemReply, fastClassifySystem, requestSystemReply } from '../src/ai/system'
 import { newGame } from '../src/engine'
 
 describe('JEV System One AI Classifier Integration', () => {
@@ -265,6 +265,22 @@ describe('JEV System One AI Classifier Integration', () => {
     expect(chatReply?.textVi).toContain('【Hệ Thống Chiến Đấu】')
     expect(chatReply?.textVi.length).toBeGreaterThan(0)
     expect(chatReply?.textEn.length).toBeGreaterThan(0)
+  })
+
+  it("TC-08: Xử lý chính xác 'ta muốn nhiệm vụ' ngay cả khi offline hoặc narrationWanted() false", async () => {
+    const game = { ...newGame('test-user-quest'), systemId: 'sys_battle' }
+    vi.stubEnv('VITE_AI_NARRATION_ENABLED', 'false')
+
+    // 1. fastClassifySystem returns request_quest
+    const decision = await fastClassifySystem(game, 'ta muốn nhiệm vụ')
+    expect(decision.intent).toBe('request_quest')
+    expect(decision.questId).toBe('q_sys_battle_01')
+
+    // 2. buildDeterministicSystemReply issues quest
+    const reply = buildDeterministicSystemReply(game, 'ta muốn nhiệm vụ', 'vi', decision)
+    expect(reply.kind).toBe('offer_quest')
+    expect(reply.questId).toBe('q_sys_battle_01')
+    expect(reply.textVi).toContain('Ban bố: [【Chiến Đấu I】 Thử Thách Máu]')
   })
 })
 

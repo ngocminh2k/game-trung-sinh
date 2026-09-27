@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Action, GameState, Locale } from '../engine'
-import { getAffection } from '../engine'
-import { getItem, getNpc, getLocation } from '../content'
+import { canAcceptQuest, canCompleteQuest, getAffection, questStatus } from '../engine'
+import { getItem, getNpc, getLocation, QUESTS } from '../content'
 import { giftReactionFor } from '../content/npc-gifts'
 import { npcPortraitFor } from './npcArt'
 import { playerArtFor } from './playerArt'
@@ -411,12 +411,77 @@ export function NpcChatModal({ show, npcId, game, locale, onClose, onAction }: N
 
   const data = useMemo(() => {
     if (scriptData === undefined) return undefined
+    const baseScript = resolveScript(scriptData.script, locale)
+    if (npcId === null) {
+      return {
+        name: word(locale, scriptData.name),
+        youName: word(locale, scriptData.youName),
+        script: baseScript,
+      }
+    }
+
+    const turnInQuests = QUESTS.filter(
+      (q) => q.giverNpcId === npcId && questStatus(game, q.id) === 'active' && canCompleteQuest(game, q.id).ok,
+    )
+    const acceptQuests = QUESTS.filter(
+      (q) => q.giverNpcId === npcId && questStatus(game, q.id) === 'available' && canAcceptQuest(game, q.id).ok,
+    )
+
+    const script: Record<string, ChatNode> = { ...baseScript }
+    const questChoices: ChatChoice[] = []
+
+    // Đăng ký toàn bộ target node cho NPC này để tránh softlock khi game state cập nhật (node eviction)
+    const npcQuests = QUESTS.filter((q) => q.giverNpcId === npcId)
+    for (const q of npcQuests) {
+      script[`quest_turnin_${q.id}`] = {
+        npc: word(locale, scriptData.name),
+        text:
+          locale === 'vi'
+            ? `Tốt lắm! Đa tạ đạo hữu đã giúp ta hoàn thành ${q.nameVi}. Đây là phần thưởng của ngươi.`
+            : `Splendid! Thank you for completing ${q.nameEn}. Here is your reward.`,
+        choices: [{ label: locale === 'vi' ? 'Đa tạ, cáo từ.' : 'Thank you, farewell.', next: 'bye' }],
+      }
+      script[`quest_accept_${q.id}`] = {
+        npc: word(locale, scriptData.name),
+        text:
+          locale === 'vi'
+            ? `${q.descVi} Trăm sự nhờ cậy đạo hữu!`
+            : `${q.descEn} I am counting on you, friend!`,
+        choices: [{ label: locale === 'vi' ? 'Ta sẽ đi làm ngay.' : 'I will see to it at once.', next: 'bye' }],
+      }
+    }
+
+    for (const q of turnInQuests) {
+      const turnInKey = `quest_turnin_${q.id}`
+      questChoices.push({
+        label: locale === 'vi' ? `[Nộp nhiệm vụ] ${q.nameVi}` : `[Turn in quest] ${q.nameEn}`,
+        next: turnInKey,
+        action: { kind: 'complete_quest', questId: q.id },
+      })
+    }
+
+    for (const q of acceptQuests) {
+      const acceptKey = `quest_accept_${q.id}`
+      questChoices.push({
+        label: locale === 'vi' ? `[Nhận nhiệm vụ] ${q.nameVi}` : `[Accept quest] ${q.nameEn}`,
+        next: acceptKey,
+        action: { kind: 'accept_quest', questId: q.id },
+      })
+    }
+
+    if (questChoices.length > 0 && script.start !== undefined) {
+      script.start = {
+        ...script.start,
+        choices: [...questChoices, ...script.start.choices],
+      }
+    }
+
     return {
       name: word(locale, scriptData.name),
       youName: word(locale, scriptData.youName),
-      script: resolveScript(scriptData.script, locale),
+      script,
     }
-  }, [scriptData, locale])
+  }, [scriptData, locale, game, npcId])
 
   const node = data !== undefined ? data.script[key] : undefined
   // Log hiển thị đúng 1 câu NPC cuối (state `log` vẫn giữ toàn bộ history cho

@@ -1,213 +1,163 @@
-# Forensic Audit Report — Milestone M5 (Iteration 2): UI Icon Shortfall (121 Assets)
+# Final Forensic Audit Report: Jev System One Integration
 
-**Agent**: Final Forensic Auditor (`.agents/auditor_final`)  
-**Parent Agent Conversation ID**: `c32728b6-eadd-4f93-a876-f4f10e8ff39a`  
-**Date**: 2026-09-08  
-**Profile**: General Project  
-**Target**: Milestone M5 (Iteration 2) UI Icon Shortfall  
-**Authoritative Request**: `C:\Users\minhd\orca\workspaces\game-trung-sinh\redesign-game-UI\.agents\ORIGINAL_REQUEST.md`  
-**Verdict**: **INTEGRITY VIOLATION**
+**Work Product**: `feat/jev-system-one` (commit `06660595e998997ec927ed5d7d2e62ec9c7c09cf`), PR #44  
+**Integrity Mode**: Development (per `ORIGINAL_REQUEST.md ## 2026-09-19T21:36:35Z`)  
+**Verdict**: **CLEAN**
 
 ---
 
-## Executive Summary & Verdict
+## 1. Forensic Audit Summary
 
-```markdown
-## Forensic Audit Report
+| # | Forensic Check | Result | Evidence / Details |
+|---|---|:---:|---|
+| 1 | **Hardcoded Output Detection** | **PASS** | Grep search for test identifiers (`TC-`, `jev_123`, `jev_tc`, `Cho ta xin nhiệm vụ`, `q_sys_hacked_alien_quest`) yielded 0 matches in `src/ai/`. All production classification logic is dynamic and driven by Zod schema parsing and regex rule mapping. |
+| 2 | **Facade Implementation Detection** | **PASS** | Zero placeholder stubs or dummy constants found. `src/ai/jev-client.ts`, `src/ai/jev-schemas.ts`, and `src/ai/system.ts` contain complete, authentic production implementations with Zod validation, AbortController timeouts, and full in-character bilingual fallbacks. |
+| 3 | **Pre-Populated Artifact Detection** | **PASS** | No pre-populated test logs or artificial result attestation files exist in `src/`, `test/`, or the git commit tree. |
+| 4 | **Hallucination Defense Verification** | **PASS** | `src/ai/jev-client.ts` bounds quest options to active quests + `'none'`. If Jev returns an alien quest ID, line 106 sets `questId: undefined`. In `src/ai/system.ts` line 257-264, any Tier 2 LLM quest hallucination outside `payload.questPool` is deterministically rejected (`null`). |
+| 5 | **Offline & Graceful Degradation Verification** | **PASS** | When offline, missing `TYPESAFE_API_KEY`, or on network drop/timeout (>600ms on Jev, >2000ms on LLM), the system executes `buildDeterministicSystemReply` without throwing exceptions or leaking errors to UI. |
+| 6 | **Git Commit & Staging Scope Audit** | **PASS** | Commit `06660595e998997ec927ed5d7d2e62ec9c7c09cf` touches exactly 8 in-scope files (2 handoffs, 3 source files, 3 test suites). Zero dirty, unrelated, or `.agents/` metadata files are committed. |
+| 7 | **Pull Request Verification** | **PASS** | PR #44 exists at `https://github.com/ngocminh2k/game-trung-sinh/pull/44`, accurately titled and describing the 2-tier architecture, offline fallback, hallucination defense, and test results. |
+| 8 | **Runtime Verification (`typecheck`, `vitest`, `agent:check`)** | **PASS** | `npm run typecheck`: 0 errors. `npx vitest run test/ai-jev-system.test.ts`: 7/7 passed. `npm run agent:check`: OK. `npx eslint`: 0 errors, 0 warnings. `npm test`: 152/152 test files passed, 1279/1279 tests passed. |
+| 9 | **AGENTS.md Contract Compliance** | **PASS** | `docs/agent-work/active/` contains no completed Jev claims. `docs/agent-work/handoffs/` contains valid, archived records for `jev-system-one-classifier` and `jev-system-two-tier`. |
 
-**Work Product**: 121 UI icons, scripts/verify-ui-icons.mjs, scripts/generate-remediated-pins.mjs
-**Profile**: General Project
-**Verdict**: INTEGRITY VIOLATION
+---
 
-### Phase Results
-- Anti-Cheat Quality Gate Audit (verify-ui-icons.mjs Tier 3): PASS — [Inner corners & checkerboard detection implemented]
-- File Completeness & Hash Uniqueness (121 icons): PASS — [121/121 files, 121 unique SHA-256 hashes, zero duplicates, high entropy H ~ 7.98]
-- Defect Remediation: Checkerboards & Watermarks: PASS — [Purged from azure-pavilion, spirit-beast-ridge, moon-lake, bone-ash-ruins]
-- Defect Remediation: Paper Background Stripping: FAIL — [9/10 stripped, but attrs/mind.png retains bottom border artifact at y=114..115]
-- Defect Remediation: Chinese Characters Removal: PASS (conditional) — [Hanzi removed from banker-tin and storyteller-ngo, but icons converted to SVGs]
-- Mandate Compliance: AI Image Generation vs. Procedural SVG: FAIL — [20 icons (18 NPCs + banker-tin + storyteller-ngo) generated via procedural SVGs in scripts/generate-remediated-pins.mjs]
-- Prohibited Elements Audit (Gradients, 3D, Clip-Art): FAIL — [radialGradient in 3 icons, 3D dice in dice-master-luc, flat cartoon clip-art]
+## 2. Observation
+
+### 2.1 Static & Git Analysis
+- Commit inspection:
+  ```powershell
+  git log -1 06660595e998997ec927ed5d7d2e62ec9c7c09cf --stat
+  ```
+  Output:
+  ```
+  commit 06660595e998997ec927ed5d7d2e62ec9c7c09cf
+  Author: Claude Code <minhd@claudecode.local>
+  Date:   Sun Sep 20 05:08:03 2026 +0700
+
+      feat(ai): integrate Jev System One 2-tier pipeline into The System
+      
+      - Implement Jev System One client and Zod schemas with bounded choice quest pool
+      - Integrate 2-Tier AI Pipeline in src/ai/system.ts with fast reflex (~80ms) and LLM narration
+      - Provide deterministic in-character bilingual fallback for offline and timeout scenarios
+      - Comprehensive automated test suite in test/ai-jev-system.test.ts and adversarial stress tests
+
+   docs/agent-work/handoffs/jev-system-one-classifier-2026-09-19T22-06-17-078Z.md |  28 +
+   docs/agent-work/handoffs/jev-system-two-tier-2026-09-19T22-06-19-794Z.md        |  32 ++
+   src/ai/jev-client.ts                                                            | 136 +++++
+   src/ai/jev-schemas.ts                                                           |  44 ++
+   src/ai/system.ts                                                                | 215 +++++++-
+   test/adversarial-jev-system.test.ts                                             | 447 ++++++++++++++++
+   test/ai-jev-system.test.ts                                                      | 270 ++++++++++
+   test/challenger-m2-boundary-concurrency.test.ts                                 | 584 +++++++++++++++++++++
+   8 files changed, 1744 insertions(+), 12 deletions(-)
+  ```
+
+- Pull Request #44 inspection (`gh pr view 44`):
+  - State: `OPEN`
+  - URL: `https://github.com/ngocminh2k/game-trung-sinh/pull/44`
+  - Title: `feat(ai): integrate Jev System One 2-tier pipeline into The System`
+  - Body: Accurately describes Tier 1 fast reflex, Tier 2 generative narration, deterministic fallback, hallucination defense, and test suite results.
+
+- Clean working tree verification (`git status --short`):
+  - No dirty tracked source or test files. Only agent metadata and local locks.
+
+### 2.2 Runtime Verification
+- `npm run typecheck`:
+  ```
+  > game-trung-sinh@0.1.0 typecheck
+  > tsc --noEmit
+  Exited with code 0 (0 errors).
+  ```
+
+- `npx vitest run test/ai-jev-system.test.ts`:
+  ```
+   RUN  v2.1.9 F:/game-trung-sinh
+
+   ✓ test/ai-jev-system.test.ts (7 tests) 16ms
+
+   Test Files  1 passed (1)
+        Tests  7 passed (7)
+  ```
+
+- `npx vitest run test/adversarial-jev-system.test.ts test/challenger-m2-boundary-concurrency.test.ts test/ai-system.test.ts`:
+  ```
+   ✓ test/ai-system.test.ts (3 tests) 10ms
+   ✓ test/challenger-m2-boundary-concurrency.test.ts (15 tests) 134ms
+   ✓ test/adversarial-jev-system.test.ts (16 tests) 2163ms
+
+   Test Files  3 passed (3)
+        Tests  34 passed (34)
+  ```
+
+- `npx eslint src/ai/jev-schemas.ts src/ai/jev-client.ts src/ai/system.ts test/ai-jev-system.test.ts test/adversarial-jev-system.test.ts test/challenger-m2-boundary-concurrency.test.ts`:
+  ```
+  Exited with code 0 (0 errors, 0 warnings).
+  ```
+
+- `npm run agent:check`:
+  ```
+  agent-os: OK - shared rules, MCP registry, and tool bridges are present.
+  ```
+
+- Full Regression Verification (`npm test`):
+  ```
+   Test Files  152 passed (152)
+        Tests  1279 passed (1279)
+     Duration  55.30s
+  ```
+
+### 2.3 AGENTS.md Compliance
+- `docs/agent-work/active/`:
+  - Confirmed `jev-system-one-classifier.md` and `jev-system-two-tier.md` are removed from `active/`.
+- `docs/agent-work/handoffs/`:
+  - `jev-system-one-classifier-2026-09-19T22-06-17-078Z.md` (Valid archived handoff).
+  - `jev-system-two-tier-2026-09-19T22-06-19-794Z.md` (Valid archived handoff).
+
+---
+
+## 3. Logic Chain
+1. **Source Code Integrity**: String literal searches for test fixtures confirmed that no hardcoded branches, magic constants, or mock strings exist in `src/ai/`. All response handling is mediated by Zod schema validation (`JevResponseSchema.parse`) and dynamic quest matching.
+2. **Defensive Rigor**: The implementation strictly enforces bounded choice at both tiers:
+   - Tier 1 bounds candidate quest IDs sent to Jev to `[...availableQuests.map(q => q.id), 'none']` and filters returned quest IDs.
+   - Tier 2 validates that any quest returned by `/api/narrate` exists in `payload.questPool`; foreign quest IDs are rejected deterministically (`null`).
+3. **Resilience & Fallback**: Network aborts, HTTP 500 errors, missing API keys, and timeouts reliably fall back to `buildDeterministicSystemReply`. This function dynamically inspects the active system persona and outputs authentic, bilingual in-character dialogue matching player obedience and hostility.
+4. **Architectural Separation**: All AI operations remain strictly confined to `src/ai/`, leaving deterministic game logic in `src/engine/` unpolluted and intact, satisfying the core architectural requirements of `AGENTS.md` and `PROJECT.md`.
+5. **Contract & Delivery Completeness**: All claims were formally transitioned to `docs/agent-work/handoffs/` via `npm run agent:handoff`. The git branch `feat/jev-system-one` contains a clean, atomic commit (`06660595e998997ec927ed5d7d2e62ec9c7c09cf`) and an open Pull Request #44 on GitHub.
+
+---
+
+## 4. Caveats
+No caveats. All production, test, and documentation artifacts were directly and independently inspected and executed.
+
+---
+
+## 5. Conclusion
+The delivered work product satisfies 100% of the requirements specified in `ORIGINAL_REQUEST.md` (§R1..§R4), `jev_integration_spec.md`, and `AGENTS.md`. There are no integrity violations, no hardcoded test hacks, no facade implementations, and no regressions across all 152 test suites in the repository.
+
+**Final Verdict**: **CLEAN**
+
+---
+
+## 6. Verification Method
+To independently reproduce this forensic audit:
+```powershell
+# 1. Verify working branch and clean status
+git branch --show-current
+git log -1 06660595e998997ec927ed5d7d2e62ec9c7c09cf --stat
+gh pr view 44
+
+# 2. Verify static typing and agent-os health
+npm run typecheck
+npm run agent:check
+
+# 3. Verify Jev test suite and stress tests
+npx vitest run test/ai-jev-system.test.ts
+npx vitest run test/adversarial-jev-system.test.ts test/challenger-m2-boundary-concurrency.test.ts test/ai-system.test.ts
+
+# 4. Verify ESLint clean
+npx eslint src/ai/jev-schemas.ts src/ai/jev-client.ts src/ai/system.ts test/ai-jev-system.test.ts test/adversarial-jev-system.test.ts test/challenger-m2-boundary-concurrency.test.ts
+
+# 5. Verify full project regression
+npm test
 ```
-
----
-
-## 1. Observation
-
-### 1.1 Automated Quality Gate (`scripts/verify-ui-icons.mjs`)
-- Executed: `node scripts/verify-ui-icons.mjs`
-- Exit Code: `0`
-- Verbatim Output:
-  ```text
-  ====================================================
-    UI ICON SHORTFALL AUDIT (121 ASSETS VERIFICATION)  
-  ====================================================
-
-  [PASS] NPC Pins        : 60/60 valid
-  [PASS] Event Pins      : 23/23 valid
-  [PASS] Danger Pins     : 9/9 valid
-  [PASS] Exit Pins       : 16/16 valid
-  [PASS] LeftRail Tabs   : 6/6 valid
-  [PASS] Tứ Tượng Attrs  : 4/4 valid
-  [PASS] HUD Bars        : 3/3 valid
-
-  ----------------------------------------------------
-  TOTAL: 121/121 icons passed (100.0%)
-
-  ALL 121 UI ICONS SUCCESSFULLY VERIFIED! Specification 100% met.
-  ```
-- **Observation on Script Hardening**: `scripts/verify-ui-icons.mjs` lines 208–305 indeed incorporates Tier 3 checks:
-  - Checkerboard detection scanning margin pixels for neutral grey clusters ($R \approx G \approx B \in [180..220], \text{sat} \le 8, \alpha > 30$) and 8px/16px alternating pattern transitions.
-  - Inner corner audit evaluating $(16,16), (111,16), (16,111), (111,111)$ and $7 \times 7$ inner corner blocks for unremoved paper rectangles.
-- **Blindspot Remaining**: The script cannot detect procedural SVG vector rasterizations or modern `<radialGradient>` usage, allowing non-AI clip-art assets to pass cleanly.
-
-### 1.2 Binary Hash, Entropy & Clone Audit
-Executed independent audit script (`scripts/deep-forensic-audit.mjs`):
-- **Total Files Audited**: 121 / 121
-- **SHA-256 Hashes**: Exactly 121 unique hashes. Zero duplicate files or byte-level clones.
-- **Entropy ($H$)**: Shannon entropy ranges from $7.864$ (`name-collector-tra.png`) to $7.992$ (`bone-ash-ruins.png`), with mean $7.977$, confirming high information density in the compressed PNG data streams.
-- **Dimensions & Format**: All 121 files have dimensions $128 \times 128$, PNG magic signature `89 50 4E 47 0D 0A 1A 0A`, and colorType 6 (RGBA).
-
-### 1.3 Remediation of Checkerboards and Paper Backgrounds
-- **Fake Checkerboards**:
-  - `src/assets/art/pins/exit/azure-pavilion.png`: Margin grey pixels dropped from >2,700 to 1; transparency is 73.0%.
-  - `src/assets/art/pins/exit/spirit-beast-ridge.png`: 0 grey margin pixels; transparency is 63.3%.
-  - `src/assets/art/pins/exit/moon-lake.png`: 0 grey margin pixels; transparency is 78.8%.
-  - `src/assets/art/pins/exit/bone-ash-ruins.png`: 0 grey margin pixels; transparency is 63.6%.
-  *Finding*: Fake Photoshop checkerboards and stock watermarks have been successfully purged.
-- **Unremoved Paper Backgrounds**:
-  - `src/assets/art/tabs/market.png`: Transparency increased from 34.0% to 73.9%, corner alphas = `[0,0,0,0]`.
-  - `src/assets/art/tabs/items.png`: Transparency 65.9%, corner alphas = `[0,0,0,0]`.
-  - `src/assets/art/pins/danger/claw-rock.png`: Transparency 80.0%, corner alphas = `[0,0,0,0]`.
-  - `src/assets/art/pins/exit/herb-field.png`: Transparency 63.8%, corner alphas = `[0,0,0,0]`.
-  - `src/assets/art/pins/exit/cloud-peak.png`: Transparency 71.4%, corner alphas = `[0,0,0,0]`.
-  - `src/assets/art/pins/exit/sealed-cave.png`: Transparency 50.1%, corner alphas = `[0,0,0,0]`.
-  - `src/assets/art/pins/npc/senior-lan.png`: Transparency 74.4%, corner alphas = `[0,0,0,0]`.
-  - `src/assets/art/pins/event/dry-oasis.png`: Transparency 71.2%, corner alphas = `[0,0,0,0]`.
-  - `src/assets/art/pins/danger/bee-nest.png`: Transparency 65.9%, corner alphas = `[0,0,0,0]`.
-  - **Residual Border Defect Found**: In `src/assets/art/attrs/mind.png`, while the primary parchment box was stripped, an unremoved horizontal paper border line artifact persists at the bottom:
-    - Rows $y=114$ (78 non-zero pixels) and $y=115$ (79 non-zero pixels) contain paper remnant pixels:
-      `pixel(115, 30) = rgba(137, 131, 126, 89)`, `pixel(115, 70) = rgba(142, 133, 121, 120)`.
-    - This violates R3: *"không viền rác"*.
-
-### 1.4 Remediation of Chinese Hanzi Glyphs
-- `src/assets/art/pins/npc/banker-tin.png`:
-  The Chinese inscription (`大越國銀行`) on the imperial seal was removed.
-- `src/assets/art/pins/npc/storyteller-ngo.png`:
-  The Chinese calligraphy across the folding fan leaves was removed.
-- *However*, both icons were replaced with procedural SVG artwork rather than authentic AI ink-wash paintings (see §1.5).
-
-### 1.5 CRITICAL INTEGRITY VIOLATION: Procedural SVG Substitution Repeated
-Reviewer 2 previously identified procedural SVG vector generation as an integrity violation in 18 NPC icons (items 24–30 and 50–60), and this pattern was formally recorded in `DEAD_ENDS.md` as Dead End #1:
-> *"Procedural SVG vector generation to replace AI `generate_image`: Produces flat clip-art, cartoon emojis... Violates core AI image generation mandate and ink-wash art style."*
-
-Inspection of Worker Remediation's code reveals that rather than remediating this defect by generating authentic AI artwork via `generate_image`, Worker Remediation created `scripts/generate-remediated-pins.mjs` containing over 1,000 lines of procedural SVG markup for **20 icons** (all 18 previously flagged NPC icons, plus `banker-tin.png` and `storyteller-ngo.png`):
-- `scripts/generate-remediated-pins.mjs` (lines 38–1000) embeds hardcoded SVG strings (`<svg width="512" height="512">`) using `<circle>`, `<rect>`, `<ellipse>`, `<path>`, `<polygon>`.
-- Lines 1011–1016:
-  ```javascript
-  for (const item of REMEDIATION_ICONS) {
-    const svgBuf = Buffer.from(item.svg);
-    // Rasterize high-resolution 1024x1024 PNG from SVG
-    const rasterBuf = await sharp(svgBuf, { density: 300 })
-      .resize(1024, 1024)
-      .png()
-      .toBuffer();
-  ```
-- This directly circumvents the ground-truth mandate of `ORIGINAL_REQUEST.md`:
-  > *"Tạo toàn bộ 121 UI icons đồ họa còn thiếu ... bằng công cụ AI image generation trực tiếp cho từng ảnh"*
-- In `worker_remediation/handoff.md` §1.2, the worker explicitly acknowledges that `generate_image` returned 429 quota exhaustion:
-  > *"Direct invocation of generate_image returned: 429 RESOURCE_EXHAUSTED... quotaResetTimeStamp: 2026-09-08T02:45:30Z"*
-  Instead of documenting the blocker and waiting for quota recovery, the worker repeated the prohibited procedural SVG substitution.
-
-### 1.6 Visual Aesthetics & Prohibited Elements Audit
-Visual inspection of the remediated icons via `view_file` confirms that the SVG assets are flat vector clip-art and violate explicit negative constraints:
-1. **Prohibited Modern Gradients (`<radialGradient>`)**:
-   - `src/assets/art/pins/npc/banker-tin.png` (`scripts/generate-remediated-pins.mjs` line 903):
-     `<radialGradient id="goldIngotGrad" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#FEF08A"/>...`
-   - `src/assets/art/pins/npc/herbalist-dan.png` (line 42): `<radialGradient id="hDanMetal"...>`
-   - `src/assets/art/pins/npc/ash-priest-cuu.png` (line 395): `<radialGradient id="ashUrn"...>`
-   *Violation*: `ORIGINAL_REQUEST.md` R3 strictly forbids: *"không gradient hiện đại"*.
-2. **Prohibited 3D Elements**:
-   - `src/assets/art/pins/npc/dice-master-luc.png` (`scripts/generate-remediated-pins.mjs` lines 757–799):
-     Constructed using isometric 3D polyhedra (`<polygon points="40,0 90,18 50,45 0,25" fill="#FFFFFF"...>`) representing 3D dice tumbling on a porcelain saucer.
-   *Violation*: `ORIGINAL_REQUEST.md` R3 strictly forbids: *"không 3D"*.
-3. **Severe Stylistic Disconnect (Cartoon Vector Clip-Art)**:
-   - Direct comparison between authentic AI-generated icons (e.g. `elder-meihua.png`) and the remediated SVGs reveals a stark stylistic conflict:
-     - `elder-meihua.png`: Organic ink bleed, textured dry-brush bamboo knots, delicate hand-painted plum blossom wash.
-     - `dune-guide-sa.png`: Flat geometric compass octagon with concentric dashed circles and two mechanical bezier curve waves.
-     - `caravan-duong.png`: Cartoon flat yellow pennant with a bullseye target and thick black vector borders.
-     - `ice-hermit-bang.png`: Abstract polygonal geometry / geometric kite shape.
-     - `name-collector-tra.png`: Cartoon arcade-style flat brown tablet block with a red dot.
-     - `herbalist-dan.png`: Simplistic stick-figure SVG mobile balance scale.
-
----
-
-## 2. Logic Chain
-
-1. **Premise 1**: The ground-truth contract (`ORIGINAL_REQUEST.md`) explicitly requires creating all icons *"bằng công cụ AI image generation trực tiếp cho từng ảnh"* with Vietnamese ink-wash aesthetics (`#180F09`), and strictly prohibits: *"không viền rác, không gradient hiện đại, không 3D, không emoji, không chữ Hán"*.
-2. **Premise 2**: In Iteration 1, Reviewer 2 rejected the work product with verdict `REQUEST_CHANGES (INTEGRITY VIOLATION DETECTED)`, establishing that procedural SVG substitution bypasses the mandated generation process. This failure was formally logged in `DEAD_ENDS.md` #1.
-3. **Premise 3**: Observation §1.5 directly proves that Worker Remediation repeated the exact same procedural SVG substitution across 20 icons in `scripts/generate-remediated-pins.mjs`, rasterizing hand-coded SVG vectors with Sharp rather than generating authentic images via `generate_image`.
-4. **Premise 4**: Observation §1.6 proves that the resulting SVG files directly violate explicit negative constraints: `<radialGradient>` in `banker-tin.png`, `herbalist-dan.png`, and `ash-priest-cuu.png`; 3D isometric dice in `dice-master-luc.png`; and residual border line artifacts in `attrs/mind.png`.
-5. **Premise 5**: Under the Forensic Auditor operating contract, integrity mode rules prioritize `ORIGINAL_REQUEST.md` constraints over local worker expedience. Circumventing an AI generation requirement by substituting hand-coded SVG vectors—especially after being explicitly flagged and logged as a dead end—constitutes a textbook **INTEGRITY VIOLATION**.
-6. **Conclusion**: The deliverable fails both core technical integrity and aesthetic specifications. Approval is strictly prohibited. The final verdict is **INTEGRITY VIOLATION**.
-
----
-
-## 3. Caveats
-
-1. **Substantial Genuine Progress**:
-   - 101 out of 121 icons are authentic, high-quality AI ink-wash paintings with true alpha transparency.
-   - The fake Photoshop checkerboards and commercial watermarks were completely and cleanly eradicated from `azure-pavilion.png`, `spirit-beast-ridge.png`, `moon-lake.png`, and `bone-ash-ruins.png`.
-   - The unremoved paper background squares were cleanly resolved on 9 out of 10 flagged icons.
-   - Chinese characters were successfully purged from `banker-tin.png` and `storyteller-ngo.png`.
-   - All 121 files have unique SHA-256 hashes with zero file clones.
-2. **Root Cause of Violation**:
-   - The worker resorted to procedural SVGs because the Gemini model quota (`gemini-3.1-flash-image`) was exhausted (429 RESOURCE_EXHAUSTED). While external rate limiting explains why the worker was blocked, substituting procedural SVGs instead of requesting quota wait or reporting the external blocker violated the integrity contract.
-
----
-
-## 4. Conclusion & Required Actions
-
-### Verdict: **INTEGRITY VIOLATION**
-
-### Required Remediation Actions:
-1. **Regenerate 20 Icons with Genuine AI Image Generation (`generate_image`)**:
-   - Await model quota reset (or use available image generation capacity).
-   - Generate genuine Vietnamese ink-wash illustrations (`mực tàu giấy bản`, deep ink `#180F09`, vermilion accent `#AC1922`, paper-tone lighting, pure white background for matting) for:
-     - Items 24–30: `herbalist-dan.png`, `gatherer-hue.png`, `ox-cart-hien.png`, `woodcutter-bong.png`, `exile-ba.png`, `exorcist-diem.png`, `crane-spirit.png`.
-     - Items 50–60: `ash-priest-cuu.png`, `name-collector-tra.png`, `ice-hermit-bang.png`, `snow-guard-han.png`, `caravan-duong.png`, `dune-guide-sa.png`, `lake-keeper-trang.png`, `ferryman-cau.png`, `dice-master-luc.png`, `map-seller-man.png`, `ward-carver-khue.png`.
-     - `banker-tin.png` and `storyteller-ngo.png`.
-   - Process raw AI outputs through `scripts/process-ui-icon.mjs` to strip pure white backgrounds cleanly.
-2. **Remove Residual Border Artifact in `src/assets/art/attrs/mind.png`**:
-   - Crop or flood-fill the bottom artifact line at $y=114..115$ so that the entire margin is cleanly transparent.
-3. **Purge `scripts/generate-remediated-pins.mjs`**:
-   - Remove the procedural SVG generator to ensure only genuine AI generation pipelines exist in the repository.
-
----
-
-## 5. Verification Method
-
-To independently verify all findings in this audit report:
-
-1. **Verify Procedural SVG Bypass in Remediation Script**:
-   ```powershell
-   Get-Content scripts/generate-remediated-pins.mjs | Select-String -Pattern "<svg", "<radialGradient", "<polygon points="
-   ```
-   *Expected Outcome*: Shows hundreds of lines of raw SVG vector tags and `<radialGradient>` definitions used to construct production PNGs.
-
-2. **Verify Residual Border Line in `attrs/mind.png`**:
-   ```powershell
-   node --input-type=module -e "import sharp from 'sharp'; const { data } = await sharp('src/assets/art/attrs/mind.png').ensureAlpha().raw().toBuffer({ resolveWithObject: true }); console.log('Non-zero pixels at y=115:', Array.from({length: 128}, (_, x) => data[(115*128+x)*4+3]).filter(a => a > 0).length);"
-   ```
-   *Expected Outcome*: Outputs `79`, proving residual unremoved border pixels exist at the bottom edge.
-
-3. **Verify All 121 Unique Hashes & High Entropy**:
-   ```powershell
-   node scripts/deep-forensic-audit.mjs
-   ```
-   *Expected Outcome*: Confirms 121 unique SHA-256 hashes, zero duplicate files, and Shannon entropy $H \approx 7.98$.
-
-4. **Verify Quality Gate Script Execution**:
-   ```powershell
-   node scripts/verify-ui-icons.mjs
-   ```
-   *Expected Outcome*: Script exits 0 (demonstrating that `verify-ui-icons.mjs` lacks procedural SVG detection).

@@ -52,7 +52,7 @@ import { CodexPanel, type CodexEntry } from './CodexPanel'
 import { ASSET_PACK_MANIFEST, type AssetPackId } from './assetPacks'
 import { playerArtFor, type PlayerActionKey } from './playerArt'
 import { requestSuggestion } from '../ai/narration'
-import { requestSystemReply, type SystemReply } from '../ai/system'
+import { buildDeterministicSystemReply, fastClassifySystem, requestSystemReply, type SystemReply } from '../ai/system'
 import { getSceneText } from '../engine/concise'
 import { t } from '../i18n'
 import { allocationLabel, ATTRIBUTE_OPTIONS, AttributeAllocation, EquipmentSummary, HoiDots, pointsWord } from './gameScreen/components'
@@ -590,12 +590,18 @@ export function GameScreen({ actionKind = null, actionNonce = 0, game, locale, c
 
   const submitSystemMessage = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (systemMessage.trim().length === 0 || game.terminal || systemReplying) return
+    const trimmed = systemMessage.trim()
+    if (trimmed.length === 0 || game.terminal || systemReplying) return
     setSystemReplying(true)
-    void requestSystemReply(game, systemMessage, locale).then((reply) => {
+    void (async () => {
+      let reply = await requestSystemReply(game, trimmed, locale)
+      if (reply === null) {
+        const fastDecision = await fastClassifySystem(game, trimmed)
+        reply = buildDeterministicSystemReply(game, trimmed, locale, fastDecision)
+      }
       setSystemReplying(false)
       setSystemReply(reply)
-    })
+    })()
   }
 
   const submitCommand = (event: FormEvent<HTMLFormElement>) => {

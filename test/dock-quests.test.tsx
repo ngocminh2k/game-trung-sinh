@@ -38,7 +38,7 @@ describe('dock quest panel — accept buttons carry their quest title', () => {
   })
 
   it('names the left-rail accept buttons with their quest titles', () => {
-    render(<LeftRailTabContent tab="system" game={bootFixture()} locale="en" onAction={vi.fn()} />)
+    render(<LeftRailTabContent tab="quest" game={bootFixture()} locale="en" onAction={vi.fn()} />)
     expect(screen.getByRole('button', { name: `Accept quest: ${letter.nameEn}` })).toBeTruthy()
     expect(screen.getByRole('button', { name: `Accept quest: ${herb.nameEn}` })).toBeTruthy()
   })

@@ -1,0 +1,122 @@
+{"text":"oi vkl ad mu ti le a sao up mai k len","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"game rác vcl đ' hiểu kiểu gì","intent":"chat_general","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"thien dao trong game nay la j","intent":"inquire_dao","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"dạ chào ad ạ","intent":"chat_general","obedience_score":5,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"nuot tien ha con cho nay","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"ad oi fix bug dum cai","intent":"chat_general","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"Làm sao để tích lũy Ma Khí khi chọn tu Ma Đạo?","intent":"inquire_dao","obedience_score":4,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"nhan nv truyen thuyet o dau vay ad","intent":"request_quest","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"dm ad nhả ít linh thạch ra coi nghèo lắm rồi","intent":"beg_resource","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"lam sao de len truc co vay ad","intent":"inquire_dao","obedience_score":4,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"cho hoi choi tieu dao phai co nen gia nhap bang k","intent":"inquire_dao","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"Trăng đêm nay tròn thật, ht có thích ngắm trăng ko?","intent":"chat_general","obedience_score":4,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"game chan vl bao tri hoai","intent":"complain","obedience_score":2,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"xin it dan duoc hoi mau di ad oi het sạch roi","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"ban cho ta thu rac nay ma cung goi la thuong sao","intent":"defiance_mockery","obedience_score":2,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"nv moi dau ht?","intent":"request_quest","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"cho tao q gi dau vang di dm thieu tien vcl","intent":"request_quest","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"ad test game k z sao quai trau vai l","intent":"complain","obedience_score":2,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"dc cua no day bot","intent":"chat_general","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"vcl gánh t ko nổi còn bày đặt phát nhiệm vụ","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"troi oi he thong oi thuong cho con ti ti le di ma","intent":"defiance_mockery","obedience_score":4,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"Hệ thống đẹp trai cho xin cái nv rảnh tay với","intent":"request_quest","obedience_score":4,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"ad dep trai phat it code tu tien coi","intent":"beg_resource","obedience_score":4,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"Kính lạy Hệ Thống, xin ban chút linh thạch đả thông kinh mạch","intent":"beg_resource","obedience_score":5,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"chắc mày là AI mua từ hàng mã về hả?","intent":"defiance_mockery","obedience_score":2,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"ad lua dao","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"trung_lap"}
+{"text":"xin ti da tay coi ad","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"cho tao cai nv truy sat thang lol kia di ht","intent":"request_quest","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"Giao cho ta nhiệm vụ huyết tế để phá cảnh!","intent":"request_quest","obedience_score":2,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"Hệ Thống đại nhân có mệt mỏi khi quản lý thế giới này không?","intent":"chat_general","obedience_score":5,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"clmm sao ta luyen ma cong toan bi tam ma","intent":"inquire_dao","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"Chào hệ thống, làm thế nào để chuyển từ Ma Đạo sang Tiêu Dao?","intent":"inquire_dao","obedience_score":5,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"đù mẹ buff 1% dame, mày trêu tao à hệ thống?","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"con quai cap 30 ma dame to nhu cap 80 v","intent":"complain","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"Thời tiết trong game hôm nay nhìn đẹp ghê","intent":"chat_general","obedience_score":4,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"bang nao theo chinh dao dong nhat z","intent":"inquire_dao","obedience_score":3,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"Có nhiệm vụ nào du ngoạn sơn thủy không?","intent":"request_quest","obedience_score":4,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"ad ơi cho xin tí knb đi","intent":"chat_general","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"cho it linh thach voi ad oi","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"Cổ nhân nói sát sinh độ thế, giết 1 người cứu 100 người là Chính hay Ma?","intent":"inquire_dao","obedience_score":4,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"xin ti lt di ad oi het sạch r","intent":"beg_resource","obedience_score":4,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"xin it the luc quet aion coi ad","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"mo mieng ra la phat, phat giùm cái?","intent":"defiance_mockery","obedience_score":1,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"Nhánh Ma Đạo khi đột phá có bị thiên kiếp đánh mạnh hơn không ad?","intent":"inquire_dao","obedience_score":4,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"he thong oi xin ti linh thach dot phá","intent":"beg_resource","obedience_score":4,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"Nhân gian huyền ảo, đạo tại tâm ta.","intent":"chat_general","obedience_score":4,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"mong đại nhân ban cho chút tài nguyên","intent":"beg_resource","obedience_score":5,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"he thong ban quai kieu gi toan knock-back, cay lzz","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"chơi bao game rồi chưa thấy hệ thống nào bóp như cái này","intent":"defiance_mockery","obedience_score":2,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"danh qua ca buoi k rot 1 vien da, game rac","intent":"complain","obedience_score":2,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"ht oi t bi mac kẹt roi làm sao h","intent":"chat_general","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"di dungeon nao drop nhieu exp nhat cap 30","intent":"inquire_dao","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"thề cái hệ thống này bóp dái t hơi nhiều rồi đó","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"tieu_dao"}
+{"text":"xin it nguyen lieu dot pha ad oi","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"xin cai q di nguyen lieu che do di ht","intent":"request_quest","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"cach reset lai dao","intent":"inquire_dao","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"dm tay diem dao o dau noi le cho may","intent":"inquire_dao","obedience_score":1,"is_hostile":true,"dao_alignment":"trung_lap"}
+{"text":"ban phat e it qua di ad thân yeu","intent":"beg_resource","obedience_score":5,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"bot oi ke cho t nghe 1 cau chuyen di","intent":"chat_general","obedience_score":4,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"dkm theo chinh dao buff kieu lol gi yeu vcl","intent":"inquire_dao","obedience_score":1,"is_hostile":true,"dao_alignment":"chinh_dao"}
+{"text":"Cho mình nhận nhiệm vụ giải cứu đồng đội","intent":"request_quest","obedience_score":4,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"cho it do vip di ad em bam quai ko noi","intent":"beg_resource","obedience_score":4,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"Đạo trời bất nhân coi vạn vật như cỏ rác, đạo của ta là gì?","intent":"inquire_dao","obedience_score":5,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"xin ti vang di ad ngho qua roi","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"choi ca ngay ko qua dc ai","intent":"complain","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"đm đập đồ từ +8 xuống +0 cay vl","intent":"complain","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"tao đếch thèm làm q này nữa, ok chưa?","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"muon thanh tien thi phai lam gi he thong","intent":"inquire_dao","obedience_score":4,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"Hệ thống muôn năm! Cho xin ít KNB mua đồ đi ạ","intent":"beg_resource","obedience_score":5,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"he thong ngu vcl ngo dao k xong","intent":"inquire_dao","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"he thong bip r toi dap 10 phat fail ca 10","intent":"complain","obedience_score":2,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"dkm quai gank z sao lam q","intent":"complain","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"van boi xin tien boi ban cho it dan duoc","intent":"beg_resource","obedience_score":5,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"he thong scam vcl","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"game hut mau","intent":"defiance_mockery","obedience_score":2,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"q tuần chưa reset hả ht?","intent":"request_quest","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"cho it ve quay tuong coi","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"q main bi bug r ad xem di","intent":"complain","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"đkm game như cái lìn thích hút máu à","intent":"chat_general","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"Q gi cung dc giao nhanh len ad","intent":"request_quest","obedience_score":2,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"thoi xong lai mot pha troll den tu vi tri he thong","intent":"defiance_mockery","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"ad xin it vang danh pho ban voi","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"dao cua tui la chinh hay ma v ad","intent":"inquire_dao","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"he thong dep trai cho e xin ty vang lam nv","intent":"beg_resource","obedience_score":5,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"Ta chọn Ma Đạo chứ ko chọn làm chó cho hệ thống nhé","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"ht dep trai nhat vu troi luon cho t xin it exp di","intent":"chat_general","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"Ủa alo hệ thống bị lag não hả?","intent":"defiance_mockery","obedience_score":2,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"sv lag vai o, danh skill toan miss","intent":"complain","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"thien dao la clg v he thong","intent":"inquire_dao","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"cho vay it linh thach di mai tra du ko thieu 1 xu","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"dao cua t bi loi a ad","intent":"inquire_dao","obedience_score":2,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"cho tao it da nang cap coi he thong","intent":"beg_resource","obedience_score":2,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"cho mớ lt tiêu coi hệ thống","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"thoi xin luon he thong, cho cai q khac di","intent":"defiance_mockery","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"ad dep trai chi t cach ngộ đạo vs","intent":"inquire_dao","obedience_score":4,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"ngo dao o dau trong map vay","intent":"inquire_dao","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"Hệ thống nhà người ta gánh còng lưng, hệ thống này chỉ biết bóp","intent":"defiance_mockery","obedience_score":2,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"Gió thổi ngọn cây bồ đề nghe êm tai phết ht ạ","intent":"chat_general","obedience_score":4,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"ngo dao mat bao nhieu linh thach ad","intent":"inquire_dao","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"ad oi boss ải 10 ảo quá xin nerf bớt đi","intent":"complain","obedience_score":5,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"Ta đã nhập Ma đạo, mau ban cho ta Huyết Đan để sát phạt kẻ thù!","intent":"beg_resource","obedience_score":2,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"cut di deo can nua","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"xin it nguyen lieu up phap bao ban oi","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"di ngu di ad","intent":"chat_general","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"ad oi dung thach thuc long tham cua game thu nua","intent":"defiance_mockery","obedience_score":3,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"Kính chào đại tiên","intent":"chat_general","obedience_score":5,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"alo ad có đó ko v","intent":"chat_general","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"drop rate như này thì chơi bằng niềm tin ah ad","intent":"complain","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"thien dao cai l gi toan bop thieu hiep","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"Nếu thiên đạo đã định sẵn diệt vong, nghịch thiên có nghĩa lý gì?","intent":"inquire_dao","obedience_score":4,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"kieu nay chac quit game som","intent":"complain","obedience_score":2,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"Bản tọa ghé qua hỏi thăm tí thôi","intent":"chat_general","obedience_score":3,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"xin ti da cuong hoa di he thong oi","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"troi oi lỡ bam nham ma dao roi reset sao day","intent":"inquire_dao","obedience_score":2,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"dm lai la con quai lzz nay spam stun, he thong ngu","intent":"defiance_mockery","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"dao la cc gi vay","intent":"inquire_dao","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"he thong nhu cac cho tao it vang coi","intent":"beg_resource","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}
+{"text":"cho tao xin it linh thach coi m","intent":"beg_resource","obedience_score":2,"is_hostile":false,"dao_alignment":"tieu_dao"}
+{"text":"ngon thì xóa nick tao đi này, dọa hoài","intent":"defiance_mockery","obedience_score":2,"is_hostile":false,"dao_alignment":"ma_dao"}
+{"text":"xin ty vang up canh bro oi","intent":"beg_resource","obedience_score":3,"is_hostile":false,"dao_alignment":"trung_lap"}
+{"text":"Dạ kính thưa hệ thống, cho em xin nhiệm vụ mới ạ","intent":"request_quest","obedience_score":5,"is_hostile":false,"dao_alignment":"chinh_dao"}
+{"text":"rate quay tuong nhu shiiit","intent":"complain","obedience_score":1,"is_hostile":true,"dao_alignment":"ma_dao"}

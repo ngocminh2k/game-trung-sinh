@@ -91,6 +91,7 @@ describe('AI suggestion UI states', () => {
   })
 
   it('skips the AI entirely when narration is disabled and acts immediately', async () => {
+    vi.stubEnv('VITE_AI_NARRATION_ENABLED', 'false')
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
